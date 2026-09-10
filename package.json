@@ -1,0 +1,35 @@
+{
+  "name": "lineup-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A deterministic, explainable NBA lineup builder.",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "build:packages": "pnpm --filter @lineup-engine/shared build && pnpm --filter @lineup-engine/basketball-engine build",
+    "predev": "pnpm run build:packages",
+    "dev": "concurrently -k -n shared,engine,api,web -c cyan,magenta,yellow,green \"pnpm --filter @lineup-engine/shared dev\" \"pnpm --filter @lineup-engine/basketball-engine dev\" \"pnpm --filter @lineup-engine/api dev\" \"pnpm --filter @lineup-engine/web dev\"",
+    "build": "pnpm run build:packages && pnpm --filter @lineup-engine/api build && pnpm --filter @lineup-engine/web build",
+    "test": "pnpm run build:packages && pnpm -r --if-present test",
+    "typecheck": "pnpm run build:packages && pnpm -r --if-present typecheck",
+    "lint": "eslint . --max-warnings=0 && prettier --check \"**/*.{ts,tsx,js,json,md,yaml,yml,css}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yaml,yml,css}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1",
+    "vitest": "^4.0.14"
+  }
+}
