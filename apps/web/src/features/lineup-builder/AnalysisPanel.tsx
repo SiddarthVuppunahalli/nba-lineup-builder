@@ -1,15 +1,30 @@
-import type { LineupAnalysisResponse, RosterPlayerDto } from '@lineup-engine/shared';
+import type {
+  ConstraintResultDto,
+  LineupAnalysisResponse,
+  RosterPlayerDto,
+} from '@lineup-engine/shared';
 
 import { MetricCard } from './MetricCard.tsx';
 
 interface AnalysisPanelProps {
   analysis: LineupAnalysisResponse | undefined;
   error: string | undefined;
+  errorDetails?: string[];
   isPending: boolean;
   roster: RosterPlayerDto[];
   selectedPlayerIds: string[];
   onRetry: () => void;
   canRetry: boolean;
+  mode?: 'manual' | 'generation';
+  resultContext?:
+    | {
+        objectiveScore: number;
+        constraints: ConstraintResultDto[];
+        evaluatedCandidateCount: number;
+        validCandidateCount: number;
+        usedBalancedDefault: boolean;
+      }
+    | undefined;
 }
 
 const metricDefinitions = [
@@ -51,19 +66,32 @@ function SelectedFive({
 export function AnalysisPanel({
   analysis,
   error,
+  errorDetails = [],
   isPending,
   roster,
   selectedPlayerIds,
   onRetry,
   canRetry,
+  mode = 'manual',
+  resultContext,
 }: AnalysisPanelProps) {
   if (isPending) {
     return (
       <section className="analysis-card analysis-loading" aria-live="polite">
         <span className="analysis-orbit" aria-hidden="true" />
-        <div className="eyebrow">Evaluating lineup</div>
-        <h2>Finding the strengths in your five…</h2>
-        <p>Looking at shooting, creation, defense, and how your players fit together.</p>
+        <div className="eyebrow">
+          {mode === 'generation' ? 'Searching the roster' : 'Evaluating lineup'}
+        </div>
+        <h2>
+          {mode === 'generation'
+            ? 'Finding the best five for your intent…'
+            : 'Finding the strengths in your five…'}
+        </h2>
+        <p>
+          {mode === 'generation'
+            ? 'Evaluating every eligible combination against your priorities and requirements.'
+            : 'Looking at shooting, creation, defense, and how your players fit together.'}
+        </p>
       </section>
     );
   }
@@ -71,11 +99,24 @@ export function AnalysisPanel({
   if (error) {
     return (
       <section className="analysis-card analysis-error" role="alert">
-        <div className="eyebrow">Analysis unavailable</div>
-        <h2>We couldn’t evaluate that five.</h2>
+        <div className="eyebrow">
+          {mode === 'generation' ? 'No valid lineup' : 'Analysis unavailable'}
+        </div>
+        <h2>
+          {mode === 'generation'
+            ? 'Those requirements don’t fit this roster.'
+            : 'We couldn’t evaluate that five.'}
+        </h2>
         <p>{error}</p>
+        {errorDetails.length > 0 && (
+          <ul className="error-details">
+            {errorDetails.map((detail) => (
+              <li key={detail}>{detail}</li>
+            ))}
+          </ul>
+        )}
         <button className="retry-button" type="button" onClick={onRetry} disabled={!canRetry}>
-          Retry analysis
+          {mode === 'generation' ? 'Retry generation' : 'Retry analysis'}
         </button>
       </section>
     );
@@ -89,11 +130,16 @@ export function AnalysisPanel({
           <span />
           <span />
         </div>
-        <div className="eyebrow">Your five</div>
-        <h2>Build the lineup, then inspect the fit.</h2>
+        <div className="eyebrow">{mode === 'generation' ? 'Your intent' : 'Your five'}</div>
+        <h2>
+          {mode === 'generation'
+            ? 'Set the rules. We’ll search every five.'
+            : 'Build the lineup, then inspect the fit.'}
+        </h2>
         <p>
-          Select five players from the roster to discover what works, where you give something up,
-          and why.
+          {mode === 'generation'
+            ? 'Balance ranking preferences with hard requirements, then inspect why the winning lineup fits.'
+            : 'Select five players from the roster to discover what works, where you give something up, and why.'}
         </p>
         <SelectedFive roster={roster} selectedPlayerIds={selectedPlayerIds} />
       </section>
@@ -107,8 +153,14 @@ export function AnalysisPanel({
     <section className="analysis-card analysis-results" aria-labelledby="analysis-title">
       <div className="analysis-header">
         <div>
-          <div className="eyebrow">Lineup analysis</div>
-          <h2 id="analysis-title">How this five fits together.</h2>
+          <div className="eyebrow">
+            {mode === 'generation' ? 'Best valid lineup' : 'Lineup analysis'}
+          </div>
+          <h2 id="analysis-title">
+            {mode === 'generation'
+              ? 'The strongest fit for your intent.'
+              : 'How this five fits together.'}
+          </h2>
         </div>
         <span className="verified-pill">
           <span aria-hidden="true">✓</span> Valid five
@@ -116,6 +168,33 @@ export function AnalysisPanel({
       </div>
 
       <SelectedFive roster={roster} selectedPlayerIds={analysis.lineup.playerIds} />
+
+      {resultContext && (
+        <div className="generation-summary">
+          <div>
+            <span>Weighted fit</span>
+            <strong>{resultContext.objectiveScore}</strong>
+          </div>
+          <p>
+            Ranked first among {resultContext.validCandidateCount} valid lineups after checking{' '}
+            {resultContext.evaluatedCandidateCount} combinations.
+            {resultContext.usedBalancedDefault
+              ? ' Balanced priorities were applied because every weight was zero.'
+              : ''}
+          </p>
+          <div className="constraint-list" aria-label="Requirement results">
+            {resultContext.constraints.map((constraint) => (
+              <div className="constraint-result" key={constraint.id}>
+                <span aria-hidden="true">✓</span>
+                <div>
+                  <strong>{constraint.label}</strong>
+                  <small>{constraint.description}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="metric-grid">
         {metricDefinitions.map(([key, label]) => (

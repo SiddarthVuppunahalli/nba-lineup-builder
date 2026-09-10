@@ -3,14 +3,18 @@ import {
   DEMO_PLAYERS,
   DEMO_PROFILES,
   DEMO_TEAM,
+  generateLineup,
+  type LineupIntent,
 } from '@lineup-engine/basketball-engine';
 import {
   apiErrorResponseSchema,
   lineupAnalysisResponseSchema,
+  generatedLineupResponseSchema,
   rosterResponseSchema,
   teamsResponseSchema,
   type ApiErrorResponse,
   type LineupAnalysisResponse,
+  type GeneratedLineupResponse,
   type RosterResponse,
   type TeamsResponse,
 } from '@lineup-engine/shared';
@@ -18,6 +22,10 @@ import {
 export type DemoAnalysisResult =
   | { success: true; data: LineupAnalysisResponse }
   | { success: false; status: 404 | 422; error: ApiErrorResponse };
+
+export type DemoGenerationResult =
+  | { success: true; data: GeneratedLineupResponse }
+  | { success: false; status: 404 | 409 | 422 | 500; error: ApiErrorResponse };
 
 export function listDemoTeams(): TeamsResponse {
   return teamsResponseSchema.parse({ teams: [DEMO_TEAM] });
@@ -98,4 +106,53 @@ export function analyzeDemoLineup(
       analysis: result.analysis,
     }),
   };
+}
+
+export function generateDemoLineup(teamId: string, intent: LineupIntent): DemoGenerationResult {
+  if (teamId !== DEMO_TEAM.id) {
+    return {
+      success: false,
+      status: 404,
+      error: apiErrorResponseSchema.parse({
+        error: {
+          code: 'TEAM_NOT_FOUND',
+          message: `No team exists with the id "${teamId}".`,
+        },
+      }),
+    };
+  }
+
+  const result = generateLineup({ players: DEMO_PLAYERS, profiles: DEMO_PROFILES, intent });
+  if (!result.success) {
+    if (result.reason === 'infeasible') {
+      return {
+        success: false,
+        status: 409,
+        error: apiErrorResponseSchema.parse({
+          error: {
+            code: 'INFEASIBLE_LINEUP',
+            message: result.message,
+            details: result.constraintSummary,
+          },
+        }),
+      };
+    }
+
+    const dataFailure = result.reason === 'data-error';
+    return {
+      success: false,
+      status: dataFailure ? 500 : 422,
+      error: apiErrorResponseSchema.parse({
+        error: {
+          code: dataFailure ? 'ROSTER_DATA_ERROR' : 'INVALID_INTENT',
+          message: dataFailure
+            ? 'The eligible roster is missing required basketball data.'
+            : 'The lineup generation intent is invalid.',
+          details: result.issues,
+        },
+      }),
+    };
+  }
+
+  return { success: true, data: generatedLineupResponseSchema.parse(result) };
 }

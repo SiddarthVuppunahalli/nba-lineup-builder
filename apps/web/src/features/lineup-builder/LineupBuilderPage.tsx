@@ -5,6 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 
 import { ApiClientError, fetchRoster, fetchTeams, postLineupAnalysis } from '../../api/client.ts';
 import { AnalysisPanel } from './AnalysisPanel.tsx';
+import { GenerationWorkspace } from './GenerationWorkspace.tsx';
 import { RosterPanel } from './RosterPanel.tsx';
 
 interface LineupFormValues {
@@ -18,6 +19,7 @@ function requestErrorMessage(error: Error | null): string | undefined {
 }
 
 export function LineupBuilderPage() {
+  const [workflow, setWorkflow] = useState<'manual' | 'generation'>('manual');
   const [teamOverride, setTeamOverride] = useState('');
   const teamsQuery = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
   const selectedTeamId = teamOverride || teamsQuery.data?.teams[0]?.id || '';
@@ -186,47 +188,70 @@ export function LineupBuilderPage() {
         </label>
       </header>
 
-      <div className="builder-layout">
-        <form className="roster-card" onSubmit={handleSubmit(submitLineup)}>
-          <div className="panel-header">
-            <div>
-              <span className="panel-kicker">Available roster</span>
-              <h2>Select exactly five</h2>
-            </div>
-            <div
-              className={`selection-count ${selectedPlayerIds.length === 5 ? 'is-complete' : ''}`}
-            >
-              <strong>{selectedPlayerIds.length}</strong>
-              <span>/ 5</span>
-            </div>
-          </div>
-
-          {rosterContent()}
-
-          <div className="roster-actions">
-            <p>
-              {!rosterReady || !rosterQuery.data?.players.length
-                ? 'Load an available roster to get started.'
-                : selectedPlayerIds.length === 5
-                  ? 'Your five is ready for analysis.'
-                  : `Choose ${5 - selectedPlayerIds.length} more player${5 - selectedPlayerIds.length === 1 ? '' : 's'}.`}
-            </p>
-            <button className="analyze-button" type="submit" disabled={!canAnalyze}>
-              Analyze lineup <span aria-hidden="true">→</span>
-            </button>
-          </div>
-        </form>
-
-        <AnalysisPanel
-          analysis={analysisMutation.data}
-          error={requestErrorMessage(analysisMutation.error)}
-          isPending={analysisMutation.isPending}
-          roster={rosterQuery.data?.players ?? []}
-          selectedPlayerIds={selectedPlayerIds}
-          onRetry={() => void handleSubmit(submitLineup)()}
-          canRetry={canAnalyze}
-        />
+      <div className="workflow-tabs" role="tablist" aria-label="Lineup workflow">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={workflow === 'manual'}
+          onClick={() => setWorkflow('manual')}
+        >
+          Build manually
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={workflow === 'generation'}
+          onClick={() => setWorkflow('generation')}
+        >
+          Generate from intent
+        </button>
       </div>
+
+      {workflow === 'generation' && rosterReady && rosterQuery.data?.players.length ? (
+        <GenerationWorkspace teamId={selectedTeamId} roster={rosterQuery.data.players} />
+      ) : (
+        <div className="builder-layout">
+          <form className="roster-card" onSubmit={handleSubmit(submitLineup)}>
+            <div className="panel-header">
+              <div>
+                <span className="panel-kicker">Available roster</span>
+                <h2>Select exactly five</h2>
+              </div>
+              <div
+                className={`selection-count ${selectedPlayerIds.length === 5 ? 'is-complete' : ''}`}
+              >
+                <strong>{selectedPlayerIds.length}</strong>
+                <span>/ 5</span>
+              </div>
+            </div>
+
+            {rosterContent()}
+
+            <div className="roster-actions">
+              <p>
+                {!rosterReady || !rosterQuery.data?.players.length
+                  ? 'Load an available roster to get started.'
+                  : selectedPlayerIds.length === 5
+                    ? 'Your five is ready for analysis.'
+                    : `Choose ${5 - selectedPlayerIds.length} more player${5 - selectedPlayerIds.length === 1 ? '' : 's'}.`}
+              </p>
+              <button className="analyze-button" type="submit" disabled={!canAnalyze}>
+                Analyze lineup <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </form>
+
+          <AnalysisPanel
+            analysis={analysisMutation.data}
+            error={requestErrorMessage(analysisMutation.error)}
+            isPending={analysisMutation.isPending}
+            roster={rosterQuery.data?.players ?? []}
+            selectedPlayerIds={selectedPlayerIds}
+            onRetry={() => void handleSubmit(submitLineup)()}
+            canRetry={canAnalyze}
+          />
+        </div>
+      )}
     </main>
   );
 }

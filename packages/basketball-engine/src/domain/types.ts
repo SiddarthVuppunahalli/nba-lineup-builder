@@ -9,6 +9,16 @@ export type MetricName =
   | 'interiorDefense'
   | 'switchability';
 
+export const METRIC_NAMES: readonly MetricName[] = [
+  'shooting',
+  'creation',
+  'playmaking',
+  'rebounding',
+  'perimeterDefense',
+  'interiorDefense',
+  'switchability',
+];
+
 export interface Player {
   id: string;
   name: string;
@@ -91,4 +101,35 @@ export interface Team {
 export interface EvaluatedPlayer {
   player: Player;
   profile: PlayerProfile;
+}
+
+export type MetricPriorities = Record<MetricName, number>;
+
+export interface LineupIntent {
+  priorities: MetricPriorities;
+  minimumShooters: number;
+  minimumCreators: number;
+  metricMinimums: { [Metric in MetricName]?: number | undefined };
+  requiredPlayerIds: readonly string[];
+  excludedPlayerIds: readonly string[];
+}
+
+export type ConstraintKind = 'minimum-shooters' | 'minimum-creators' | 'metric-minimum';
+
+export interface ConstraintResult {
+  id: string;
+  kind: ConstraintKind;
+  label: string;
+  satisfied: boolean;
+  actual: number;
+  required: number;
+  description: string;
+  metric?: MetricName;
+}
+
+export interface GeneratedLineupCandidate {
+  lineup: Lineup;
+  analysis: LineupAnalysis;
+  objectiveScore: number;
+  constraints: ConstraintResult[];
 }

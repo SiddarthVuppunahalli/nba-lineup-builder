@@ -2,6 +2,26 @@ import { z } from 'zod';
 
 const normalizedScoreSchema = z.number().min(0).max(100);
 
+export const metricNameSchema = z.enum([
+  'shooting',
+  'creation',
+  'playmaking',
+  'rebounding',
+  'perimeterDefense',
+  'interiorDefense',
+  'switchability',
+]);
+
+const metricRecordShape = {
+  shooting: z.number().min(0).max(1),
+  creation: z.number().min(0).max(1),
+  playmaking: z.number().min(0).max(1),
+  rebounding: z.number().min(0).max(1),
+  perimeterDefense: z.number().min(0).max(1),
+  interiorDefense: z.number().min(0).max(1),
+  switchability: z.number().min(0).max(1),
+};
+
 export const teamSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -92,6 +112,59 @@ export const lineupAnalysisResponseSchema = z.object({
   analysis: lineupAnalysisSchema,
 });
 
+export const lineupIntentSchema = z.object({
+  priorities: z.object(metricRecordShape),
+  minimumShooters: z.number().int().min(0).max(5),
+  minimumCreators: z.number().int().min(0).max(5),
+  metricMinimums: z
+    .object({
+      shooting: normalizedScoreSchema.optional(),
+      creation: normalizedScoreSchema.optional(),
+      playmaking: normalizedScoreSchema.optional(),
+      rebounding: normalizedScoreSchema.optional(),
+      perimeterDefense: normalizedScoreSchema.optional(),
+      interiorDefense: normalizedScoreSchema.optional(),
+      switchability: normalizedScoreSchema.optional(),
+    })
+    .default({}),
+  requiredPlayerIds: z.array(z.string().trim().min(1)).max(20),
+  excludedPlayerIds: z.array(z.string().trim().min(1)).max(20),
+});
+
+export const generateLineupRequestSchema = z.object({
+  teamId: z.string().trim().min(1),
+  intent: lineupIntentSchema,
+});
+
+export const constraintResultSchema = z.object({
+  id: z.string().min(1),
+  kind: z.enum(['minimum-shooters', 'minimum-creators', 'metric-minimum']),
+  label: z.string().min(1),
+  satisfied: z.boolean(),
+  actual: z.number(),
+  required: z.number(),
+  description: z.string().min(1),
+  metric: metricNameSchema.optional(),
+});
+
+export const generatedLineupCandidateSchema = z.object({
+  lineup: z.object({
+    playerIds: z.tuple([z.string(), z.string(), z.string(), z.string(), z.string()]),
+  }),
+  analysis: lineupAnalysisSchema,
+  objectiveScore: normalizedScoreSchema,
+  constraints: z.array(constraintResultSchema),
+});
+
+export const generatedLineupResponseSchema = z.object({
+  winner: generatedLineupCandidateSchema,
+  alternatives: z.array(generatedLineupCandidateSchema).max(2),
+  appliedPriorities: z.object(metricRecordShape),
+  usedBalancedDefault: z.boolean(),
+  evaluatedCandidateCount: z.number().int().nonnegative(),
+  validCandidateCount: z.number().int().positive(),
+});
+
 export const apiErrorResponseSchema = z.object({
   error: z.object({
     code: z.string().min(1),
@@ -111,4 +184,9 @@ export type LineupFindingDto = z.infer<typeof lineupFindingSchema>;
 export type LineupAnalysisDto = z.infer<typeof lineupAnalysisSchema>;
 export type AnalyzeLineupRequest = z.infer<typeof analyzeLineupRequestSchema>;
 export type LineupAnalysisResponse = z.infer<typeof lineupAnalysisResponseSchema>;
+export type LineupIntentDto = z.infer<typeof lineupIntentSchema>;
+export type GenerateLineupRequest = z.infer<typeof generateLineupRequestSchema>;
+export type ConstraintResultDto = z.infer<typeof constraintResultSchema>;
+export type GeneratedLineupCandidateDto = z.infer<typeof generatedLineupCandidateSchema>;
+export type GeneratedLineupResponse = z.infer<typeof generatedLineupResponseSchema>;
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

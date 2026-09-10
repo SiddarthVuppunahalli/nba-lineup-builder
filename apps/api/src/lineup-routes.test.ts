@@ -126,3 +126,95 @@ describe('POST /api/lineups/analyze', () => {
     });
   });
 });
+
+const generationIntent = {
+  priorities: {
+    shooting: 1,
+    creation: 1,
+    playmaking: 1,
+    rebounding: 1,
+    perimeterDefense: 1,
+    interiorDefense: 1,
+    switchability: 1,
+  },
+  minimumShooters: 3,
+  minimumCreators: 1,
+  metricMinimums: { perimeterDefense: 70 },
+  requiredPlayerIds: ['andre-okafor'],
+  excludedPlayerIds: ['nico-park'],
+};
+
+describe('POST /api/lineups/generate', () => {
+  it('returns a schema-valid ranked lineup with constraint evidence', async () => {
+    const response = await request(createApp()).post('/api/lineups/generate').send({
+      teamId: 'metro-city-meteors',
+      intent: generationIntent,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.winner.lineup.playerIds).toHaveLength(5);
+    expect(response.body.winner.lineup.playerIds).toContain('andre-okafor');
+    expect(response.body.winner.lineup.playerIds).not.toContain('nico-park');
+    expect(
+      response.body.winner.constraints.every((item: { satisfied: boolean }) => item.satisfied),
+    ).toBe(true);
+    expect(response.body.alternatives.length).toBeLessThanOrEqual(2);
+  });
+
+  it('returns a clear conflict for a valid but infeasible request', async () => {
+    const response = await request(createApp())
+      .post('/api/lineups/generate')
+      .send({
+        teamId: 'metro-city-meteors',
+        intent: {
+          ...generationIntent,
+          minimumCreators: 5,
+          requiredPlayerIds: [],
+          excludedPlayerIds: [],
+        },
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({
+      error: {
+        code: 'INFEASIBLE_LINEUP',
+        message: expect.stringContaining('No requirement was relaxed'),
+        details: expect.arrayContaining([
+          expect.objectContaining({ constraintId: 'minimum-creators' }),
+        ]),
+      },
+    });
+  });
+
+  it('rejects malformed priorities at the HTTP boundary', async () => {
+    const response = await request(createApp())
+      .post('/api/lineups/generate')
+      .send({
+        teamId: 'metro-city-meteors',
+        intent: {
+          ...generationIntent,
+          priorities: { ...generationIntent.priorities, shooting: 2 },
+        },
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_REQUEST');
+  });
+
+  it('maps unknown player rules to an invalid intent response', async () => {
+    const response = await request(createApp())
+      .post('/api/lineups/generate')
+      .send({
+        teamId: 'metro-city-meteors',
+        intent: { ...generationIntent, requiredPlayerIds: ['unknown'], excludedPlayerIds: [] },
+      });
+
+    expect(response.status).toBe(422);
+    expect(response.body).toMatchObject({
+      error: {
+        code: 'INVALID_INTENT',
+        details: [expect.objectContaining({ code: 'UNKNOWN_REQUIRED_PLAYER' })],
+      },
+    });
+  });
+});

@@ -6,9 +6,11 @@ Lineup Engine is a portfolio-quality full-stack application for turning basketba
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
 ```
 
-This repository currently contains **Phase 3.5: Theme and usability**. It includes deterministic lineup validation and analysis over a fictional demo roster, exposed through a real API and an interactive React experience. The builder uses a cream, coral, and sage theme, explicit loading/empty/error states with retry controls, and weighted calculation evidence for every metric. It deliberately does not include generation, AI, persistence, or real NBA data yet.
+This repository currently contains **Phase 4: Structured lineup generation**. It includes deterministic lineup validation, analysis, and exhaustive generation over a fictional demo roster, exposed through a real API and an interactive React experience. Users can still build a lineup manually or rank every valid five against metric priorities, shooter/creator requirements, metric floors, and required/excluded players. The builder preserves the cream, coral, and sage theme, explicit loading/empty/error states with retry controls, and calculation evidence for every metric and generation constraint.
 
 See the [revised roadmap](docs/roadmap.md) for the agreed remaining phases and checkpoints, and the [theme guide](docs/theme.md) for reusable visual styles.
+
+For continuation in a new task, use the [Sol implementation handoff](docs/handoff-sol.md), which records the Phase 3.5 checkpoint and the bounded Phase 4 specification.
 
 ## Architecture
 
@@ -61,7 +63,8 @@ pnpm lint
 - `GET /api/teams` — lists available demo teams
 - `GET /api/teams/:teamId/players` — returns the selected roster and profiles
 - `POST /api/lineups/analyze` — validates and evaluates a five-player lineup
+- `POST /api/lineups/generate` — generates and ranks a lineup from structured intent
 
 ## Current limitations
 
-The application currently analyzes only manually selected lineups against fictional profiles. Basketball metrics are transparent heuristics rather than predictive professional models. Phase 4 will introduce structured priorities, constraints, exhaustive candidate generation, and deterministic ranking.
+The application currently uses fictional profiles and exhaustively searches team-sized pools only (at most 18 eligible players). Basketball metrics are transparent heuristics rather than predictive professional models. Generation does not support AI intent, repair, comparison, real NBA data, league-wide search, persistence, or silent constraint relaxation; those remain in later roadmap phases.

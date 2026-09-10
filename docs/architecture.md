@@ -24,4 +24,6 @@ The engine never imports either application.
 
 ## Scale boundaries
 
-Lineup generation will be designed as a stateless operation over a roster, profiles, and structured intent. It can initially run in the API process. If traffic or computation later requires workers, the same domain call can move behind a queue without changing its basketball logic. Roster and normalized player data are natural cache boundaries; no distributed infrastructure is needed for the MVP.
+Lineup generation is a stateless operation over an eligible player pool, profiles, and structured intent. Phase 4 exhaustively evaluates unique five-player combinations for pools of at most 18 players, applies hard constraints, and ranks valid candidates with a deterministic weighted objective. The team ID and demo-data lookup remain in the API service rather than the engine. Larger league-wide search is intentionally deferred to the bounded-search design in Phase 8.
+
+The generator can initially run in the API process. If traffic or computation later requires workers, the same domain call can move behind a queue without changing its basketball logic. Roster and normalized player data are natural cache boundaries; no distributed infrastructure is needed for the MVP.

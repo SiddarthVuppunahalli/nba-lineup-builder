@@ -51,6 +51,14 @@ Every metric retains player scores, weighted components, and rule adjustments as
 
 Final scores are limited to 0–100 and rounded to one decimal. Expanded metric cards display the calculation separately from player ratings, including the final normalized score. Contribution displays use up to four decimal places. These Phase 3.5 improvements preserve the existing scoring rules and keep all basketball calculations in the engine.
 
+## Structured generation
+
+Phase 4 ranks valid lineups with a normalized weighted mean of the seven lineup metric scores. Priority weights range from 0 to 1. The balanced preset assigns every metric a weight of 1; an all-zero set also uses that preset so the objective never divides by zero.
+
+Minimum shooter and creator counts are hard requirements and reuse the 75-point thresholds above. Optional metric minimums are also hard requirements and apply directly to the normalized scores displayed by the product. Required and excluded players are eligibility rules, not score adjustments. No requirement is silently relaxed.
+
+For a team-sized pool, the engine evaluates every unique five-player combination after exclusions, retains only candidates satisfying every hard requirement, and sorts them by objective score. Equal objectives are resolved by sorted player IDs, making results independent of input order. Exhaustive generation is capped at 18 eligible players; larger-pool search remains a later phase.
+
 ## Limitations
 
 The demo roster and profiles are fictional. The scores are curated to exercise the engine and should not be interpreted as professional scouting grades. Phase 8 will introduce reproducible profile derivation from a documented external data source while preserving these domain boundaries.

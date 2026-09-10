@@ -2,10 +2,16 @@ import {
   analyzeLineupRequestSchema,
   apiErrorResponseSchema,
   healthResponseSchema,
+  generateLineupRequestSchema,
 } from '@lineup-engine/shared';
 import express, { type ErrorRequestHandler } from 'express';
 
-import { analyzeDemoLineup, getDemoRoster, listDemoTeams } from './services/demo-lineup-service.js';
+import {
+  analyzeDemoLineup,
+  generateDemoLineup,
+  getDemoRoster,
+  listDemoTeams,
+} from './services/demo-lineup-service.js';
 
 export function createApp() {
   const app = express();
@@ -61,6 +67,32 @@ export function createApp() {
     }
 
     const result = analyzeDemoLineup(parsedRequest.data.teamId, parsedRequest.data.playerIds);
+    if (!result.success) {
+      response.status(result.status).json(result.error);
+      return;
+    }
+
+    response.status(200).json(result.data);
+  });
+
+  app.post('/api/lineups/generate', (request, response) => {
+    const parsedRequest = generateLineupRequestSchema.safeParse(request.body);
+    if (!parsedRequest.success) {
+      const error = apiErrorResponseSchema.parse({
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'The lineup generation request is malformed.',
+          details: parsedRequest.error.issues.map((issue) => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+          })),
+        },
+      });
+      response.status(400).json(error);
+      return;
+    }
+
+    const result = generateDemoLineup(parsedRequest.data.teamId, parsedRequest.data.intent);
     if (!result.success) {
       response.status(result.status).json(result.error);
       return;

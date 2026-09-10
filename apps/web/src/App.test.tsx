@@ -4,7 +4,13 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchHealth, fetchRoster, fetchTeams, postLineupAnalysis } from './api/client.ts';
+import {
+  fetchHealth,
+  fetchRoster,
+  fetchTeams,
+  postLineupAnalysis,
+  postLineupGeneration,
+} from './api/client.ts';
 import { App } from './App.tsx';
 
 vi.mock('./api/client.ts', () => ({
@@ -13,12 +19,14 @@ vi.mock('./api/client.ts', () => ({
   fetchTeams: vi.fn(),
   fetchRoster: vi.fn(),
   postLineupAnalysis: vi.fn(),
+  postLineupGeneration: vi.fn(),
 }));
 
 const mockedFetchHealth = vi.mocked(fetchHealth);
 const mockedFetchTeams = vi.mocked(fetchTeams);
 const mockedFetchRoster = vi.mocked(fetchRoster);
 const mockedPostLineupAnalysis = vi.mocked(postLineupAnalysis);
+const mockedPostLineupGeneration = vi.mocked(postLineupGeneration);
 
 const playerNames = [
   'Jordan Vega',
@@ -109,6 +117,48 @@ beforeEach(() => {
         },
       ],
     },
+  });
+  mockedPostLineupGeneration.mockResolvedValue({
+    winner: {
+      lineup: {
+        playerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'samir-cole'],
+      },
+      analysis: {
+        shooting: metric,
+        creation: metric,
+        playmaking: metric,
+        rebounding: metric,
+        perimeterDefense: metric,
+        interiorDefense: metric,
+        switchability: metric,
+        findings: [],
+      },
+      objectiveScore: 91.2,
+      constraints: [
+        {
+          id: 'minimum-shooters',
+          kind: 'minimum-shooters',
+          label: 'Credible shooters',
+          satisfied: true,
+          actual: 5,
+          required: 3,
+          description: '5 of 5 players meet the 75-point shooting threshold; 3 required.',
+        },
+      ],
+    },
+    alternatives: [],
+    appliedPriorities: {
+      shooting: 1,
+      creation: 1,
+      playmaking: 1,
+      rebounding: 1,
+      perimeterDefense: 1,
+      interiorDefense: 1,
+      switchability: 1,
+    },
+    usedBalancedDefault: false,
+    evaluatedCandidateCount: 6,
+    validCandidateCount: 4,
   });
 });
 
@@ -263,5 +313,54 @@ describe('manual lineup builder', () => {
     expect(
       screen.queryByRole('heading', { name: 'How this five fits together.' }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('structured lineup generation', () => {
+  it('submits balanced defaults, shows requirement evidence, and clears stale results on change', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    expect(screen.getByRole('heading', { name: 'Shape your best five' })).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Generate lineup' }));
+    expect(mockedPostLineupGeneration.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        teamId: 'metro-city-meteors',
+        intent: expect.objectContaining({
+          minimumShooters: 3,
+          minimumCreators: 1,
+          requiredPlayerIds: [],
+          excludedPlayerIds: [],
+        }),
+      }),
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'The strongest fit for your intent.' }),
+    ).toBeVisible();
+    expect(screen.getByText('Weighted fit')).toBeVisible();
+    expect(screen.getByText('Credible shooters')).toBeVisible();
+    expect(screen.getByText(/Ranked first among 4 valid lineups/)).toBeVisible();
+
+    await user.selectOptions(screen.getByLabelText('Shooting', { selector: 'select' }), '0.5');
+    expect(
+      screen.queryByRole('heading', { name: 'The strongest fit for your intent.' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Set the rules. We’ll search every five.' }),
+    ).toBeVisible();
+  });
+
+  it('keeps the manual selection workflow available after visiting generation', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    await user.click(screen.getByRole('tab', { name: 'Build manually' }));
+
+    expect(screen.getByRole('button', { name: 'Select Jordan Vega' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Analyze lineup' })).toBeDisabled();
   });
 });

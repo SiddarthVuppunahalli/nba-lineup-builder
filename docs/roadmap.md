@@ -40,6 +40,8 @@ Verification: 33 tests pass (17 engine, 9 API, 7 frontend); build, type checking
 
 ## Phase 4 — Structured lineup generation
 
+Status: implemented and verified locally; ready for checkpoint review.
+
 - Define priorities as ranking preferences and constraints as hard requirements.
 - Support shooter/creator counts, supported metric thresholds, required players, and excluded players.
 - Specify defaults, conflicting inputs, deterministic ties, and unsupported basketball terms before implementing the form.
@@ -50,6 +52,8 @@ Verification: 33 tests pass (17 engine, 9 API, 7 frontend); build, type checking
 - Define what terms such as small-ball and switch 1–4 can actually mean in the supported model.
 
 Checkpoint: constraints, ranking, required/excluded players, ties, reproducibility, and infeasible requests have behavioral tests and a working UI.
+
+Implementation decisions: priorities use finite 0–1 weights and a normalized weighted mean of the seven existing metric scores. The balanced preset weights all metrics equally; an all-zero request is converted to that preset. Shooter and creator requirements use the existing 75-point profile thresholds, while optional metric floors use the displayed normalized lineup scores. Search is exhaustive up to 18 eligible players, returns two alternatives at most, and breaks ties by canonical sorted player IDs independently of roster order. Infeasible results report how often each requirement rejected an otherwise eligible combination; this is diagnostic evidence, not a claim that the smallest conflicting requirement set was found.
 
 ## Phase 5 — Repair and basic comparison
 
