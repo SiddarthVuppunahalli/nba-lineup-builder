@@ -1,0 +1,132 @@
+# Lineup Engine roadmap
+
+This is the agreed continuation plan after Phase 3, committed as `c7f2c68`.
+Implement one phase at a time and stop at each checkpoint for review before moving on.
+
+## Product direction
+
+Help users understand and improve a five-player lineup through a clear workflow:
+
+**Intent → Generate → Validate → Adapt / repair → Compare → Explain**
+
+- The basketball engine remains deterministic and independent of React, HTTP, AI, and data providers.
+- Zod validates external data contracts. The engine owns basketball rules and scoring.
+- AI interprets intent; it does not select players or decide whether a lineup is valid.
+- Support both actual team rosters and hypothetical lineups across the league.
+- Keep real NBA data in Phase 8. Fictional profiles remain useful for development, tests, and fallback.
+- League mode evaluates basketball fit without salary-cap or trade restrictions.
+- Keep authentication, rotations, live scores, betting, predictions, and distributed infrastructure outside the initial scope.
+
+## Completed foundation
+
+- Phase 1: workspace, React frontend, Express API, shared contracts, checks, and development configuration.
+- Phase 2: domain models, fictional ten-player roster, seven metrics, validation, findings, and documented scoring rules.
+- Phase 3: interactive manual lineup selection and server-side analysis with expandable evidence.
+
+## Phase 3.5 — Theme and usability
+
+Status: implemented and verified locally; ready for visual review before Phase 4.
+
+- Establish a light cream background, ivory panels, muted coral actions/selections, and sage positive indicators.
+- Use shared theme variables, readable typography, accessible contrast, visible keyboard focus, and responsive layouts.
+- Handle team and roster loading, failures, and empty states explicitly, with retry controls.
+- Explain formula weights and adjustments from engine-produced evidence; keep scoring out of React.
+- Replace development-facing labels with product language and identify the fictional demo clearly.
+- Add focused regression coverage for failure recovery and analysis state changes.
+
+Checkpoint: automated checks pass; the manual workflow and desktop/mobile presentation are verified. Review the visual direction with the user before Phase 4.
+
+Verification: 33 tests pass (17 engine, 9 API, 7 frontend); build, type checking, lint, and formatting pass. The browser workflow and expanded evidence were checked at desktop and phone widths. Replit verification remains a separate checkpoint.
+
+## Phase 4 — Structured lineup generation
+
+- Define priorities as ranking preferences and constraints as hard requirements.
+- Support shooter/creator counts, supported metric thresholds, required players, and excluded players.
+- Specify defaults, conflicting inputs, deterministic ties, and unsupported basketball terms before implementing the form.
+- Exhaustively search five-player combinations for a team-sized eligible pool.
+- Return the highest-ranked valid result and useful alternatives where appropriate.
+- Explain infeasible requests and offer explicit user-controlled changes; never silently relax requirements.
+- Accept an eligible player pool at the engine boundary so future team and league modes share evaluation and validation.
+- Define what terms such as small-ball and switch 1–4 can actually mean in the supported model.
+
+Checkpoint: constraints, ranking, required/excluded players, ties, reproducibility, and infeasible requests have behavioral tests and a working UI.
+
+## Phase 5 — Repair and basic comparison
+
+- Adapt an existing manual or generated lineup when requirements change.
+- Respect locked/required players and exclusions.
+- Prefer the fewest replacements, then optimize quality among equally small changes.
+- Revalidate the result and show swaps, reasons, and constraints fixed.
+- Bound any iterative repair attempts and return clear infeasible outcomes.
+- Bring basic comparison forward: show before/after metrics and the largest tradeoff without requiring persistence.
+- Keep final validation of generated results; do not manufacture invalid candidates merely to demonstrate repair.
+
+Checkpoint: demonstrate build five → require more shooting → repair → inspect swaps → understand the defense/rebounding tradeoff.
+
+## Early deployment checkpoint — After Phase 5
+
+- Add production build/start configuration, frontend serving, health checks, and environment configuration.
+- Publish a preview and smoke-test the full core workflow.
+- Add automated repository checks for build, tests, types, and lint.
+- Offer curated demo scenarios so a visitor can start immediately.
+
+Checkpoint: a useful preview link exists for feedback before the later integrations.
+
+## Phase 6 — Natural-language intent
+
+- Parse text into the same structured intent used by the form.
+- Validate AI output, reject unsupported values, and handle ambiguity and provider errors.
+- Show interpreted requirements for review and adjustment.
+- Keep structured input usable when AI is unavailable.
+- Store credentials in environment secrets and keep provider code behind an interface.
+
+Checkpoint: equivalent text and structured requests use the same authoritative deterministic engine.
+
+## Phase 7 — Full comparison and session versions
+
+- Compare any two lineups with player changes, metric deltas, constraint satisfaction, and tradeoffs.
+- Keep named versions within the current session.
+- Allow branching from earlier versions without losing the starting lineup.
+- Clearly distinguish session-only versions from durable saving introduced in Phase 9.
+
+Checkpoint: users can follow and compare their decisions across a session.
+
+## Phase 8 — Real NBA data and both modes
+
+- Verify source feasibility, especially inputs needed for defensive metrics, before building the adapter.
+- Import real identities and dated rosters, initially as a manageable season snapshot.
+- Derive profiles reproducibly, documenting sources, missing data, limitations, and refresh strategy.
+- Display season/source information and preserve seeded demo fallback.
+- Team mode: select and generate within an actual roster.
+- League mode: search players and select any five across teams, sharing constraints, scoring, repair, and comparison.
+- Use a bounded deterministic league search; do not enumerate every league-wide combination.
+- Benchmark bounded search against exhaustive results on small pools. Distinguish search exhaustion from proven infeasibility and do not claim guaranteed global optimality.
+
+Checkpoint: both modes support the full workflow with documented data provenance and acceptable generation time.
+
+## Phase 9 — Persistence
+
+- Introduce PostgreSQL and Drizzle with proper migrations.
+- Save scenarios, versions, generation intent, selections, analysis, and repair history.
+- Record data and scoring versions so historical analyses remain interpretable.
+- Provide clear save/load recovery and a simple anonymous/demo-session model.
+
+Checkpoint: a saved scenario can be reopened with understandable version history.
+
+## Phase 10 — Final polish and portfolio presentation
+
+- Finish accessibility, responsive layouts, failure handling, and restrained motion.
+- Complete setup/deployment instructions, methodology, architecture, screenshots, and a concise demo script.
+- Verify a production deployment that works without visitor setup.
+
+Checkpoint: a visitor understands the product and completes the main workflow independently.
+
+## Working checkpoints and Replit learning
+
+- At each phase: summarize changes and limitations, run relevant checks, review the experience, and commit before continuing.
+- Phase 3.5: practice one focused UI change in Replit when the environment is available.
+- Phases 4–5: exercise logs, runtime behavior, and failure cases.
+- Phase 6: configure AI secrets.
+- Phases 8–9: verify data and database environment configuration.
+- Early preview and Phase 10: verify publishing and smoke tests.
+- Track platform checkpoints separately from feature completion. Local verification does not imply Replit verification.

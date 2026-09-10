@@ -47,7 +47,9 @@ Findings are derived from the same metric results and thresholds used above:
 - limited interior defense when the lineup score is below 60
 - versatile perimeter defense when both perimeter defense and switchability reach 75
 
-Every metric retains player scores and rule adjustments as structured evidence so later API and UI layers can explain results without reimplementing basketball logic.
+Every metric retains player scores, weighted components, and rule adjustments as structured evidence. Each weighted component records its source value and percentage in its description and its contribution in `value`. The engine adds the weighted contributions and rule adjustments to obtain the score; player ratings remain contextual evidence and are not added again.
+
+Final scores are limited to 0–100 and rounded to one decimal. Expanded metric cards display the calculation separately from player ratings, including the final normalized score. Contribution displays use up to four decimal places. These Phase 3.5 improvements preserve the existing scoring rules and keep all basketball calculations in the engine.
 
 ## Limitations
 

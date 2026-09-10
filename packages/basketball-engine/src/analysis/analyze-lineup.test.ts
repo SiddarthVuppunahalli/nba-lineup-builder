@@ -176,4 +176,40 @@ describe('analyzeLineup', () => {
   it('produces identical analysis for identical input', () => {
     expect(analyze(spacingLineup)).toEqual(analyze(spacingLineup));
   });
+
+  it('preserves the established scores while exposing their weighted calculations', () => {
+    const analysis = analyze(spacingLineup);
+    const expectedScores = {
+      shooting: 91.2,
+      creation: 87.7,
+      playmaking: 75.6,
+      rebounding: 64.6,
+      perimeterDefense: 78.9,
+      interiorDefense: 69.2,
+      switchability: 76.2,
+    } as const;
+    for (const key of Object.keys(expectedScores) as Array<keyof typeof expectedScores>) {
+      const metric = analysis[key];
+      expect(metric.score).toBe(expectedScores[key]);
+      expect(metric.evidence.some((item) => item.kind === 'weighted-component')).toBe(true);
+      const explainedTotal = metric.evidence
+        .filter((item) => item.kind !== 'player-score')
+        .reduce((total, item) => total + item.value, 0);
+      expect(Math.round(Math.min(100, Math.max(0, explainedTotal)) * 10) / 10).toBe(metric.score);
+    }
+    expect(analysis.creation.evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'weighted-component',
+          label: 'Best creator · 50%',
+          value: 47,
+        }),
+        expect.objectContaining({
+          kind: 'weighted-component',
+          label: 'Second creator · 30%',
+          value: 22.8,
+        }),
+      ]),
+    );
+  });
 });

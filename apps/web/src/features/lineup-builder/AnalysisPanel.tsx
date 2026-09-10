@@ -8,6 +8,8 @@ interface AnalysisPanelProps {
   isPending: boolean;
   roster: RosterPlayerDto[];
   selectedPlayerIds: string[];
+  onRetry: () => void;
+  canRetry: boolean;
 }
 
 const metricDefinitions = [
@@ -52,14 +54,16 @@ export function AnalysisPanel({
   isPending,
   roster,
   selectedPlayerIds,
+  onRetry,
+  canRetry,
 }: AnalysisPanelProps) {
   if (isPending) {
     return (
       <section className="analysis-card analysis-loading" aria-live="polite">
         <span className="analysis-orbit" aria-hidden="true" />
         <div className="eyebrow">Evaluating lineup</div>
-        <h2>Running deterministic checks…</h2>
-        <p>Scoring seven dimensions and deriving evidence-backed findings.</p>
+        <h2>Finding the strengths in your five…</h2>
+        <p>Looking at shooting, creation, defense, and how your players fit together.</p>
       </section>
     );
   }
@@ -70,6 +74,9 @@ export function AnalysisPanel({
         <div className="eyebrow">Analysis unavailable</div>
         <h2>We couldn’t evaluate that five.</h2>
         <p>{error}</p>
+        <button className="retry-button" type="button" onClick={onRetry} disabled={!canRetry}>
+          Retry analysis
+        </button>
       </section>
     );
   }
@@ -85,8 +92,8 @@ export function AnalysisPanel({
         <div className="eyebrow">Your five</div>
         <h2>Build the lineup, then inspect the fit.</h2>
         <p>
-          Select five players from the roster. The server-side engine will evaluate the lineup and
-          explain every score.
+          Select five players from the roster to discover what works, where you give something up,
+          and why.
         </p>
         <SelectedFive roster={roster} selectedPlayerIds={selectedPlayerIds} />
       </section>

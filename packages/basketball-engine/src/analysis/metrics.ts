@@ -10,20 +10,15 @@ import { normalizeMetricScore } from './normalize-metric-score.js';
 export const SHOOTER_THRESHOLD = 75;
 export const CREATOR_THRESHOLD = 75;
 
-type ProfileMetric = Exclude<MetricName, never>;
-
 function mean(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
-function valuesFor(players: readonly EvaluatedPlayer[], metric: ProfileMetric): number[] {
+function valuesFor(players: readonly EvaluatedPlayer[], metric: MetricName): number[] {
   return players.map(({ profile }) => profile[metric]);
 }
 
-function playerEvidence(
-  players: readonly EvaluatedPlayer[],
-  metric: ProfileMetric,
-): MetricEvidence[] {
+function playerEvidence(players: readonly EvaluatedPlayer[], metric: MetricName): MetricEvidence[] {
   return players.map(({ player, profile }) => ({
     id: `${metric}:player:${player.id}`,
     kind: 'player-score',
@@ -50,7 +45,30 @@ function adjustment(
   };
 }
 
-function metricScore(score: number, evidence: MetricEvidence[]): MetricScore {
+function weightedComponent(
+  metric: MetricName,
+  key: string,
+  label: string,
+  value: number,
+  weight: number,
+): MetricEvidence {
+  const points = value * weight;
+  const format = (number: number) => Number(number.toFixed(4));
+  return {
+    id: `${metric}:weight:${key}`,
+    kind: 'weighted-component',
+    label: `${label} · ${format(weight * 100)}%`,
+    value: points,
+    description: `${format(value)} × ${format(weight * 100)}% = ${format(points)} points.`,
+  };
+}
+
+function metricScore(evidence: MetricEvidence[]): MetricScore {
+  // Player ratings are context. Only weighted contributions and adjustments form the score.
+  const score = evidence.reduce(
+    (total, item) => total + (item.kind === 'player-score' ? 0 : item.value),
+    0,
+  );
   return { score: normalizeMetricScore(score), evidence };
 }
 
@@ -75,8 +93,9 @@ export function evaluateShooting(players: readonly EvaluatedPlayer[]): MetricSco
     description = `Only ${shooterCount} players meet the shooter threshold, allowing extra defensive help.`;
   }
 
-  return metricScore(mean(scores) + spacingAdjustment, [
+  return metricScore([
     ...playerEvidence(players, 'shooting'),
+    weightedComponent('shooting', 'mean', 'Lineup average', mean(scores), 1),
     adjustment('shooting', 'spacing', spacingAdjustment, label, description),
   ]);
 }
@@ -88,7 +107,6 @@ export function evaluateCreation(players: readonly EvaluatedPlayer[]): MetricSco
   const creatorAdjustment = creatorCount >= 2 ? 4 : creatorCount === 0 ? -10 : 0;
   const topCreator = sorted[0] ?? 0;
   const secondCreator = sorted[1] ?? 0;
-  const score = topCreator * 0.5 + secondCreator * 0.3 + mean(scores) * 0.2 + creatorAdjustment;
   const label =
     creatorCount >= 2
       ? 'Multiple-creator bonus'
@@ -102,8 +120,11 @@ export function evaluateCreation(players: readonly EvaluatedPlayer[]): MetricSco
         ? 'No player meets the creator threshold, making reliable advantage creation unlikely.'
         : 'One high-level creator carries most of the lineup creation burden.';
 
-  return metricScore(score, [
+  return metricScore([
     ...playerEvidence(players, 'creation'),
+    weightedComponent('creation', 'best', 'Best creator', topCreator, 0.5),
+    weightedComponent('creation', 'second', 'Second creator', secondCreator, 0.3),
+    weightedComponent('creation', 'mean', 'Lineup average', mean(scores), 0.2),
     adjustment('creation', 'creator-count', creatorAdjustment, label, description),
   ]);
 }
@@ -111,9 +132,12 @@ export function evaluateCreation(players: readonly EvaluatedPlayer[]): MetricSco
 export function evaluatePlaymaking(players: readonly EvaluatedPlayer[]): MetricScore {
   const scores = valuesFor(players, 'playmaking');
   const sorted = [...scores].sort((left, right) => right - left);
-  const score = mean(scores) * 0.5 + (sorted[0] ?? 0) * 0.3 + (sorted[1] ?? 0) * 0.2;
-
-  return metricScore(score, playerEvidence(players, 'playmaking'));
+  return metricScore([
+    ...playerEvidence(players, 'playmaking'),
+    weightedComponent('playmaking', 'mean', 'Lineup average', mean(scores), 0.5),
+    weightedComponent('playmaking', 'best', 'Best playmaker', sorted[0] ?? 0, 0.3),
+    weightedComponent('playmaking', 'second', 'Second playmaker', sorted[1] ?? 0, 0.2),
+  ]);
 }
 
 export function evaluateRebounding(players: readonly EvaluatedPlayer[]): MetricScore {
@@ -123,8 +147,10 @@ export function evaluateRebounding(players: readonly EvaluatedPlayer[]): MetricS
   const weakRebounderCount = scores.filter((score) => score < 50).length;
   const weakLinkPenalty = weakRebounderCount >= 3 ? -5 : 0;
 
-  return metricScore(mean(scores) * 0.65 + topTwoAverage * 0.35 + weakLinkPenalty, [
+  return metricScore([
     ...playerEvidence(players, 'rebounding'),
+    weightedComponent('rebounding', 'mean', 'Lineup average', mean(scores), 0.65),
+    weightedComponent('rebounding', 'top-two', 'Top two average', topTwoAverage, 0.35),
     ...(weakLinkPenalty === 0
       ? []
       : [
@@ -144,17 +170,23 @@ export function evaluatePerimeterDefense(players: readonly EvaluatedPlayer[]): M
   const sorted = [...scores].sort((left, right) => right - left);
   const strongest = sorted[0] ?? 0;
   const weakest = sorted.at(-1) ?? 0;
-  const score = mean(scores) * 0.6 + strongest * 0.25 + weakest * 0.15;
-
-  return metricScore(score, playerEvidence(players, 'perimeterDefense'));
+  return metricScore([
+    ...playerEvidence(players, 'perimeterDefense'),
+    weightedComponent('perimeterDefense', 'mean', 'Lineup average', mean(scores), 0.6),
+    weightedComponent('perimeterDefense', 'best', 'Strongest defender', strongest, 0.25),
+    weightedComponent('perimeterDefense', 'weakest', 'Weakest defender', weakest, 0.15),
+  ]);
 }
 
 export function evaluateInteriorDefense(players: readonly EvaluatedPlayer[]): MetricScore {
   const scores = valuesFor(players, 'interiorDefense');
   const sorted = [...scores].sort((left, right) => right - left);
-  const score = (sorted[0] ?? 0) * 0.55 + (sorted[1] ?? 0) * 0.25 + mean(scores) * 0.2;
-
-  return metricScore(score, playerEvidence(players, 'interiorDefense'));
+  return metricScore([
+    ...playerEvidence(players, 'interiorDefense'),
+    weightedComponent('interiorDefense', 'best', 'Strongest defender', sorted[0] ?? 0, 0.55),
+    weightedComponent('interiorDefense', 'second', 'Second defender', sorted[1] ?? 0, 0.25),
+    weightedComponent('interiorDefense', 'mean', 'Lineup average', mean(scores), 0.2),
+  ]);
 }
 
 export function evaluateSwitchability(players: readonly EvaluatedPlayer[]): MetricScore {
@@ -163,8 +195,10 @@ export function evaluateSwitchability(players: readonly EvaluatedPlayer[]): Metr
   const limitedDefenderCount = scores.filter((score) => score < 55).length;
   const mismatchPenalty = limitedDefenderCount * -4;
 
-  return metricScore(mean(scores) * 0.75 + weakest * 0.25 + mismatchPenalty, [
+  return metricScore([
     ...playerEvidence(players, 'switchability'),
+    weightedComponent('switchability', 'mean', 'Lineup average', mean(scores), 0.75),
+    weightedComponent('switchability', 'weakest', 'Weakest switch defender', weakest, 0.25),
     ...(mismatchPenalty === 0
       ? []
       : [

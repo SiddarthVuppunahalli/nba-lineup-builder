@@ -6,7 +6,9 @@ Lineup Engine is a portfolio-quality full-stack application for turning basketba
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
 ```
 
-This repository currently contains **Phase 3: Manual lineup builder**. It includes deterministic lineup validation and analysis over a fictional demo roster, exposed through a real API and an interactive React experience. It deliberately does not include generation, AI, persistence, or real NBA data yet.
+This repository currently contains **Phase 3.5: Theme and usability**. It includes deterministic lineup validation and analysis over a fictional demo roster, exposed through a real API and an interactive React experience. The builder uses a cream, coral, and sage theme, explicit loading/empty/error states with retry controls, and weighted calculation evidence for every metric. It deliberately does not include generation, AI, persistence, or real NBA data yet.
+
+See the [revised roadmap](docs/roadmap.md) for the agreed remaining phases and checkpoints, and the [theme guide](docs/theme.md) for reusable visual styles.
 
 ## Architecture
 
@@ -42,7 +44,7 @@ The web app runs at `http://localhost:5173`. Vite proxies `/api` requests to the
 
 ### Replit checkpoint
 
-Import the GitHub repository into Replit and click **Run**. The included `.replit` file starts the full workspace and exposes the web app. No secrets or database are required for Phase 1.
+Import the GitHub repository into Replit and click **Run**. The included `.replit` file starts the full workspace and exposes the web app. No secrets or database are required for the current demo. This is development configuration; production serving and publishing are planned at the early deployment checkpoint after Phase 5. Track local and Replit verification separately.
 
 ## Quality commands
 

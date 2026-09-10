@@ -37,7 +37,7 @@ export const rosterResponseSchema = z.object({
 
 export const metricEvidenceSchema = z.object({
   id: z.string().min(1),
-  kind: z.enum(['player-score', 'rule-adjustment']),
+  kind: z.enum(['player-score', 'weighted-component', 'rule-adjustment']),
   label: z.string().min(1),
   value: z.number(),
   description: z.string().min(1),

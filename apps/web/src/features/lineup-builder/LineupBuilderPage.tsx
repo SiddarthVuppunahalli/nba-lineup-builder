@@ -51,7 +51,7 @@ export function LineupBuilderPage() {
   }
 
   function submitLineup(values: LineupFormValues) {
-    if (!selectedTeamId || values.playerIds.length !== 5) return;
+    if (!canAnalyze || values.playerIds.length !== 5) return;
     const request: AnalyzeLineupRequest = {
       teamId: selectedTeamId,
       playerIds: values.playerIds,
@@ -60,27 +60,123 @@ export function LineupBuilderPage() {
   }
 
   const rosterError = requestErrorMessage(rosterQuery.error);
+  const rosterReady = teamsQuery.isSuccess && rosterQuery.isSuccess && Boolean(selectedTeamId);
+  const canAnalyze = rosterReady && selectedPlayerIds.length === 5 && !analysisMutation.isPending;
+
+  function rosterContent() {
+    if (teamsQuery.isPending) {
+      return (
+        <div className="roster-state" role="status">
+          Loading teams…
+        </div>
+      );
+    }
+    if (teamsQuery.isError) {
+      return (
+        <div className="roster-state roster-state--error" role="alert">
+          <strong>We couldn’t load the teams.</strong>
+          <p>{requestErrorMessage(teamsQuery.error)}</p>
+          <button
+            className="retry-button"
+            type="button"
+            disabled={teamsQuery.isFetching}
+            onClick={() => void teamsQuery.refetch()}
+          >
+            {teamsQuery.isFetching ? 'Retrying…' : 'Retry teams'}
+          </button>
+        </div>
+      );
+    }
+    if (!selectedTeamId) {
+      return (
+        <div className="roster-state" role="status">
+          <strong>No teams available yet.</strong>
+          <p>Check again to see whether a roster has been added.</p>
+          <button
+            className="retry-button"
+            type="button"
+            disabled={teamsQuery.isFetching}
+            onClick={() => void teamsQuery.refetch()}
+          >
+            Refresh teams
+          </button>
+        </div>
+      );
+    }
+    if (rosterQuery.isPending) {
+      return (
+        <div className="roster-state" role="status">
+          Loading roster…
+        </div>
+      );
+    }
+    if (rosterError) {
+      return (
+        <div className="roster-state roster-state--error" role="alert">
+          <strong>We couldn’t load this roster.</strong>
+          <p>{rosterError}</p>
+          <button
+            className="retry-button"
+            type="button"
+            disabled={rosterQuery.isFetching}
+            onClick={() => void rosterQuery.refetch()}
+          >
+            {rosterQuery.isFetching ? 'Retrying…' : 'Retry roster'}
+          </button>
+        </div>
+      );
+    }
+    if (!rosterQuery.data?.players.length) {
+      return (
+        <div className="roster-state" role="status">
+          <strong>No players available yet.</strong>
+          <p>Choose another team or check this roster again.</p>
+          <button
+            className="retry-button"
+            type="button"
+            disabled={rosterQuery.isFetching}
+            onClick={() => void rosterQuery.refetch()}
+          >
+            Refresh roster
+          </button>
+        </div>
+      );
+    }
+    return (
+      <RosterPanel
+        players={rosterQuery.data.players}
+        selectedPlayerIds={selectedPlayerIds}
+        onTogglePlayer={togglePlayer}
+      />
+    );
+  }
 
   return (
     <main className="workspace">
       <header className="workspace-header">
         <div>
-          <div className="eyebrow">Manual lineup lab · Phase 03</div>
+          <div className="eyebrow">The lineup lab</div>
           <h1>
             Choose the five. <span>Understand the fit.</span>
           </h1>
           <p>
-            Build a lineup from the roster, then let the deterministic engine surface its strengths,
-            risks, and underlying evidence.
+            A little shooting. A little size. The right five together. Explore your lineup’s
+            strengths, tradeoffs, and the story behind every score.
           </p>
+          <span className="demo-note">Fictional demo roster · Illustrative ratings</span>
         </div>
         <label className="team-control">
           <span>Team</span>
           <select
             value={selectedTeamId}
             onChange={(event) => changeTeam(event.target.value)}
-            disabled={teamsQuery.isPending || teamsQuery.isError}
+            disabled={teamsQuery.isPending || teamsQuery.isError || !teamsQuery.data?.teams.length}
           >
+            {!selectedTeamId && (
+              <option value="">
+                {teamsQuery.isPending ? 'Loading teams…' : 'No team selected'}
+              </option>
+            )}
             {teamsQuery.data?.teams.map((team) => (
               <option value={team.id} key={team.id}>
                 {team.name}
@@ -105,33 +201,17 @@ export function LineupBuilderPage() {
             </div>
           </div>
 
-          {rosterQuery.isPending || !selectedTeamId ? (
-            <div className="roster-state" role="status">
-              Loading roster…
-            </div>
-          ) : rosterError ? (
-            <div className="roster-state roster-state--error" role="alert">
-              {rosterError}
-            </div>
-          ) : (
-            <RosterPanel
-              players={rosterQuery.data?.players ?? []}
-              selectedPlayerIds={selectedPlayerIds}
-              onTogglePlayer={togglePlayer}
-            />
-          )}
+          {rosterContent()}
 
           <div className="roster-actions">
             <p>
-              {selectedPlayerIds.length === 5
-                ? 'Your five is ready for analysis.'
-                : `Choose ${5 - selectedPlayerIds.length} more player${5 - selectedPlayerIds.length === 1 ? '' : 's'}.`}
+              {!rosterReady || !rosterQuery.data?.players.length
+                ? 'Load an available roster to get started.'
+                : selectedPlayerIds.length === 5
+                  ? 'Your five is ready for analysis.'
+                  : `Choose ${5 - selectedPlayerIds.length} more player${5 - selectedPlayerIds.length === 1 ? '' : 's'}.`}
             </p>
-            <button
-              className="analyze-button"
-              type="submit"
-              disabled={selectedPlayerIds.length !== 5 || analysisMutation.isPending}
-            >
+            <button className="analyze-button" type="submit" disabled={!canAnalyze}>
               Analyze lineup <span aria-hidden="true">→</span>
             </button>
           </div>
@@ -143,6 +223,8 @@ export function LineupBuilderPage() {
           isPending={analysisMutation.isPending}
           roster={rosterQuery.data?.players ?? []}
           selectedPlayerIds={selectedPlayerIds}
+          onRetry={() => void handleSubmit(submitLineup)()}
+          canRetry={canAnalyze}
         />
       </div>
     </main>

@@ -15,7 +15,7 @@ function StatusPill() {
   const label = health.isPending
     ? 'Checking system'
     : health.isError
-      ? 'API unavailable'
+      ? 'Service unavailable'
       : 'System ready';
 
   return (
@@ -36,7 +36,7 @@ function AppShell() {
           </span>
           <span>Lineup Engine</span>
         </a>
-        <span className="nav-phase">Engine workspace</span>
+        <span className="nav-context">Basketball, in balance</span>
         <StatusPill />
       </nav>
       <LineupBuilderPage />

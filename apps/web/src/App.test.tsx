@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -49,6 +49,13 @@ const metric = {
   score: 91.2,
   evidence: [
     {
+      id: 'shooting:weight:mean',
+      kind: 'weighted-component' as const,
+      label: 'Lineup average · 100%',
+      value: 86.2,
+      description: '86.2 × 100% = 86.2 points.',
+    },
+    {
       id: 'shooting:player:jordan-vega',
       kind: 'player-score' as const,
       label: 'Jordan Vega',
@@ -67,6 +74,7 @@ const metric = {
 };
 
 beforeEach(() => {
+  vi.resetAllMocks();
   mockedFetchHealth.mockResolvedValue({
     status: 'ok',
     service: 'lineup-engine-api',
@@ -145,5 +153,115 @@ describe('manual lineup builder', () => {
     expect(shootingCard).not.toBeNull();
     await user.click(within(shootingCard!).getByText('Shooting'));
     expect(within(shootingCard!).getByText('Four-player spacing bonus')).toBeVisible();
+    expect(within(shootingCard!).getByText('Lineup average · 100%')).toBeVisible();
+    expect(within(shootingCard!).getByText('91.2 / 100')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Remove Jordan Vega' }));
+    expect(
+      screen.queryByRole('heading', { name: 'How this five fits together.' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Analyze lineup' })).toBeDisabled();
+  });
+
+  it('shows a team error instead of indefinite roster loading and recovers on retry', async () => {
+    const user = userEvent.setup();
+    mockedFetchTeams.mockRejectedValueOnce(new Error('offline'));
+    renderApp();
+
+    expect(await screen.findByText('We couldn’t load the teams.')).toBeVisible();
+    expect(screen.queryByText('Loading roster…')).not.toBeInTheDocument();
+    expect(mockedFetchRoster).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Analyze lineup' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Retry teams' }));
+    expect(await screen.findByRole('button', { name: 'Select Jordan Vega' })).toBeVisible();
+    expect(screen.queryByText('We couldn’t load the teams.')).not.toBeInTheDocument();
+  });
+
+  it('distinguishes an empty team list from loading', async () => {
+    mockedFetchTeams.mockResolvedValue({ teams: [] });
+    renderApp();
+
+    expect(await screen.findByText('No teams available yet.')).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Team' })).toBeDisabled();
+    expect(screen.queryByText('Loading roster…')).not.toBeInTheDocument();
+    expect(mockedFetchRoster).not.toHaveBeenCalled();
+  });
+
+  it('recovers from a roster failure without reloading the page', async () => {
+    const user = userEvent.setup();
+    mockedFetchRoster.mockRejectedValueOnce(new Error('offline'));
+    renderApp();
+
+    expect(await screen.findByText('We couldn’t load this roster.')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Retry roster' }));
+    expect(await screen.findByRole('button', { name: 'Select Jordan Vega' })).toBeVisible();
+  });
+
+  it('shows an empty roster and keeps analysis disabled', async () => {
+    mockedFetchRoster.mockResolvedValue({
+      team: { id: 'metro-city-meteors', name: 'Metro City Meteors', abbreviation: 'MCM' },
+      players: [],
+    });
+    renderApp();
+
+    expect(await screen.findByText('No players available yet.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Analyze lineup' })).toBeDisabled();
+    expect(screen.queryByText('Loading roster…')).not.toBeInTheDocument();
+  });
+
+  it('retries a failed analysis with the same selected five', async () => {
+    const user = userEvent.setup();
+    mockedPostLineupAnalysis.mockRejectedValueOnce(new Error('offline'));
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    for (const name of playerNames.slice(0, 5)) {
+      await user.click(screen.getByRole('button', { name: `Select ${name}` }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
+    expect(
+      await screen.findByRole('heading', { name: 'We couldn’t evaluate that five.' }),
+    ).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Retry analysis' }));
+    expect(
+      await screen.findByRole('heading', { name: 'How this five fits together.' }),
+    ).toBeVisible();
+    expect(mockedPostLineupAnalysis.mock.calls[1]?.[0]).toEqual(
+      mockedPostLineupAnalysis.mock.calls[0]?.[0],
+    );
+  });
+
+  it('does not display an outdated analysis after the selection changes during a request', async () => {
+    const user = userEvent.setup();
+    const response = await mockedPostLineupAnalysis({
+      teamId: 'metro-city-meteors',
+      playerIds: [],
+    });
+    let resolveAnalysis!: (value: typeof response) => void;
+    mockedPostLineupAnalysis.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveAnalysis = resolve;
+        }),
+    );
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    for (const name of playerNames.slice(0, 5)) {
+      await user.click(screen.getByRole('button', { name: `Select ${name}` }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Finding the strengths in your five…' }),
+    ).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Remove Jordan Vega' }));
+    await act(async () => {
+      resolveAnalysis(response);
+    });
+    expect(
+      await screen.findByRole('heading', { name: 'Build the lineup, then inspect the fit.' }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'How this five fits together.' }),
+    ).not.toBeInTheDocument();
   });
 });

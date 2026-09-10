@@ -38,7 +38,7 @@ export interface Lineup {
 
 export interface MetricEvidence {
   id: string;
-  kind: 'player-score' | 'rule-adjustment';
+  kind: 'player-score' | 'weighted-component' | 'rule-adjustment';
   label: string;
   value: number;
   description: string;
