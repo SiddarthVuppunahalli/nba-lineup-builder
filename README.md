@@ -6,7 +6,7 @@ Lineup Engine is a portfolio-quality full-stack application for turning basketba
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
 ```
 
-This repository currently contains **Phase 1: Application foundation**. It deliberately does not include lineup analysis, generation, AI, persistence, or real NBA data yet.
+This repository currently contains **Phase 2: Basketball domain model**. It includes deterministic lineup validation and analysis over a fictional demo roster. It deliberately does not include generation, AI, persistence, or real NBA data yet.
 
 ## Architecture
 
@@ -24,7 +24,7 @@ packages/shared             Cross-boundary request/response schemas
 packages/nba-data           Added in a later data phase
 ```
 
-The basketball engine is kept independent of React, Express, databases, AI providers, and external NBA data formats. See [docs/architecture.md](docs/architecture.md) for boundary and scaling details.
+The basketball engine is kept independent of React, Express, databases, AI providers, and external NBA data formats. See [docs/architecture.md](docs/architecture.md) for boundary and scaling details and [docs/basketball-methodology.md](docs/basketball-methodology.md) for every Phase 2 scoring rule.
 
 ## Prerequisites
 
@@ -59,4 +59,4 @@ pnpm lint
 
 ## Current limitations
 
-Only the application shell and package boundaries exist. Basketball metrics will be transparent heuristics rather than predictive professional models. Phase 2 will introduce the domain model and static demo data before any lineup-building UI is added.
+The domain engine currently analyzes only manually supplied player IDs against fictional profiles. Basketball metrics are transparent heuristics rather than predictive professional models. Phase 3 will expose the roster and lineup analysis through the API and add the interactive manual lineup builder.
