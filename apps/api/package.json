@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@lineup-engine/basketball-engine": "workspace:*",
     "@lineup-engine/shared": "workspace:*",
     "express": "^5.1.0",
     "zod": "^4.1.13"

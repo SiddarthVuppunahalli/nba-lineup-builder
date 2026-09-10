@@ -1,40 +1,149 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fetchHealth, fetchRoster, fetchTeams, postLineupAnalysis } from './api/client.ts';
 import { App } from './App.tsx';
 
-afterEach(() => {
-  vi.restoreAllMocks();
+vi.mock('./api/client.ts', () => ({
+  ApiClientError: class ApiClientError extends Error {},
+  fetchHealth: vi.fn(),
+  fetchTeams: vi.fn(),
+  fetchRoster: vi.fn(),
+  postLineupAnalysis: vi.fn(),
+}));
+
+const mockedFetchHealth = vi.mocked(fetchHealth);
+const mockedFetchTeams = vi.mocked(fetchTeams);
+const mockedFetchRoster = vi.mocked(fetchRoster);
+const mockedPostLineupAnalysis = vi.mocked(postLineupAnalysis);
+
+const playerNames = [
+  'Jordan Vega',
+  'Malik Rhodes',
+  'Eli Mercer',
+  'Theo Grant',
+  'Samir Cole',
+  'Darius Knox',
+];
+
+const players = playerNames.map((name, index) => ({
+  id: name.toLowerCase().replace(' ', '-'),
+  name,
+  teamId: 'metro-city-meteors',
+  position: ['PG', 'SG', 'SF', 'PF', 'SG', 'SF/PF'][index] ?? 'G',
+  profile: {
+    shooting: 90 - index,
+    creation: 84 - index,
+    playmaking: 80 - index,
+    rebounding: 60 + index,
+    perimeterDefense: 78 + index,
+    interiorDefense: 55 + index,
+    switchability: 76 + index,
+  },
+}));
+
+const metric = {
+  score: 91.2,
+  evidence: [
+    {
+      id: 'shooting:player:jordan-vega',
+      kind: 'player-score' as const,
+      label: 'Jordan Vega',
+      value: 92,
+      description: "Jordan Vega's normalized shooting profile score.",
+      playerId: 'jordan-vega',
+    },
+    {
+      id: 'shooting:rule:spacing',
+      kind: 'rule-adjustment' as const,
+      label: 'Four-player spacing bonus',
+      value: 5,
+      description: 'Five credible shooters force the defense to cover most of the floor.',
+    },
+  ],
+};
+
+beforeEach(() => {
+  mockedFetchHealth.mockResolvedValue({
+    status: 'ok',
+    service: 'lineup-engine-api',
+    timestamp: '2026-01-01T00:00:00.000Z',
+  });
+  mockedFetchTeams.mockResolvedValue({
+    teams: [{ id: 'metro-city-meteors', name: 'Metro City Meteors', abbreviation: 'MCM' }],
+  });
+  mockedFetchRoster.mockResolvedValue({
+    team: { id: 'metro-city-meteors', name: 'Metro City Meteors', abbreviation: 'MCM' },
+    players,
+  });
+  mockedPostLineupAnalysis.mockResolvedValue({
+    lineup: {
+      playerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'samir-cole'],
+    },
+    analysis: {
+      shooting: metric,
+      creation: metric,
+      playmaking: metric,
+      rebounding: metric,
+      perimeterDefense: metric,
+      interiorDefense: metric,
+      switchability: metric,
+      findings: [
+        {
+          id: 'spacing:strong',
+          type: 'spacing',
+          severity: 'strength',
+          title: 'Strong spacing',
+          description: 'Five players meet the shooting threshold.',
+        },
+      ],
+    },
+  });
 });
 
-describe('application shell', () => {
-  it('introduces the product and reports API readiness', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          status: 'ok',
-          service: 'lineup-engine-api',
-          timestamp: '2026-01-01T00:00:00.000Z',
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      ),
-    );
+function renderApp() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
 
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+describe('manual lineup builder', () => {
+  it('selects exactly five players, requests analysis, and reveals metric evidence', async () => {
+    const user = userEvent.setup();
+    renderApp();
 
-    render(
-      <QueryClientProvider client={client}>
-        <MemoryRouter>
-          <App />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+    expect(await screen.findByRole('button', { name: 'Select Jordan Vega' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Analyze lineup' })).toBeDisabled();
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      /build a lineup\s*by intent/i,
-    );
-    expect(await screen.findByText('System ready')).toBeVisible();
+    for (const name of playerNames.slice(0, 5)) {
+      await user.click(screen.getByRole('button', { name: `Select ${name}` }));
+    }
+
+    expect(screen.getByText('Your five is ready for analysis.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Select Darius Knox' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
+
+    expect(mockedPostLineupAnalysis.mock.calls[0]?.[0]).toEqual({
+      teamId: 'metro-city-meteors',
+      playerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'samir-cole'],
+    });
+    expect(
+      await screen.findByRole('heading', { name: 'How this five fits together.' }),
+    ).toBeVisible();
+    expect(screen.getByText('Strong spacing')).toBeVisible();
+
+    const shootingCard = screen.getByText('Shooting').closest('details');
+    expect(shootingCard).not.toBeNull();
+    await user.click(within(shootingCard!).getByText('Shooting'));
+    expect(within(shootingCard!).getByText('Four-player spacing bonus')).toBeVisible();
   });
 });

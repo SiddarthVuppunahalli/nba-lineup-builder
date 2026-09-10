@@ -4,7 +4,7 @@
 
 `apps/web` owns the React product experience. It consumes HTTP contracts but contains no basketball evaluation logic.
 
-`apps/api` owns HTTP validation and orchestration. Routes should stay thin and translate between external requests and application/domain results.
+`apps/api` owns HTTP validation and orchestration. Routes stay thin and translate between external requests and application/domain results through a small demo lineup service.
 
 `packages/shared` contains only schemas and types that genuinely cross the web/API boundary.
 
