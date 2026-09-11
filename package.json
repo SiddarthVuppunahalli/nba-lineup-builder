@@ -14,7 +14,7 @@
     "predev": "pnpm run build:packages",
     "dev": "concurrently -k -n shared,engine,api,web -c cyan,magenta,yellow,green \"pnpm --filter @lineup-engine/shared dev\" \"pnpm --filter @lineup-engine/basketball-engine dev\" \"pnpm --filter @lineup-engine/api dev\" \"pnpm --filter @lineup-engine/web dev\"",
     "build": "pnpm run build:packages && pnpm --filter @lineup-engine/api build && pnpm --filter @lineup-engine/web build",
-    "start": "pnpm -- filter @lineup-engine/api start",
+    "start": "pnpm --filter @lineup-engine/api start",
     "preview": "pnpm run build && pnpm start",
     "check": "pnpm test && pnpm typecheck && pnpm lint && pnpm build",
     "test": "pnpm run build:packages && pnpm -r --if-present test",
