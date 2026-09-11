@@ -4,17 +4,20 @@ import {
   DEMO_PROFILES,
   DEMO_TEAM,
   generateLineup,
+  repairLineup,
   type LineupIntent,
 } from '@lineup-engine/basketball-engine';
 import {
   apiErrorResponseSchema,
   lineupAnalysisResponseSchema,
   generatedLineupResponseSchema,
+  repairedLineupResponseSchema,
   rosterResponseSchema,
   teamsResponseSchema,
   type ApiErrorResponse,
   type LineupAnalysisResponse,
   type GeneratedLineupResponse,
+  type RepairedLineupResponse,
   type RosterResponse,
   type TeamsResponse,
 } from '@lineup-engine/shared';
@@ -25,6 +28,10 @@ export type DemoAnalysisResult =
 
 export type DemoGenerationResult =
   | { success: true; data: GeneratedLineupResponse }
+  | { success: false; status: 404 | 409 | 422 | 500; error: ApiErrorResponse };
+
+export type DemoRepairResult =
+  | { success: true; data: RepairedLineupResponse }
   | { success: false; status: 404 | 409 | 422 | 500; error: ApiErrorResponse };
 
 export function listDemoTeams(): TeamsResponse {
@@ -155,4 +162,58 @@ export function generateDemoLineup(teamId: string, intent: LineupIntent): DemoGe
   }
 
   return { success: true, data: generatedLineupResponseSchema.parse(result) };
+}
+
+export function repairDemoLineup(
+  teamId: string,
+  currentPlayerIds: readonly string[],
+  intent: LineupIntent,
+): DemoRepairResult {
+  if (teamId !== DEMO_TEAM.id) {
+    return {
+      success: false,
+      status: 404,
+      error: apiErrorResponseSchema.parse({
+        error: { code: 'TEAM_NOT_FOUND', message: `No team exists with the id "${teamId}".` },
+      }),
+    };
+  }
+
+  const result = repairLineup({
+    currentPlayerIds,
+    players: DEMO_PLAYERS,
+    profiles: DEMO_PROFILES,
+    intent,
+  });
+  if (!result.success) {
+    if (result.reason === 'infeasible') {
+      return {
+        success: false,
+        status: 409,
+        error: apiErrorResponseSchema.parse({
+          error: {
+            code: 'INFEASIBLE_REPAIR',
+            message: result.message,
+            details: result.constraintSummary,
+          },
+        }),
+      };
+    }
+    const dataFailure = result.reason === 'data-error';
+    return {
+      success: false,
+      status: dataFailure ? 500 : 422,
+      error: apiErrorResponseSchema.parse({
+        error: {
+          code: dataFailure ? 'ROSTER_DATA_ERROR' : 'INVALID_REPAIR',
+          message: dataFailure
+            ? 'The eligible roster is missing required basketball data.'
+            : 'The lineup repair request is invalid.',
+          details: result.issues,
+        },
+      }),
+    };
+  }
+
+  return { success: true, data: repairedLineupResponseSchema.parse(result) };
 }

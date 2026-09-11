@@ -133,3 +133,25 @@ export interface GeneratedLineupCandidate {
   objectiveScore: number;
   constraints: ConstraintResult[];
 }
+
+export interface MetricComparison {
+  metric: MetricName;
+  before: number;
+  after: number;
+  delta: number;
+}
+
+export interface LineupComparison {
+  metrics: MetricComparison[];
+  largestGain?: MetricComparison;
+  largestTradeoff?: MetricComparison;
+}
+
+export interface RepairedLineup {
+  before: GeneratedLineupCandidate;
+  after: GeneratedLineupCandidate;
+  swapCount: number;
+  removedPlayerIds: string[];
+  addedPlayerIds: string[];
+  comparison: LineupComparison;
+}

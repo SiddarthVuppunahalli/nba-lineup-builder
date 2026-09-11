@@ -6,7 +6,7 @@ Lineup Engine is a portfolio-quality full-stack application for turning basketba
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
 ```
 
-This repository currently contains **Phase 4: Structured lineup generation**. It includes deterministic lineup validation, analysis, and exhaustive generation over a fictional demo roster, exposed through a real API and an interactive React experience. Users can still build a lineup manually or rank every valid five against metric priorities, shooter/creator requirements, metric floors, and required/excluded players. The builder preserves the cream, coral, and sage theme, explicit loading/empty/error states with retry controls, and calculation evidence for every metric and generation constraint.
+This repository currently contains **Phase 5: Repair and basic comparison**. It includes deterministic lineup validation, analysis, exhaustive generation, and minimal-change repair over a fictional demo roster, exposed through a real API and an interactive React experience. Users can build manually, generate from structured intent, or adapt a manual/generated five after requirements change. Repair shows the exact players removed and added, all seven metric deltas, and the largest gain and tradeoff. The builder preserves the cream, coral, and sage theme, explicit loading/empty/error states with retry controls, and calculation evidence for every metric and constraint.
 
 See the [revised roadmap](docs/roadmap.md) for the agreed remaining phases and checkpoints, and the [theme guide](docs/theme.md) for reusable visual styles.
 
@@ -64,7 +64,8 @@ pnpm lint
 - `GET /api/teams/:teamId/players` — returns the selected roster and profiles
 - `POST /api/lineups/analyze` — validates and evaluates a five-player lineup
 - `POST /api/lineups/generate` — generates and ranks a lineup from structured intent
+- `POST /api/lineups/repair` — finds the fewest changes satisfying updated intent
 
 ## Current limitations
 
-The application currently uses fictional profiles and exhaustively searches team-sized pools only (at most 18 eligible players). Basketball metrics are transparent heuristics rather than predictive professional models. Generation does not support AI intent, repair, comparison, real NBA data, league-wide search, persistence, or silent constraint relaxation; those remain in later roadmap phases.
+The application currently uses fictional profiles and exhaustively searches team-sized pools only (at most 18 eligible players). Basketball metrics and comparisons are transparent heuristics rather than predictive professional models. It does not yet support AI intent, full arbitrary/session comparison, real NBA data, league-wide search, persistence, production serving, or silent constraint relaxation; those remain in later roadmap phases.

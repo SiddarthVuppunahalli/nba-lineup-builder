@@ -10,6 +10,7 @@ import {
   fetchTeams,
   postLineupAnalysis,
   postLineupGeneration,
+  postLineupRepair,
 } from './api/client.ts';
 import { App } from './App.tsx';
 
@@ -20,6 +21,7 @@ vi.mock('./api/client.ts', () => ({
   fetchRoster: vi.fn(),
   postLineupAnalysis: vi.fn(),
   postLineupGeneration: vi.fn(),
+  postLineupRepair: vi.fn(),
 }));
 
 const mockedFetchHealth = vi.mocked(fetchHealth);
@@ -27,6 +29,7 @@ const mockedFetchTeams = vi.mocked(fetchTeams);
 const mockedFetchRoster = vi.mocked(fetchRoster);
 const mockedPostLineupAnalysis = vi.mocked(postLineupAnalysis);
 const mockedPostLineupGeneration = vi.mocked(postLineupGeneration);
+const mockedPostLineupRepair = vi.mocked(postLineupRepair);
 
 const playerNames = [
   'Jordan Vega',
@@ -147,6 +150,98 @@ beforeEach(() => {
       ],
     },
     alternatives: [],
+    appliedPriorities: {
+      shooting: 1,
+      creation: 1,
+      playmaking: 1,
+      rebounding: 1,
+      perimeterDefense: 1,
+      interiorDefense: 1,
+      switchability: 1,
+    },
+    usedBalancedDefault: false,
+    evaluatedCandidateCount: 6,
+    validCandidateCount: 4,
+  });
+  const beforeMetric = { ...metric, score: 70 };
+  const beforeRebounding = { ...metric, score: 80 };
+  const afterMetric = { ...metric, score: 80 };
+  const afterRebounding = { ...metric, score: 70 };
+  const beforeAnalysis = {
+    shooting: beforeMetric,
+    creation: beforeMetric,
+    playmaking: beforeMetric,
+    rebounding: beforeRebounding,
+    perimeterDefense: beforeMetric,
+    interiorDefense: beforeMetric,
+    switchability: beforeMetric,
+    findings: [],
+  };
+  const afterAnalysis = {
+    shooting: afterMetric,
+    creation: afterMetric,
+    playmaking: afterMetric,
+    rebounding: afterRebounding,
+    perimeterDefense: afterMetric,
+    interiorDefense: afterMetric,
+    switchability: afterMetric,
+    findings: [],
+  };
+  mockedPostLineupRepair.mockResolvedValue({
+    repair: {
+      before: {
+        lineup: {
+          playerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'samir-cole'],
+        },
+        analysis: beforeAnalysis,
+        objectiveScore: 71.4,
+        constraints: [
+          {
+            id: 'minimum-shooters',
+            kind: 'minimum-shooters',
+            label: 'Credible shooters',
+            satisfied: false,
+            actual: 2,
+            required: 3,
+            description: '2 of 5 players meet the threshold; 3 required.',
+          },
+        ],
+      },
+      after: {
+        lineup: {
+          playerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'darius-knox'],
+        },
+        analysis: afterAnalysis,
+        objectiveScore: 78.6,
+        constraints: [
+          {
+            id: 'minimum-shooters',
+            kind: 'minimum-shooters',
+            label: 'Credible shooters',
+            satisfied: true,
+            actual: 3,
+            required: 3,
+            description: '3 of 5 players meet the threshold; 3 required.',
+          },
+        ],
+      },
+      swapCount: 1,
+      removedPlayerIds: ['samir-cole'],
+      addedPlayerIds: ['darius-knox'],
+      comparison: {
+        metrics: [
+          { metric: 'shooting', before: 70, after: 80, delta: 10 },
+          { metric: 'creation', before: 70, after: 80, delta: 10 },
+          { metric: 'playmaking', before: 70, after: 80, delta: 10 },
+          { metric: 'rebounding', before: 80, after: 70, delta: -10 },
+          { metric: 'perimeterDefense', before: 70, after: 80, delta: 10 },
+          { metric: 'interiorDefense', before: 70, after: 80, delta: 10 },
+          { metric: 'switchability', before: 70, after: 80, delta: 10 },
+        ],
+        largestGain: { metric: 'shooting', before: 70, after: 80, delta: 10 },
+        largestTradeoff: { metric: 'rebounding', before: 80, after: 70, delta: -10 },
+      },
+    },
     appliedPriorities: {
       shooting: 1,
       creation: 1,
@@ -362,5 +457,59 @@ describe('structured lineup generation', () => {
 
     expect(screen.getByRole('button', { name: 'Select Jordan Vega' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Analyze lineup' })).toBeDisabled();
+  });
+
+  it('uses the latest generated winner as a repair starting point', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    await user.click(screen.getByRole('button', { name: 'Generate lineup' }));
+    await screen.findByRole('heading', { name: 'The strongest fit for your intent.' });
+
+    await user.click(screen.getByRole('tab', { name: 'Repair a lineup' }));
+    expect(screen.getByRole('heading', { name: 'Set the new intent' })).toBeVisible();
+    expect(screen.getByText(/Jordan Vega · Malik Rhodes · Eli Mercer/)).toBeVisible();
+  });
+});
+
+describe('lineup repair and comparison', () => {
+  it('requires a starting five before opening repair controls', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+
+    await user.click(screen.getByRole('tab', { name: 'Repair a lineup' }));
+    expect(
+      screen.getByRole('heading', { name: 'Select five players before repairing.' }),
+    ).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Build starting five' }));
+    expect(screen.getByRole('button', { name: 'Analyze lineup' })).toBeDisabled();
+  });
+
+  it('repairs a manual five and explains swaps and metric tradeoffs', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    for (const name of playerNames.slice(0, 5)) {
+      await user.click(screen.getByRole('button', { name: `Select ${name}` }));
+    }
+    await user.click(screen.getByRole('tab', { name: 'Repair a lineup' }));
+    expect(screen.getByRole('heading', { name: 'Set the new intent' })).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Repair lineup' }));
+    expect(mockedPostLineupRepair.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        teamId: 'metro-city-meteors',
+        currentPlayerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'samir-cole'],
+      }),
+    );
+    expect(await screen.findByRole('heading', { name: '1 swap made.' })).toBeVisible();
+    expect(screen.getByText('Samir Cole', { selector: '.swap-summary strong' })).toBeVisible();
+    expect(screen.getByText('Darius Knox', { selector: '.swap-summary strong' })).toBeVisible();
+    expect(screen.getByText('Largest tradeoff')).toBeVisible();
+    expect(screen.getByText('Rebounding', { selector: '.tradeoff strong' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'The smallest change that works.' })).toBeVisible();
+    expect(screen.getByText(/fewest swaps took priority over weighted fit/)).toBeVisible();
   });
 });

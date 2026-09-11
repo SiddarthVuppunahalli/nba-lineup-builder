@@ -3,6 +3,7 @@ import {
   apiErrorResponseSchema,
   healthResponseSchema,
   generateLineupRequestSchema,
+  repairLineupRequestSchema,
 } from '@lineup-engine/shared';
 import express, { type ErrorRequestHandler } from 'express';
 
@@ -11,6 +12,7 @@ import {
   generateDemoLineup,
   getDemoRoster,
   listDemoTeams,
+  repairDemoLineup,
 } from './services/demo-lineup-service.js';
 
 export function createApp() {
@@ -93,6 +95,36 @@ export function createApp() {
     }
 
     const result = generateDemoLineup(parsedRequest.data.teamId, parsedRequest.data.intent);
+    if (!result.success) {
+      response.status(result.status).json(result.error);
+      return;
+    }
+
+    response.status(200).json(result.data);
+  });
+
+  app.post('/api/lineups/repair', (request, response) => {
+    const parsedRequest = repairLineupRequestSchema.safeParse(request.body);
+    if (!parsedRequest.success) {
+      const error = apiErrorResponseSchema.parse({
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'The lineup repair request is malformed.',
+          details: parsedRequest.error.issues.map((issue) => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+          })),
+        },
+      });
+      response.status(400).json(error);
+      return;
+    }
+
+    const result = repairDemoLineup(
+      parsedRequest.data.teamId,
+      parsedRequest.data.currentPlayerIds,
+      parsedRequest.data.intent,
+    );
     if (!result.success) {
       response.status(result.status).json(result.error);
       return;

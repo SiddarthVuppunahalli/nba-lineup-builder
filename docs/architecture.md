@@ -26,4 +26,6 @@ The engine never imports either application.
 
 Lineup generation is a stateless operation over an eligible player pool, profiles, and structured intent. Phase 4 exhaustively evaluates unique five-player combinations for pools of at most 18 players, applies hard constraints, and ranks valid candidates with a deterministic weighted objective. The team ID and demo-data lookup remain in the API service rather than the engine. Larger league-wide search is intentionally deferred to the bounded-search design in Phase 8.
 
+Lineup repair uses the same engine boundaries and search bound. It adds the current five as domain input, minimizes replacements before considering the weighted objective, and returns a final analyzed candidate plus a basic metric comparison. The browser displays these results but does not calculate swaps, scores, or deltas.
+
 The generator can initially run in the API process. If traffic or computation later requires workers, the same domain call can move behind a queue without changing its basketball logic. Roster and normalized player data are natural cache boundaries; no distributed infrastructure is needed for the MVP.

@@ -14,6 +14,7 @@ import { AnalysisPanel } from './AnalysisPanel.tsx';
 interface GenerationWorkspaceProps {
   teamId: string;
   roster: RosterPlayerDto[];
+  onGeneratedLineup: (playerIds: string[]) => void;
 }
 
 const metrics = [
@@ -64,8 +65,15 @@ function generationErrorDetails(error: Error | null): string[] {
   });
 }
 
-export function GenerationWorkspace({ teamId, roster }: GenerationWorkspaceProps) {
-  const mutation = useMutation({ mutationFn: postLineupGeneration });
+export function GenerationWorkspace({
+  teamId,
+  roster,
+  onGeneratedLineup,
+}: GenerationWorkspaceProps) {
+  const mutation = useMutation({
+    mutationFn: postLineupGeneration,
+    onSuccess: (response) => onGeneratedLineup([...response.winner.lineup.playerIds]),
+  });
   const resetGeneration = mutation.reset;
   const { control, register, handleSubmit, reset, setValue } = useForm<LineupIntentDto>({
     defaultValues: balancedIntent,

@@ -6,6 +6,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { ApiClientError, fetchRoster, fetchTeams, postLineupAnalysis } from '../../api/client.ts';
 import { AnalysisPanel } from './AnalysisPanel.tsx';
 import { GenerationWorkspace } from './GenerationWorkspace.tsx';
+import { RepairWorkspace } from './RepairWorkspace.tsx';
 import { RosterPanel } from './RosterPanel.tsx';
 
 interface LineupFormValues {
@@ -19,7 +20,7 @@ function requestErrorMessage(error: Error | null): string | undefined {
 }
 
 export function LineupBuilderPage() {
-  const [workflow, setWorkflow] = useState<'manual' | 'generation'>('manual');
+  const [workflow, setWorkflow] = useState<'manual' | 'generation' | 'repair'>('manual');
   const [teamOverride, setTeamOverride] = useState('');
   const teamsQuery = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
   const selectedTeamId = teamOverride || teamsQuery.data?.teams[0]?.id || '';
@@ -49,6 +50,11 @@ export function LineupBuilderPage() {
         : selectedPlayerIds;
 
     setValue('playerIds', nextPlayerIds, { shouldDirty: true });
+    analysisMutation.reset();
+  }
+
+  function useLineupForRepair(playerIds: string[]) {
+    setValue('playerIds', playerIds, { shouldDirty: true });
     analysisMutation.reset();
   }
 
@@ -205,10 +211,42 @@ export function LineupBuilderPage() {
         >
           Generate from intent
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={workflow === 'repair'}
+          onClick={() => setWorkflow('repair')}
+        >
+          Repair a lineup
+        </button>
       </div>
 
       {workflow === 'generation' && rosterReady && rosterQuery.data?.players.length ? (
-        <GenerationWorkspace teamId={selectedTeamId} roster={rosterQuery.data.players} />
+        <GenerationWorkspace
+          teamId={selectedTeamId}
+          roster={rosterQuery.data.players}
+          onGeneratedLineup={useLineupForRepair}
+        />
+      ) : workflow === 'repair' && rosterReady && rosterQuery.data?.players.length ? (
+        selectedPlayerIds.length === 5 ? (
+          <RepairWorkspace
+            teamId={selectedTeamId}
+            roster={rosterQuery.data.players}
+            currentPlayerIds={selectedPlayerIds}
+          />
+        ) : (
+          <section className="analysis-card repair-prerequisite">
+            <div className="eyebrow">Starting lineup needed</div>
+            <h2>Select five players before repairing.</h2>
+            <p>
+              Repair preserves as much of an existing lineup as possible, so begin with five in the
+              manual builder or generate a lineup first.
+            </p>
+            <button className="analyze-button" type="button" onClick={() => setWorkflow('manual')}>
+              Build starting five <span aria-hidden="true">→</span>
+            </button>
+          </section>
+        )
       ) : (
         <div className="builder-layout">
           <form className="roster-card" onSubmit={handleSubmit(submitLineup)}>

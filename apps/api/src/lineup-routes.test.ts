@@ -218,3 +218,84 @@ describe('POST /api/lineups/generate', () => {
     });
   });
 });
+
+describe('POST /api/lineups/repair', () => {
+  const currentPlayerIds = [
+    'andre-okafor',
+    'darius-knox',
+    'owen-price',
+    'luca-hayes',
+    'theo-grant',
+  ];
+
+  it('returns the smallest valid repair with before-and-after evidence', async () => {
+    const response = await request(createApp())
+      .post('/api/lineups/repair')
+      .send({
+        teamId: 'metro-city-meteors',
+        currentPlayerIds,
+        intent: {
+          ...generationIntent,
+          minimumShooters: 3,
+          metricMinimums: {},
+          requiredPlayerIds: ['darius-knox'],
+          excludedPlayerIds: [],
+        },
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.repair.swapCount).toBe(2);
+    expect(response.body.repair.after.lineup.playerIds).toContain('darius-knox');
+    expect(
+      response.body.repair.after.constraints.every(
+        (item: { satisfied: boolean }) => item.satisfied,
+      ),
+    ).toBe(true);
+    expect(response.body.repair.before.constraints).toContainEqual(
+      expect.objectContaining({ id: 'minimum-shooters', satisfied: false }),
+    );
+    expect(response.body.repair.comparison.metrics).toHaveLength(7);
+  });
+
+  it('returns an infeasible repair without silently relaxing intent', async () => {
+    const response = await request(createApp())
+      .post('/api/lineups/repair')
+      .send({
+        teamId: 'metro-city-meteors',
+        currentPlayerIds,
+        intent: {
+          ...generationIntent,
+          minimumCreators: 5,
+          metricMinimums: {},
+          requiredPlayerIds: [],
+          excludedPlayerIds: [],
+        },
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({
+      error: {
+        code: 'INFEASIBLE_REPAIR',
+        message: expect.stringContaining('No requirement was relaxed'),
+      },
+    });
+  });
+
+  it('distinguishes an invalid starting lineup from infeasibility', async () => {
+    const response = await request(createApp())
+      .post('/api/lineups/repair')
+      .send({
+        teamId: 'metro-city-meteors',
+        currentPlayerIds: ['andre-okafor'],
+        intent: generationIntent,
+      });
+
+    expect(response.status).toBe(422);
+    expect(response.body).toMatchObject({
+      error: {
+        code: 'INVALID_REPAIR',
+        details: [expect.objectContaining({ code: 'INVALID_CURRENT_LINEUP' })],
+      },
+    });
+  });
+});

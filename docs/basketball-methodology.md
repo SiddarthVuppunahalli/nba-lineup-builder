@@ -59,6 +59,12 @@ Minimum shooter and creator counts are hard requirements and reuse the 75-point 
 
 For a team-sized pool, the engine evaluates every unique five-player combination after exclusions, retains only candidates satisfying every hard requirement, and sorts them by objective score. Equal objectives are resolved by sorted player IDs, making results independent of input order. Exhaustive generation is capped at 18 eligible players; larger-pool search remains a later phase.
 
+## Repair and comparison
+
+Repair applies the same intent validation, constraints, metric analysis, objective, exhaustive-search bound, and deterministic tie-breaking as generation. It orders valid candidates by the fewest players added to the current lineup, then by weighted objective score. This makes preservation of the existing five authoritative: if it already satisfies the new intent, repair returns zero changes even when another valid lineup has a higher objective score.
+
+The comparison contains the before and after value for each of the seven normalized lineup metrics and a one-decimal delta. The largest gain is the greatest positive delta; the largest tradeoff is the greatest negative delta. These are descriptive changes in the existing heuristic scores, not predictions of game outcomes.
+
 ## Limitations
 
 The demo roster and profiles are fictional. The scores are curated to exercise the engine and should not be interpreted as professional scouting grades. Phase 8 will introduce reproducible profile derivation from a documented external data source while preserving these domain boundaries.

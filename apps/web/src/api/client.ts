@@ -5,6 +5,8 @@ import {
   generateLineupRequestSchema,
   generatedLineupResponseSchema,
   lineupAnalysisResponseSchema,
+  repairLineupRequestSchema,
+  repairedLineupResponseSchema,
   rosterResponseSchema,
   teamsResponseSchema,
   type AnalyzeLineupRequest,
@@ -12,6 +14,8 @@ import {
   type GenerateLineupRequest,
   type GeneratedLineupResponse,
   type LineupAnalysisResponse,
+  type RepairLineupRequest,
+  type RepairedLineupResponse,
   type RosterResponse,
   type TeamsResponse,
 } from '@lineup-engine/shared';
@@ -80,6 +84,20 @@ export async function postLineupGeneration(
 
   return generatedLineupResponseSchema.parse(
     await requestJson('/api/lineups/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validatedRequest),
+    }),
+  );
+}
+
+export async function postLineupRepair(
+  request: RepairLineupRequest,
+): Promise<RepairedLineupResponse> {
+  const validatedRequest = repairLineupRequestSchema.parse(request);
+
+  return repairedLineupResponseSchema.parse(
+    await requestJson('/api/lineups/repair', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(validatedRequest),

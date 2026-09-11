@@ -15,7 +15,7 @@ interface AnalysisPanelProps {
   selectedPlayerIds: string[];
   onRetry: () => void;
   canRetry: boolean;
-  mode?: 'manual' | 'generation';
+  mode?: 'manual' | 'generation' | 'repair';
   resultContext?:
     | {
         objectiveScore: number;
@@ -80,17 +80,25 @@ export function AnalysisPanel({
       <section className="analysis-card analysis-loading" aria-live="polite">
         <span className="analysis-orbit" aria-hidden="true" />
         <div className="eyebrow">
-          {mode === 'generation' ? 'Searching the roster' : 'Evaluating lineup'}
+          {mode === 'generation'
+            ? 'Searching the roster'
+            : mode === 'repair'
+              ? 'Adapting your five'
+              : 'Evaluating lineup'}
         </div>
         <h2>
           {mode === 'generation'
             ? 'Finding the best five for your intent…'
-            : 'Finding the strengths in your five…'}
+            : mode === 'repair'
+              ? 'Finding the smallest valid change…'
+              : 'Finding the strengths in your five…'}
         </h2>
         <p>
           {mode === 'generation'
             ? 'Evaluating every eligible combination against your priorities and requirements.'
-            : 'Looking at shooting, creation, defense, and how your players fit together.'}
+            : mode === 'repair'
+              ? 'Checking valid alternatives while preserving as much of your lineup as possible.'
+              : 'Looking at shooting, creation, defense, and how your players fit together.'}
         </p>
       </section>
     );
@@ -100,10 +108,14 @@ export function AnalysisPanel({
     return (
       <section className="analysis-card analysis-error" role="alert">
         <div className="eyebrow">
-          {mode === 'generation' ? 'No valid lineup' : 'Analysis unavailable'}
+          {mode === 'generation'
+            ? 'No valid lineup'
+            : mode === 'repair'
+              ? 'No valid repair'
+              : 'Analysis unavailable'}
         </div>
         <h2>
-          {mode === 'generation'
+          {mode === 'generation' || mode === 'repair'
             ? 'Those requirements don’t fit this roster.'
             : 'We couldn’t evaluate that five.'}
         </h2>
@@ -116,7 +128,11 @@ export function AnalysisPanel({
           </ul>
         )}
         <button className="retry-button" type="button" onClick={onRetry} disabled={!canRetry}>
-          {mode === 'generation' ? 'Retry generation' : 'Retry analysis'}
+          {mode === 'generation'
+            ? 'Retry generation'
+            : mode === 'repair'
+              ? 'Retry repair'
+              : 'Retry analysis'}
         </button>
       </section>
     );
@@ -130,16 +146,26 @@ export function AnalysisPanel({
           <span />
           <span />
         </div>
-        <div className="eyebrow">{mode === 'generation' ? 'Your intent' : 'Your five'}</div>
+        <div className="eyebrow">
+          {mode === 'generation'
+            ? 'Your intent'
+            : mode === 'repair'
+              ? 'Your starting five'
+              : 'Your five'}
+        </div>
         <h2>
           {mode === 'generation'
             ? 'Set the rules. We’ll search every five.'
-            : 'Build the lineup, then inspect the fit.'}
+            : mode === 'repair'
+              ? 'Choose what needs to change.'
+              : 'Build the lineup, then inspect the fit.'}
         </h2>
         <p>
           {mode === 'generation'
             ? 'Balance ranking preferences with hard requirements, then inspect why the winning lineup fits.'
-            : 'Select five players from the roster to discover what works, where you give something up, and why.'}
+            : mode === 'repair'
+              ? 'Set new requirements to find the fewest necessary swaps and understand each tradeoff.'
+              : 'Select five players from the roster to discover what works, where you give something up, and why.'}
         </p>
         <SelectedFive roster={roster} selectedPlayerIds={selectedPlayerIds} />
       </section>
@@ -154,12 +180,18 @@ export function AnalysisPanel({
       <div className="analysis-header">
         <div>
           <div className="eyebrow">
-            {mode === 'generation' ? 'Best valid lineup' : 'Lineup analysis'}
+            {mode === 'generation'
+              ? 'Best valid lineup'
+              : mode === 'repair'
+                ? 'Repaired lineup'
+                : 'Lineup analysis'}
           </div>
           <h2 id="analysis-title">
             {mode === 'generation'
               ? 'The strongest fit for your intent.'
-              : 'How this five fits together.'}
+              : mode === 'repair'
+                ? 'The smallest change that works.'
+                : 'How this five fits together.'}
           </h2>
         </div>
         <span className="verified-pill">
@@ -176,8 +208,9 @@ export function AnalysisPanel({
             <strong>{resultContext.objectiveScore}</strong>
           </div>
           <p>
-            Ranked first among {resultContext.validCandidateCount} valid lineups after checking{' '}
-            {resultContext.evaluatedCandidateCount} combinations.
+            {mode === 'repair'
+              ? `Selected from ${resultContext.validCandidateCount} valid lineups after checking ${resultContext.evaluatedCandidateCount} combinations; fewest swaps took priority over weighted fit.`
+              : `Ranked first among ${resultContext.validCandidateCount} valid lineups after checking ${resultContext.evaluatedCandidateCount} combinations.`}
             {resultContext.usedBalancedDefault
               ? ' Balanced priorities were applied because every weight was zero.'
               : ''}

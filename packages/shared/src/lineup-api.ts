@@ -165,6 +165,40 @@ export const generatedLineupResponseSchema = z.object({
   validCandidateCount: z.number().int().positive(),
 });
 
+export const repairLineupRequestSchema = z.object({
+  teamId: z.string().trim().min(1),
+  currentPlayerIds: z.array(z.string().trim().min(1)).max(20),
+  intent: lineupIntentSchema,
+});
+
+export const metricComparisonSchema = z.object({
+  metric: metricNameSchema,
+  before: normalizedScoreSchema,
+  after: normalizedScoreSchema,
+  delta: z.number().min(-100).max(100),
+});
+
+export const lineupComparisonSchema = z.object({
+  metrics: z.array(metricComparisonSchema).length(7),
+  largestGain: metricComparisonSchema.optional(),
+  largestTradeoff: metricComparisonSchema.optional(),
+});
+
+export const repairedLineupResponseSchema = z.object({
+  repair: z.object({
+    before: generatedLineupCandidateSchema,
+    after: generatedLineupCandidateSchema,
+    swapCount: z.number().int().min(0).max(5),
+    removedPlayerIds: z.array(z.string()).max(5),
+    addedPlayerIds: z.array(z.string()).max(5),
+    comparison: lineupComparisonSchema,
+  }),
+  appliedPriorities: z.object(metricRecordShape),
+  usedBalancedDefault: z.boolean(),
+  evaluatedCandidateCount: z.number().int().nonnegative(),
+  validCandidateCount: z.number().int().positive(),
+});
+
 export const apiErrorResponseSchema = z.object({
   error: z.object({
     code: z.string().min(1),
@@ -189,4 +223,8 @@ export type GenerateLineupRequest = z.infer<typeof generateLineupRequestSchema>;
 export type ConstraintResultDto = z.infer<typeof constraintResultSchema>;
 export type GeneratedLineupCandidateDto = z.infer<typeof generatedLineupCandidateSchema>;
 export type GeneratedLineupResponse = z.infer<typeof generatedLineupResponseSchema>;
+export type RepairLineupRequest = z.infer<typeof repairLineupRequestSchema>;
+export type MetricComparisonDto = z.infer<typeof metricComparisonSchema>;
+export type LineupComparisonDto = z.infer<typeof lineupComparisonSchema>;
+export type RepairedLineupResponse = z.infer<typeof repairedLineupResponseSchema>;
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

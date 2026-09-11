@@ -215,10 +215,13 @@ function combinations(ids: readonly string[]): string[][] {
   return output;
 }
 
-function objectiveScore(candidate: GeneratedLineupCandidate, priorities: MetricPriorities): number {
+export function calculateObjectiveScore(
+  analysis: GeneratedLineupCandidate['analysis'],
+  priorities: MetricPriorities,
+): number {
   const totalWeight = METRIC_NAMES.reduce((sum, metric) => sum + priorities[metric], 0);
   const weighted = METRIC_NAMES.reduce(
-    (sum, metric) => sum + candidate.analysis[metric].score * priorities[metric],
+    (sum, metric) => sum + analysis[metric].score * priorities[metric],
     0,
   );
   return Number((weighted / totalWeight).toFixed(4));
@@ -281,7 +284,7 @@ export function generateLineup(input: GenerateLineupInput): GenerateLineupResult
       objectiveScore: 0,
       constraints,
     };
-    candidate.objectiveScore = objectiveScore(candidate, appliedPriorities);
+    candidate.objectiveScore = calculateObjectiveScore(candidate.analysis, appliedPriorities);
     candidates.push(candidate);
   }
 

@@ -57,6 +57,8 @@ Implementation decisions: priorities use finite 0–1 weights and a normalized w
 
 ## Phase 5 — Repair and basic comparison
 
+Status: implemented and verified locally; ready for checkpoint review.
+
 - Adapt an existing manual or generated lineup when requirements change.
 - Respect locked/required players and exclusions.
 - Prefer the fewest replacements, then optimize quality among equally small changes.
@@ -66,6 +68,8 @@ Implementation decisions: priorities use finite 0–1 weights and a normalized w
 - Keep final validation of generated results; do not manufacture invalid candidates merely to demonstrate repair.
 
 Checkpoint: demonstrate build five → require more shooting → repair → inspect swaps → understand the defense/rebounding tradeoff.
+
+Implementation decisions: repair evaluates the same bounded, exhaustive candidate set as generation. It ranks valid candidates first by the number of incoming players, then by the existing weighted objective, then by canonical sorted player IDs. A starting lineup that already satisfies the intent is retained with zero swaps. Required players and exclusions remain hard rules. Comparison reports all seven before/after metric deltas and identifies the largest positive change and largest decline; it does not create session history or persistence.
 
 ## Early deployment checkpoint — After Phase 5
 
