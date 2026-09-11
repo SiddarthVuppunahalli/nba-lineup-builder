@@ -6,5 +6,6 @@ localPort = 3001
 externalPort = 80
 
 [deployment]
-build = "pnpm build"
-run = "pnpm start"
+deploymentTarget = "cloudrun"
+build = ["pnpm", "build"]
+run = ["pnpm", "start"]
