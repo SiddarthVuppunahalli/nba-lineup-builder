@@ -1,7 +1,10 @@
-entrypoint = "apps/web/src/main.tsx"
-run = "pnpm dev"
+entrypoint = "apps/api/src/index.ts"
+run = "pnpm preview"
 
 [[ports]]
-localPort = 5173
+localPort = 3001
 externalPort = 80
 
+[deployment]
+build = "pnpm build"
+run = "pnpm start"

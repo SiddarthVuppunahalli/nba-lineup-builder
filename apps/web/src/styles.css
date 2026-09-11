@@ -216,6 +216,80 @@ a:focus-visible {
   align-items: start;
 }
 
+.demo-scenarios {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 2fr);
+  gap: 22px;
+  padding: 22px;
+  margin-bottom: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.demo-scenarios__intro {
+  align-self: center;
+}
+
+.demo-scenarios__intro h2 {
+  margin-top: 8px;
+  font-size: clamp(22px, 2vw, 30px);
+  line-height: 1.1;
+}
+
+.demo-scenarios__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.demo-scenario {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-tint);
+}
+
+.demo-scenario > span {
+  color: var(--color-sage-ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.demo-scenario h3 {
+  margin-top: 6px;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.demo-scenario p {
+  flex: 1;
+  margin: 8px 0 14px;
+  color: var(--color-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.demo-scenario button {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  color: var(--color-coral-ink);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .workflow-tabs {
   display: inline-flex;
   gap: 5px;
@@ -1198,6 +1272,10 @@ a:focus-visible {
   .analysis-empty {
     min-height: 560px;
   }
+
+  .demo-scenarios {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1240,6 +1318,14 @@ a:focus-visible {
 
   .team-control {
     min-width: 0;
+  }
+
+  .demo-scenarios {
+    padding: 18px;
+  }
+
+  .demo-scenarios__grid {
+    grid-template-columns: 1fr;
   }
 
   .roster-card,

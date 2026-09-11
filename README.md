@@ -6,7 +6,7 @@ Lineup Engine is a portfolio-quality full-stack application for turning basketba
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
 ```
 
-This repository currently contains **Phase 5: Repair and basic comparison**. It includes deterministic lineup validation, analysis, exhaustive generation, and minimal-change repair over a fictional demo roster, exposed through a real API and an interactive React experience. Users can build manually, generate from structured intent, or adapt a manual/generated five after requirements change. Repair shows the exact players removed and added, all seven metric deltas, and the largest gain and tradeoff. The builder preserves the cream, coral, and sage theme, explicit loading/empty/error states with retry controls, and calculation evidence for every metric and constraint.
+This repository currently contains the **early deployment checkpoint after Phase 5**. It includes deterministic lineup validation, analysis, exhaustive generation, and minimal-change repair over a fictional demo roster, exposed through a real API and an interactive React experience. Users can build manually, generate from structured intent, or adapt a manual/generated five after requirements change. Three curated examples let a visitor jump directly into analysis, generation, or a repair tradeoff. The builder preserves the cream, coral, and sage theme, explicit loading/empty/error states with retry controls, and calculation evidence for every metric and constraint.
 
 See the [revised roadmap](docs/roadmap.md) for the agreed remaining phases and checkpoints, and the [theme guide](docs/theme.md) for reusable visual styles.
 
@@ -46,7 +46,20 @@ The web app runs at `http://localhost:5173`. Vite proxies `/api` requests to the
 
 ### Replit checkpoint
 
-Import the GitHub repository into Replit and click **Run**. The included `.replit` file starts the full workspace and exposes the web app. No secrets or database are required for the current demo. This is development configuration; production serving and publishing are planned at the early deployment checkpoint after Phase 5. Track local and Replit verification separately.
+Import the GitHub repository into Replit and click **Run**. The included `.replit` file builds the workspace and starts the production service on the assigned port. For a public preview, choose an Autoscale deployment because the application includes API routes, then publish from Replit. No secrets or database are required for the current demo. Publishing can involve account or billing choices, so public-link creation remains a manual checkpoint.
+
+## Production preview
+
+Build and start the same single service used by a host:
+
+```bash
+pnpm build
+pnpm start
+```
+
+The server uses `PORT` (default `3001`) and `HOST` (default `0.0.0.0`). It serves the built web application and API together, including `GET /api/health`. Copy `.env.example` when local overrides are useful. `pnpm preview` combines build and start for a clean local smoke test.
+
+Repository automation in `.github/workflows/quality.yml` verifies tests, types, lint/formatting, and the production build on pushes and pull requests.
 
 ## Quality commands
 
@@ -68,4 +81,4 @@ pnpm lint
 
 ## Current limitations
 
-The application currently uses fictional profiles and exhaustively searches team-sized pools only (at most 18 eligible players). Basketball metrics and comparisons are transparent heuristics rather than predictive professional models. It does not yet support AI intent, full arbitrary/session comparison, real NBA data, league-wide search, persistence, production serving, or silent constraint relaxation; those remain in later roadmap phases.
+The application currently uses fictional profiles and exhaustively searches team-sized pools only (at most 18 eligible players). Basketball metrics and comparisons are transparent heuristics rather than predictive professional models. It does not yet support AI intent, full arbitrary/session comparison, real NBA data, league-wide search, persistence, or silent constraint relaxation; those remain in later roadmap phases. Production serving is configured, but a public Replit URL must be created and verified from the owner’s Replit account.

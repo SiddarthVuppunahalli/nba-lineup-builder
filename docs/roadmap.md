@@ -73,12 +73,16 @@ Implementation decisions: repair evaluates the same bounded, exhaustive candidat
 
 ## Early deployment checkpoint — After Phase 5
 
+Status: implemented and verified locally; ready for Replit publishing and a public-link smoke test.
+
 - Add production build/start configuration, frontend serving, health checks, and environment configuration.
 - Publish a preview and smoke-test the full core workflow.
 - Add automated repository checks for build, tests, types, and lint.
 - Offer curated demo scenarios so a visitor can start immediately.
 
 Checkpoint: a useful preview link exists for feedback before the later integrations.
+
+Implementation decisions: production uses one stateless service, with Express serving the built Vite app and retaining `/api/health` as the readiness endpoint. Hosting reads `PORT` and `HOST`, supports an optional web-build path override, and exits early for invalid ports. Replit receives separate build and start commands, while GitHub Actions runs tests, type checks, lint/format checks, and a production build on pushes and pull requests. Three curated starters cover immediate analysis, structured generation, and a shooting-repair tradeoff without adding alternate basketball logic. Creating the public Replit deployment remains a user-controlled publishing step because it can require account and billing choices.
 
 ## Phase 6 — Natural-language intent
 

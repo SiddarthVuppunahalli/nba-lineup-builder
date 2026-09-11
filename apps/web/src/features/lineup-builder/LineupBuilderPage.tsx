@@ -5,6 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 
 import { ApiClientError, fetchRoster, fetchTeams, postLineupAnalysis } from '../../api/client.ts';
 import { AnalysisPanel } from './AnalysisPanel.tsx';
+import { DemoScenarios, type DemoScenarioSelection } from './DemoScenarios.tsx';
 import { GenerationWorkspace } from './GenerationWorkspace.tsx';
 import { RepairWorkspace } from './RepairWorkspace.tsx';
 import { RosterPanel } from './RosterPanel.tsx';
@@ -65,6 +66,19 @@ export function LineupBuilderPage() {
       playerIds: values.playerIds,
     };
     analysisMutation.mutate(request);
+  }
+
+  function loadDemoScenario(selection: DemoScenarioSelection) {
+    const availablePlayerIds = new Set(rosterQuery.data?.players.map((player) => player.id) ?? []);
+    const playerIds = selection.playerIds.filter((id) => availablePlayerIds.has(id));
+
+    setValue('playerIds', playerIds, { shouldDirty: true });
+    analysisMutation.reset();
+    setWorkflow(selection.workflow);
+
+    if (selection.analyzeImmediately && playerIds.length === 5) {
+      analysisMutation.mutate({ teamId: selectedTeamId, playerIds });
+    }
   }
 
   const rosterError = requestErrorMessage(rosterQuery.error);
@@ -193,6 +207,10 @@ export function LineupBuilderPage() {
           </select>
         </label>
       </header>
+
+      {rosterReady && rosterQuery.data?.players.length ? (
+        <DemoScenarios onSelect={loadDemoScenario} />
+      ) : null}
 
       <div className="workflow-tabs" role="tablist" aria-label="Lineup workflow">
         <button

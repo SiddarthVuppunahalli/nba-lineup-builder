@@ -269,6 +269,21 @@ function renderApp() {
 }
 
 describe('manual lineup builder', () => {
+  it('opens a curated analysis scenario in one click', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(await screen.findByRole('button', { name: 'Analyze balanced five' }));
+
+    expect(mockedPostLineupAnalysis.mock.calls[0]?.[0]).toEqual({
+      teamId: 'metro-city-meteors',
+      playerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'samir-cole'],
+    });
+    expect(
+      await screen.findByRole('heading', { name: 'How this five fits together.' }),
+    ).toBeVisible();
+  });
+
   it('selects exactly five players, requests analysis, and reveals metric evidence', async () => {
     const user = userEvent.setup();
     renderApp();

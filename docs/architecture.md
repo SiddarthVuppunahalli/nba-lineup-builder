@@ -29,3 +29,9 @@ Lineup generation is a stateless operation over an eligible player pool, profile
 Lineup repair uses the same engine boundaries and search bound. It adds the current five as domain input, minimizes replacements before considering the weighted objective, and returns a final analyzed candidate plus a basic metric comparison. The browser displays these results but does not calculate swaps, scores, or deltas.
 
 The generator can initially run in the API process. If traffic or computation later requires workers, the same domain call can move behind a queue without changing its basketball logic. Roster and normalized player data are natural cache boundaries; no distributed infrastructure is needed for the MVP.
+
+## Production serving
+
+The development workspace keeps Vite and Express as separate processes. The production build is intentionally simpler: Vite emits static assets to `apps/web/dist`, and the Express service serves those assets alongside `/api`. Non-API HTML requests fall back to `index.html` so client-side routes remain refreshable; unknown API paths still return 404 instead of the web shell.
+
+Hosting configuration uses the provider-standard `PORT`, with `API_PORT` retained as a local compatibility fallback. `HOST` defaults to `0.0.0.0`, and `WEB_DIST_DIR` can override the frontend build location. The API health route is the deployment readiness endpoint. This single-service topology is appropriate while the application is stateless and avoids production proxy or cross-origin configuration.

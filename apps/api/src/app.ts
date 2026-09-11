@@ -6,6 +6,7 @@ import {
   repairLineupRequestSchema,
 } from '@lineup-engine/shared';
 import express, { type ErrorRequestHandler } from 'express';
+import path from 'node:path';
 
 import {
   analyzeDemoLineup,
@@ -15,7 +16,11 @@ import {
   repairDemoLineup,
 } from './services/demo-lineup-service.js';
 
-export function createApp() {
+interface CreateAppOptions {
+  webDistPath?: string;
+}
+
+export function createApp(options: CreateAppOptions = {}) {
   const app = express();
 
   app.disable('x-powered-by');
@@ -150,6 +155,25 @@ export function createApp() {
   };
 
   app.use(malformedJsonHandler);
+
+  if (options.webDistPath) {
+    app.use(express.static(options.webDistPath, { index: false, maxAge: '1h' }));
+    app.use((request, response, next) => {
+      if (
+        request.method !== 'GET' ||
+        request.path === '/api' ||
+        request.path.startsWith('/api/') ||
+        !request.accepts('html')
+      ) {
+        next();
+        return;
+      }
+
+      response.sendFile(path.join(options.webDistPath!, 'index.html'), (error) => {
+        if (error) next(error);
+      });
+    });
+  }
 
   return app;
 }
