@@ -4,6 +4,9 @@ import {
   healthResponseSchema,
   generateLineupRequestSchema,
   generatedLineupResponseSchema,
+  intentInterpreterStatusResponseSchema,
+  interpretedIntentResponseSchema,
+  interpretIntentRequestSchema,
   lineupAnalysisResponseSchema,
   repairLineupRequestSchema,
   repairedLineupResponseSchema,
@@ -13,6 +16,9 @@ import {
   type HealthResponse,
   type GenerateLineupRequest,
   type GeneratedLineupResponse,
+  type IntentInterpreterStatusResponse,
+  type InterpretedIntentResponse,
+  type InterpretIntentRequest,
   type LineupAnalysisResponse,
   type RepairLineupRequest,
   type RepairedLineupResponse,
@@ -60,6 +66,23 @@ export async function fetchTeams(): Promise<TeamsResponse> {
 export async function fetchRoster(teamId: string): Promise<RosterResponse> {
   return rosterResponseSchema.parse(
     await requestJson(`/api/teams/${encodeURIComponent(teamId)}/players`),
+  );
+}
+
+export async function fetchIntentInterpreterStatus(): Promise<IntentInterpreterStatusResponse> {
+  return intentInterpreterStatusResponseSchema.parse(await requestJson('/api/intents/status'));
+}
+
+export async function postIntentInterpretation(
+  request: InterpretIntentRequest,
+): Promise<InterpretedIntentResponse> {
+  const validatedRequest = interpretIntentRequestSchema.parse(request);
+  return interpretedIntentResponseSchema.parse(
+    await requestJson('/api/intents/interpret', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validatedRequest),
+    }),
   );
 }
 

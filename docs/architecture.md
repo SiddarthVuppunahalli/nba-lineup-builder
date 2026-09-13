@@ -22,6 +22,8 @@ web -> shared <- api -> basketball-engine
 
 The engine never imports either application.
 
+Phase 6 adds an outward AI adapter inside `apps/api`. The provider receives natural-language text plus roster identity, then returns a candidate structured intent. The API validates that output against a strict provider schema and the shared HTTP contract before returning it to the browser. The browser applies the draft to the existing editable controls; generation and repair continue to call the same deterministic engine endpoints. The AI adapter never imports or invokes basketball scoring.
+
 ## Scale boundaries
 
 Lineup generation is a stateless operation over an eligible player pool, profiles, and structured intent. Phase 4 exhaustively evaluates unique five-player combinations for pools of at most 18 players, applies hard constraints, and ranks valid candidates with a deterministic weighted objective. The team ID and demo-data lookup remain in the API service rather than the engine. Larger league-wide search is intentionally deferred to the bounded-search design in Phase 8.

@@ -8,6 +8,7 @@ import { AnalysisPanel } from './AnalysisPanel.tsx';
 import { ComparisonPanel } from './ComparisonPanel.tsx';
 import { IntentControls } from './IntentControls.tsx';
 import { balancedIntent } from './intent-config.ts';
+import { NaturalLanguageIntent } from './NaturalLanguageIntent.tsx';
 
 interface RepairWorkspaceProps {
   teamId: string;
@@ -95,6 +96,8 @@ export function RepairWorkspace({ teamId, roster, currentPlayerIds }: RepairWork
               .join(' · ')}
           </strong>
         </div>
+
+        <NaturalLanguageIntent key={teamId} teamId={teamId} onApply={(intent) => reset(intent)} />
 
         <IntentControls
           roster={roster}

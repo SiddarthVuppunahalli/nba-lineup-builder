@@ -6,10 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   fetchHealth,
+  fetchIntentInterpreterStatus,
   fetchRoster,
   fetchTeams,
   postLineupAnalysis,
   postLineupGeneration,
+  postIntentInterpretation,
   postLineupRepair,
 } from './api/client.ts';
 import { App } from './App.tsx';
@@ -17,18 +19,22 @@ import { App } from './App.tsx';
 vi.mock('./api/client.ts', () => ({
   ApiClientError: class ApiClientError extends Error {},
   fetchHealth: vi.fn(),
+  fetchIntentInterpreterStatus: vi.fn(),
   fetchTeams: vi.fn(),
   fetchRoster: vi.fn(),
   postLineupAnalysis: vi.fn(),
   postLineupGeneration: vi.fn(),
+  postIntentInterpretation: vi.fn(),
   postLineupRepair: vi.fn(),
 }));
 
 const mockedFetchHealth = vi.mocked(fetchHealth);
+const mockedFetchIntentInterpreterStatus = vi.mocked(fetchIntentInterpreterStatus);
 const mockedFetchTeams = vi.mocked(fetchTeams);
 const mockedFetchRoster = vi.mocked(fetchRoster);
 const mockedPostLineupAnalysis = vi.mocked(postLineupAnalysis);
 const mockedPostLineupGeneration = vi.mocked(postLineupGeneration);
+const mockedPostIntentInterpretation = vi.mocked(postIntentInterpretation);
 const mockedPostLineupRepair = vi.mocked(postLineupRepair);
 
 const playerNames = [
@@ -91,6 +97,7 @@ beforeEach(() => {
     service: 'lineup-engine-api',
     timestamp: '2026-01-01T00:00:00.000Z',
   });
+  mockedFetchIntentInterpreterStatus.mockResolvedValue({ available: true });
   mockedFetchTeams.mockResolvedValue({
     teams: [{ id: 'metro-city-meteors', name: 'Metro City Meteors', abbreviation: 'MCM' }],
   });
@@ -162,6 +169,30 @@ beforeEach(() => {
     usedBalancedDefault: false,
     evaluatedCandidateCount: 6,
     validCandidateCount: 4,
+  });
+  mockedPostIntentInterpretation.mockResolvedValue({
+    status: 'ready',
+    intent: {
+      priorities: {
+        shooting: 1,
+        creation: 0.5,
+        playmaking: 0.5,
+        rebounding: 0.5,
+        perimeterDefense: 1,
+        interiorDefense: 1,
+        switchability: 1,
+      },
+      minimumShooters: 4,
+      minimumCreators: 2,
+      metricMinimums: { perimeterDefense: 75 },
+      requiredPlayerIds: ['jordan-vega'],
+      excludedPlayerIds: ['darius-knox'],
+    },
+    summary: 'Prioritize spacing and defense with two creators.',
+    assumptions: ['Defense means both perimeter and interior defense.'],
+    questions: [],
+    provider: 'openai',
+    model: 'test-model',
   });
   const beforeMetric = { ...metric, score: 70 };
   const beforeRebounding = { ...metric, score: 80 };
@@ -427,6 +458,88 @@ describe('manual lineup builder', () => {
 });
 
 describe('structured lineup generation', () => {
+  it('interprets natural language into editable structured settings', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Lineup request' }),
+      'Prioritize spacing and defense, keep Jordan, and use two creators.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Interpret request' }));
+
+    expect(await screen.findByRole('heading', { name: 'Review the interpretation' })).toBeVisible();
+    expect(screen.getByText('Prioritize spacing and defense with two creators.')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Use as a starting point' }));
+
+    expect(screen.getByLabelText('Minimum credible shooters')).toHaveValue('4');
+    expect(screen.getByLabelText('Minimum high-level creators')).toHaveValue('2');
+    expect(screen.getByLabelText('Perimeter defense', { selector: 'input' })).toHaveValue(75);
+    expect(screen.getByRole('checkbox', { name: 'Require Jordan Vega' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Exclude Darius Knox' })).toBeChecked();
+  });
+
+  it('shows clarification questions before an ambiguous interpretation is applied', async () => {
+    const user = userEvent.setup();
+    mockedPostIntentInterpretation.mockResolvedValueOnce({
+      status: 'needs_clarification',
+      intent: {
+        priorities: {
+          shooting: 1,
+          creation: 1,
+          playmaking: 1,
+          rebounding: 1,
+          perimeterDefense: 1,
+          interiorDefense: 1,
+          switchability: 1,
+        },
+        minimumShooters: 3,
+        minimumCreators: 1,
+        metricMinimums: {},
+        requiredPlayerIds: [],
+        excludedPlayerIds: [],
+      },
+      summary: 'The request includes a small-ball preference that needs clarification.',
+      assumptions: [],
+      questions: ['Which supported metric should represent small ball for this request?'],
+      provider: 'openai',
+      model: 'test-model',
+    });
+    renderApp();
+
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Lineup request' }),
+      'Build a small-ball five.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Interpret request' }));
+
+    expect(await screen.findByText('Needs clarification')).toBeVisible();
+    expect(
+      screen.getByText('Which supported metric should represent small ball for this request?'),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Use as a starting point' })).toBeEnabled();
+  });
+
+  it('keeps structured generation usable when AI is unavailable', async () => {
+    const user = userEvent.setup();
+    mockedFetchIntentInterpreterStatus.mockResolvedValueOnce({ available: false });
+    renderApp();
+
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    expect(
+      await screen.findByText(
+        'Natural-language help is unavailable. Every structured control below still works.',
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Interpret request' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate lineup' })).toBeEnabled();
+  });
+
   it('submits balanced defaults, shows requirement evidence, and clears stale results on change', async () => {
     const user = userEvent.setup();
     renderApp();

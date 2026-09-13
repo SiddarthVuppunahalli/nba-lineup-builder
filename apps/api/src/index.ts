@@ -1,8 +1,12 @@
 import { createApp } from './app.js';
+import { OpenAiIntentInterpreter } from './ai/intent-interpreter.js';
 import { resolveServerConfig } from './server-config.js';
 
 const config = resolveServerConfig();
-const app = createApp({ webDistPath: config.webDistPath });
+const intentInterpreter = config.openAiApiKey
+  ? new OpenAiIntentInterpreter({ apiKey: config.openAiApiKey, model: config.openAiModel })
+  : undefined;
+const app = createApp({ webDistPath: config.webDistPath, intentInterpreter });
 
 const server = app.listen(config.port, config.host, () => {
   console.log(`Lineup Engine listening on http://${config.host}:${config.port}`);

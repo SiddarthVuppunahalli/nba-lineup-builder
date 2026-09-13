@@ -10,39 +10,15 @@ import { useForm, useWatch } from 'react-hook-form';
 
 import { ApiClientError, postLineupGeneration } from '../../api/client.ts';
 import { AnalysisPanel } from './AnalysisPanel.tsx';
+import { IntentControls } from './IntentControls.tsx';
+import { balancedIntent } from './intent-config.ts';
+import { NaturalLanguageIntent } from './NaturalLanguageIntent.tsx';
 
 interface GenerationWorkspaceProps {
   teamId: string;
   roster: RosterPlayerDto[];
   onGeneratedLineup: (playerIds: string[]) => void;
 }
-
-const metrics = [
-  ['shooting', 'Shooting'],
-  ['creation', 'Creation'],
-  ['playmaking', 'Playmaking'],
-  ['rebounding', 'Rebounding'],
-  ['perimeterDefense', 'Perimeter defense'],
-  ['interiorDefense', 'Interior defense'],
-  ['switchability', 'Switchability'],
-] as const;
-
-const balancedIntent: LineupIntentDto = {
-  priorities: {
-    shooting: 1,
-    creation: 1,
-    playmaking: 1,
-    rebounding: 1,
-    perimeterDefense: 1,
-    interiorDefense: 1,
-    switchability: 1,
-  },
-  minimumShooters: 3,
-  minimumCreators: 1,
-  metricMinimums: {},
-  requiredPlayerIds: [],
-  excludedPlayerIds: [],
-};
 
 function errorMessage(error: Error | null): string | undefined {
   if (!error) return undefined;
@@ -120,112 +96,15 @@ export function GenerationWorkspace({
           </button>
         </div>
 
-        <div className="generation-form-body">
-          <fieldset>
-            <legend>Ranking priorities</legend>
-            <p>Choose what matters most. Equal settings use the balanced ranking.</p>
-            <div className="control-grid">
-              {metrics.map(([key, label]) => (
-                <label key={key}>
-                  <span>{label}</span>
-                  <select {...register(`priorities.${key}`, { valueAsNumber: true })}>
-                    <option value={0}>Ignore</option>
-                    <option value={0.5}>Helpful</option>
-                    <option value={1}>Important</option>
-                  </select>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+        <NaturalLanguageIntent key={teamId} teamId={teamId} onApply={(intent) => reset(intent)} />
 
-          <fieldset>
-            <legend>Role requirements</legend>
-            <p>These are hard rules. The generator will never loosen them.</p>
-            <div className="control-grid control-grid--two">
-              <label>
-                <span>Minimum credible shooters</span>
-                <select {...register('minimumShooters', { valueAsNumber: true })}>
-                  {[0, 1, 2, 3, 4, 5].map((count) => (
-                    <option value={count} key={count}>
-                      {count}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>Minimum high-level creators</span>
-                <select {...register('minimumCreators', { valueAsNumber: true })}>
-                  {[0, 1, 2, 3, 4, 5].map((count) => (
-                    <option value={count} key={count}>
-                      {count}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend>Minimum lineup scores</legend>
-            <p>Optional floors use the same 0–100 scores shown in the analysis.</p>
-            <div className="control-grid">
-              {metrics.map(([key, label]) => (
-                <label key={key}>
-                  <span>{label}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    placeholder="No minimum"
-                    {...register(`metricMinimums.${key}`, {
-                      setValueAs: (value) => (value === '' ? undefined : Number(value)),
-                    })}
-                  />
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend>Player rules</legend>
-            <p>Lock players into the result or keep them out.</p>
-            <div className="player-rules" aria-label="Required and excluded players">
-              {roster.map((player) => {
-                const required = (values.requiredPlayerIds ?? []).includes(player.id);
-                const excluded = (values.excludedPlayerIds ?? []).includes(player.id);
-                return (
-                  <div className="player-rule" key={player.id}>
-                    <span>
-                      <strong>{player.name}</strong>
-                      <small>{player.position}</small>
-                    </span>
-                    <label>
-                      <input
-                        type="checkbox"
-                        aria-label={`Require ${player.name}`}
-                        checked={required}
-                        disabled={excluded}
-                        onChange={() => togglePlayer('requiredPlayerIds', player.id)}
-                      />
-                      Require
-                    </label>
-                    <label>
-                      <input
-                        type="checkbox"
-                        aria-label={`Exclude ${player.name}`}
-                        checked={excluded}
-                        disabled={required}
-                        onChange={() => togglePlayer('excludedPlayerIds', player.id)}
-                      />
-                      Exclude
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </fieldset>
-        </div>
+        <IntentControls
+          roster={roster}
+          register={register}
+          requiredPlayerIds={values.requiredPlayerIds ?? []}
+          excludedPlayerIds={values.excludedPlayerIds ?? []}
+          onTogglePlayer={togglePlayer}
+        />
 
         <div className="roster-actions">
           <p>Searches every five-player combination on this fictional roster.</p>

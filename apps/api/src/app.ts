@@ -3,10 +3,14 @@ import {
   apiErrorResponseSchema,
   healthResponseSchema,
   generateLineupRequestSchema,
+  intentInterpreterStatusResponseSchema,
+  interpretIntentRequestSchema,
   repairLineupRequestSchema,
 } from '@lineup-engine/shared';
 import express, { type ErrorRequestHandler } from 'express';
 import path from 'node:path';
+
+import type { NaturalLanguageIntentInterpreter } from './ai/intent-interpreter.js';
 
 import {
   analyzeDemoLineup,
@@ -15,9 +19,11 @@ import {
   listDemoTeams,
   repairDemoLineup,
 } from './services/demo-lineup-service.js';
+import { interpretDemoIntent } from './services/intent-interpretation-service.js';
 
 interface CreateAppOptions {
   webDistPath?: string;
+  intentInterpreter?: NaturalLanguageIntentInterpreter | undefined;
 }
 
 export function createApp(options: CreateAppOptions = {}) {
@@ -38,6 +44,44 @@ export function createApp(options: CreateAppOptions = {}) {
 
   app.get('/api/teams', (_request, response) => {
     response.status(200).json(listDemoTeams());
+  });
+
+  app.get('/api/intents/status', (_request, response) => {
+    response.status(200).json(
+      intentInterpreterStatusResponseSchema.parse({
+        available: Boolean(options.intentInterpreter),
+      }),
+    );
+  });
+
+  app.post('/api/intents/interpret', async (request, response) => {
+    const parsedRequest = interpretIntentRequestSchema.safeParse(request.body);
+    if (!parsedRequest.success) {
+      response.status(400).json(
+        apiErrorResponseSchema.parse({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'The natural-language intent request is malformed.',
+            details: parsedRequest.error.issues.map((issue) => ({
+              path: issue.path.join('.'),
+              message: issue.message,
+            })),
+          },
+        }),
+      );
+      return;
+    }
+
+    const result = await interpretDemoIntent(
+      parsedRequest.data.teamId,
+      parsedRequest.data.text,
+      options.intentInterpreter,
+    );
+    if (!result.success) {
+      response.status(result.status).json(result.error);
+      return;
+    }
+    response.status(200).json(result.data);
   });
 
   app.get('/api/teams/:teamId/players', (request, response) => {

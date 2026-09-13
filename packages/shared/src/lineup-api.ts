@@ -171,6 +171,25 @@ export const repairLineupRequestSchema = z.object({
   intent: lineupIntentSchema,
 });
 
+export const interpretIntentRequestSchema = z.object({
+  teamId: z.string().trim().min(1),
+  text: z.string().trim().min(3).max(500),
+});
+
+export const intentInterpreterStatusResponseSchema = z.object({
+  available: z.boolean(),
+});
+
+export const interpretedIntentResponseSchema = z.object({
+  status: z.enum(['ready', 'needs_clarification']),
+  intent: lineupIntentSchema,
+  summary: z.string().min(1),
+  assumptions: z.array(z.string().min(1)).max(10),
+  questions: z.array(z.string().min(1)).max(5),
+  provider: z.string().min(1),
+  model: z.string().min(1),
+});
+
 export const metricComparisonSchema = z.object({
   metric: metricNameSchema,
   before: normalizedScoreSchema,
@@ -224,6 +243,9 @@ export type ConstraintResultDto = z.infer<typeof constraintResultSchema>;
 export type GeneratedLineupCandidateDto = z.infer<typeof generatedLineupCandidateSchema>;
 export type GeneratedLineupResponse = z.infer<typeof generatedLineupResponseSchema>;
 export type RepairLineupRequest = z.infer<typeof repairLineupRequestSchema>;
+export type InterpretIntentRequest = z.infer<typeof interpretIntentRequestSchema>;
+export type IntentInterpreterStatusResponse = z.infer<typeof intentInterpreterStatusResponseSchema>;
+export type InterpretedIntentResponse = z.infer<typeof interpretedIntentResponseSchema>;
 export type MetricComparisonDto = z.infer<typeof metricComparisonSchema>;
 export type LineupComparisonDto = z.infer<typeof lineupComparisonSchema>;
 export type RepairedLineupResponse = z.infer<typeof repairedLineupResponseSchema>;

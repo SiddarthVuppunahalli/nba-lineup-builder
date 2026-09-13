@@ -6,7 +6,7 @@ Lineup Engine is a portfolio-quality full-stack application for turning basketba
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
 ```
 
-This repository currently contains the **early deployment checkpoint after Phase 5**. It includes deterministic lineup validation, analysis, exhaustive generation, and minimal-change repair over a fictional demo roster, exposed through a real API and an interactive React experience. Users can build manually, generate from structured intent, or adapt a manual/generated five after requirements change. Three curated examples let a visitor jump directly into analysis, generation, or a repair tradeoff. The builder preserves the cream, coral, and sage theme, explicit loading/empty/error states with retry controls, and calculation evidence for every metric and constraint.
+This repository currently contains **Phase 6: Natural-language intent**. It includes deterministic lineup validation, analysis, exhaustive generation, and minimal-change repair over a fictional demo roster, exposed through a real API and an interactive React experience. An optional AI assistant translates plain-language requests into the same editable structured intent used by generation and repair; it never selects players or evaluates basketball fit. Three curated examples remain available, and the builder preserves the cream, coral, and sage theme, explicit loading/empty/error states, and calculation evidence for every metric and constraint.
 
 See the [revised roadmap](docs/roadmap.md) for the agreed remaining phases and checkpoints, and the [theme guide](docs/theme.md) for reusable visual styles.
 
@@ -44,6 +44,8 @@ pnpm dev
 
 The web app runs at `http://localhost:5173`. Vite proxies `/api` requests to the API at `http://localhost:3001`.
 
+Natural-language interpretation is optional. Add `OPENAI_API_KEY` to your local environment or Replit Secrets to enable it. Never commit the key. `OPENAI_INTENT_MODEL` defaults to `gpt-5.6-luna`; see [the intent documentation](docs/natural-language-intent.md) for the supported language and trust boundary. Without a key, every structured workflow remains available.
+
 ### Replit checkpoint
 
 Import the GitHub repository into Replit and click **Run**. The included `.replit` file builds the workspace and starts the production service on the assigned port. For a public preview, choose an Autoscale deployment because the application includes API routes, then publish from Replit. No secrets or database are required for the current demo. Publishing can involve account or billing choices, so public-link creation remains a manual checkpoint.
@@ -78,7 +80,9 @@ pnpm lint
 - `POST /api/lineups/analyze` — validates and evaluates a five-player lineup
 - `POST /api/lineups/generate` — generates and ranks a lineup from structured intent
 - `POST /api/lineups/repair` — finds the fewest changes satisfying updated intent
+- `GET /api/intents/status` — reports whether natural-language interpretation is configured
+- `POST /api/intents/interpret` — returns a validated, editable structured-intent draft
 
 ## Current limitations
 
-The application currently uses fictional profiles and exhaustively searches team-sized pools only (at most 18 eligible players). Basketball metrics and comparisons are transparent heuristics rather than predictive professional models. It does not yet support AI intent, full arbitrary/session comparison, real NBA data, league-wide search, persistence, or silent constraint relaxation; those remain in later roadmap phases. Production serving is configured, but a public Replit URL must be created and verified from the owner’s Replit account.
+The application currently uses fictional profiles and exhaustively searches team-sized pools only (at most 18 eligible players). Basketball metrics and comparisons are transparent heuristics rather than predictive professional models. Natural-language interpretation requires a separately configured provider credential and supports only the documented intent vocabulary. Full arbitrary/session comparison, real NBA data, league-wide search, persistence, and silent constraint relaxation remain outside the current phase.

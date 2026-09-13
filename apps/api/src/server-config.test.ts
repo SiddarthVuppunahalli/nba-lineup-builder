@@ -6,10 +6,11 @@ describe('production server configuration', () => {
   it('uses conventional hosting variables and supports an explicit web build path', () => {
     expect(
       resolveServerConfig({ PORT: '8080', HOST: '127.0.0.1', WEB_DIST_DIR: '/preview/web' }),
-    ).toEqual({
+    ).toMatchObject({
       port: 8080,
       host: '127.0.0.1',
       webDistPath: '/preview/web',
+      openAiModel: 'gpt-5.6-luna',
     });
   });
 
@@ -21,5 +22,12 @@ describe('production server configuration', () => {
     expect(() => resolveServerConfig({ PORT: 'not-a-port' })).toThrow(
       'PORT must be an integer from 1 to 65535',
     );
+  });
+
+  it('loads AI configuration without requiring a key', () => {
+    expect(
+      resolveServerConfig({ OPENAI_API_KEY: 'secret', OPENAI_INTENT_MODEL: 'test-model' }),
+    ).toMatchObject({ openAiApiKey: 'secret', openAiModel: 'test-model' });
+    expect(resolveServerConfig({}).openAiApiKey).toBeUndefined();
   });
 });

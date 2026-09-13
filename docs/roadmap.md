@@ -73,7 +73,7 @@ Implementation decisions: repair evaluates the same bounded, exhaustive candidat
 
 ## Early deployment checkpoint — After Phase 5
 
-Status: implemented and verified locally; ready for Replit publishing and a public-link smoke test.
+Status: implemented, published, and verified through the Replit checkpoint.
 
 - Add production build/start configuration, frontend serving, health checks, and environment configuration.
 - Publish a preview and smoke-test the full core workflow.
@@ -86,6 +86,8 @@ Implementation decisions: production uses one stateless service, with Express se
 
 ## Phase 6 — Natural-language intent
 
+Status: implemented and verified locally; ready for a configured-provider checkpoint review.
+
 - Parse text into the same structured intent used by the form.
 - Validate AI output, reject unsupported values, and handle ambiguity and provider errors.
 - Show interpreted requirements for review and adjustment.
@@ -93,6 +95,8 @@ Implementation decisions: production uses one stateless service, with Express se
 - Store credentials in environment secrets and keep provider code behind an interface.
 
 Checkpoint: equivalent text and structured requests use the same authoritative deterministic engine.
+
+Implementation decisions: natural-language parsing is an optional API adapter, not an engine capability. The OpenAI Responses API uses strict structured output with `gpt-5.6-luna` as a configurable, cost-conscious default. Provider output is validated again for supported values, roster IDs, conflicting player rules, and consistent clarification state. Ambiguous or unsupported language returns questions with a conservative editable draft. Provider responses are not stored by the API request, and missing credentials or provider failures leave all structured generation and repair controls available. Users explicitly apply an interpretation before invoking the unchanged deterministic endpoints.
 
 ## Phase 7 — Full comparison and session versions
 

@@ -4,6 +4,8 @@ export interface ServerConfig {
   host: string;
   port: number;
   webDistPath: string;
+  openAiApiKey: string | undefined;
+  openAiModel: string;
 }
 
 export function resolveServerConfig(environment: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -19,5 +21,7 @@ export function resolveServerConfig(environment: NodeJS.ProcessEnv = process.env
     port,
     webDistPath:
       environment.WEB_DIST_DIR?.trim() || fileURLToPath(new URL('../../web/dist', import.meta.url)),
+    openAiApiKey: environment.OPENAI_API_KEY?.trim() || undefined,
+    openAiModel: environment.OPENAI_INTENT_MODEL?.trim() || 'gpt-5.6-luna',
   };
 }
