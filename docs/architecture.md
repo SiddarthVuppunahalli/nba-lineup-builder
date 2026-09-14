@@ -4,13 +4,15 @@
 
 `apps/web` owns the React product experience. It consumes HTTP contracts but contains no basketball evaluation logic.
 
-`apps/api` owns HTTP validation and orchestration. Routes stay thin and translate between external requests and application/domain results through a small demo lineup service.
+`apps/api` owns HTTP validation and orchestration. Routes stay thin and translate between external requests and application/domain results through a small lineup-pool service.
 
 `packages/shared` contains only schemas and types that genuinely cross the web/API boundary.
 
 `packages/basketball-engine` is pure TypeScript. It cannot import React, Express, database code, AI SDKs, or external NBA provider schemas.
 
-`packages/nba-data` will be introduced in Phase 8 to isolate external data adapters and profile normalization.
+`packages/nba-data` isolates checked source rows, snapshot metadata, and reproducible profile
+normalization. It depends on basketball-engine domain types, while the engine remains unaware of
+providers, seasons, and source formats.
 
 ## Dependency direction
 
@@ -18,6 +20,8 @@ Dependencies point inward toward stable contracts and domain logic:
 
 ```text
 web -> shared <- api -> basketball-engine
+                 |
+                 +----> nba-data -> basketball-engine
 ```
 
 The engine never imports either application.
@@ -26,11 +30,22 @@ Phase 6 adds an outward AI adapter inside `apps/api`. The provider receives natu
 
 ## Scale boundaries
 
-Lineup generation is a stateless operation over an eligible player pool, profiles, and structured intent. Phase 4 exhaustively evaluates unique five-player combinations for pools of at most 18 players, applies hard constraints, and ranks valid candidates with a deterministic weighted objective. The team ID and demo-data lookup remain in the API service rather than the engine. Larger league-wide search is intentionally deferred to the bounded-search design in Phase 8.
+Lineup generation is a stateless operation over an eligible player pool, profiles, and structured
+intent. The Phase 4 evaluator exhaustively checks unique five-player combinations for pools of at
+most 18 players, applies hard constraints, and ranks valid candidates with a deterministic weighted
+objective. Team, league-snapshot, and demo-pool lookup remain in the API service rather than the
+engine; Phase 8 reuses the evaluator behind the bounded league-search adapter described below.
 
 Lineup repair uses the same engine boundaries and search bound. It adds the current five as domain input, minimizes replacements before considering the weighted objective, and returns a final analyzed candidate plus a basic metric comparison. The browser displays these results but does not calculate swaps, scores, or deltas.
 
 Phase 7 moves arbitrary two-lineup comparison into a dedicated engine operation and thin API route. Both lineups are analyzed from roster profiles on the server, then evaluated against one shared structured intent. Named versions and parent links remain ephemeral browser state: they organize a user's current decision path but never become an alternate source of basketball calculations or imply durable persistence.
+
+Phase 8 adds immutable lineup pools in the API service. Real team pools contain ten players and use
+the existing exhaustive generator. The 40-player league snapshot is manually selectable in full,
+but generation and repair build a deterministic 18-player shortlist before invoking the same
+exhaustive evaluator. Search metadata crosses the API boundary so the UI can distinguish full-pool
+exhaustion from a bounded best-found result. Analysis and comparison accept the full pool because
+they evaluate user-supplied fives rather than enumerate combinations.
 
 The generator can initially run in the API process. If traffic or computation later requires workers, the same domain call can move behind a queue without changing its basketball logic. Roster and normalized player data are natural cache boundaries; no distributed infrastructure is needed for the MVP.
 

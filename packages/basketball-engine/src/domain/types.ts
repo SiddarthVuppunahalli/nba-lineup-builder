@@ -37,6 +37,8 @@ export interface PlayerProfile {
   switchability: number;
   metadata?: {
     sourceSeason?: string;
+    sourceId?: string;
+    methodologyVersion?: string;
   };
 }
 

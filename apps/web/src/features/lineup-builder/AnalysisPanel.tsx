@@ -1,5 +1,6 @@
 import type {
   ConstraintResultDto,
+  LineupSearchMetadataDto,
   LineupAnalysisResponse,
   RosterPlayerDto,
 } from '@lineup-engine/shared';
@@ -24,6 +25,7 @@ interface AnalysisPanelProps {
         evaluatedCandidateCount: number;
         validCandidateCount: number;
         usedBalancedDefault: boolean;
+        search?: LineupSearchMetadataDto;
       }
     | undefined;
   versionSave?:
@@ -226,6 +228,11 @@ export function AnalysisPanel({
             {resultContext.usedBalancedDefault
               ? ' Balanced priorities were applied because every weight was zero.'
               : ''}
+            {resultContext.search && !resultContext.search.exhausted
+              ? ` This bounded search evaluated ${resultContext.search.searchedPlayerCount} of ${resultContext.search.eligiblePlayerCount} eligible players; the result is the best found within that shortlist, not a guaranteed league-wide optimum.`
+              : resultContext.search?.optimalityGuaranteed
+                ? ' The eligible pool was fully exhausted.'
+                : ''}
           </p>
           <div className="constraint-list" aria-label="Requirement results">
             {resultContext.constraints.map((constraint) => (

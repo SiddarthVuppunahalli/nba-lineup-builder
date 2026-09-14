@@ -57,11 +57,14 @@ export function compareLineupAnalyses(
 }
 
 export function compareLineups(input: CompareLineupsInput): CompareLineupsResult {
-  const inputIssues = validateGenerationInput({
-    players: input.players,
-    profiles: input.profiles,
-    intent: input.intent,
-  });
+  const inputIssues = validateGenerationInput(
+    {
+      players: input.players,
+      profiles: input.profiles,
+      intent: input.intent,
+    },
+    null,
+  );
   if (inputIssues.length > 0) {
     return {
       success: false,

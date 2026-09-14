@@ -49,10 +49,23 @@ const playerNames = [
   'Darius Knox',
 ];
 
+const demoTeam = {
+  id: 'metro-city-meteors',
+  name: 'Metro City Meteors',
+  abbreviation: 'MCM',
+  mode: 'team' as const,
+  season: 'Demo',
+  sourceLabel: 'Seeded fictional demo ratings',
+  snapshotDate: '2026-09-14',
+  isDemo: true,
+  searchStrategy: 'exhaustive' as const,
+};
+
 const players = playerNames.map((name, index) => ({
   id: name.toLowerCase().replace(' ', '-'),
   name,
   teamId: 'metro-city-meteors',
+  teamAbbreviation: 'MCM',
   position: ['PG', 'SG', 'SF', 'PF', 'SG', 'SF/PF'][index] ?? 'G',
   profile: {
     shooting: 90 - index,
@@ -102,10 +115,10 @@ beforeEach(() => {
   });
   mockedFetchIntentInterpreterStatus.mockResolvedValue({ available: true });
   mockedFetchTeams.mockResolvedValue({
-    teams: [{ id: 'metro-city-meteors', name: 'Metro City Meteors', abbreviation: 'MCM' }],
+    teams: [demoTeam],
   });
   mockedFetchRoster.mockResolvedValue({
-    team: { id: 'metro-city-meteors', name: 'Metro City Meteors', abbreviation: 'MCM' },
+    team: demoTeam,
     players,
   });
   mockedPostLineupAnalysis.mockResolvedValue({
@@ -360,6 +373,52 @@ function renderApp() {
 }
 
 describe('manual lineup builder', () => {
+  it('switches between real team and searchable league pools with source context', async () => {
+    const user = userEvent.setup();
+    const realTeam = {
+      ...demoTeam,
+      id: 'nba-2024-25-bos',
+      name: 'Boston Celtics',
+      abbreviation: 'BOS',
+      season: '2024–25',
+      sourceLabel: 'Basketball Reference 2024–25 regular-season snapshot',
+      sourceUrl: 'https://www.basketball-reference.com/leagues/NBA_2025.html',
+      snapshotDate: '2025-04-13',
+      isDemo: false,
+    };
+    const leaguePool = {
+      ...realTeam,
+      id: 'nba-2024-25-league-snapshot',
+      name: '2024–25 league snapshot',
+      abbreviation: 'NBA',
+      mode: 'league' as const,
+      searchStrategy: 'bounded' as const,
+    };
+    const leaguePlayers = ['Boston Player', 'Denver Player', 'New York Player', 'OKC Player'].map(
+      (name, index) => ({
+        ...players[index]!,
+        id: `real-${index}`,
+        name,
+        teamId: `real-team-${index}`,
+        teamAbbreviation: ['BOS', 'DEN', 'NYK', 'OKC'][index]!,
+      }),
+    );
+    mockedFetchTeams.mockResolvedValue({ teams: [realTeam, leaguePool, demoTeam] });
+    mockedFetchRoster.mockImplementation(async (teamId) => ({
+      team: teamId === leaguePool.id ? leaguePool : realTeam,
+      players: teamId === leaguePool.id ? leaguePlayers : leaguePlayers.slice(0, 1),
+    }));
+
+    renderApp();
+    expect(await screen.findByText(/snapshot 2025-04-13/i)).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'League' }));
+    expect(await screen.findByText(/deterministic bounded shortlist/i)).toBeVisible();
+    const search = screen.getByRole('searchbox', { name: 'Find a player or team' });
+    await user.type(search, 'DEN');
+    expect(screen.getByRole('button', { name: 'Select Denver Player' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Select Boston Player' })).not.toBeInTheDocument();
+  });
+
   it('opens a curated analysis scenario in one click', async () => {
     const user = userEvent.setup();
     renderApp();
@@ -451,7 +510,7 @@ describe('manual lineup builder', () => {
 
   it('shows an empty roster and keeps analysis disabled', async () => {
     mockedFetchRoster.mockResolvedValue({
-      team: { id: 'metro-city-meteors', name: 'Metro City Meteors', abbreviation: 'MCM' },
+      team: demoTeam,
       players: [],
     });
     renderApp();

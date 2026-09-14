@@ -1,4 +1,5 @@
 import type { LineupIntentDto, RosterPlayerDto } from '@lineup-engine/shared';
+import { useState } from 'react';
 import type { UseFormRegister } from 'react-hook-form';
 
 import { intentMetrics } from './intent-config.ts';
@@ -20,6 +21,16 @@ export function IntentControls({
   onTogglePlayer,
   showPlayerRules = true,
 }: IntentControlsProps) {
+  const [playerQuery, setPlayerQuery] = useState('');
+  const normalizedPlayerQuery = playerQuery.trim().toLowerCase();
+  const visibleRoster = normalizedPlayerQuery
+    ? roster.filter(
+        (player) =>
+          player.name.toLowerCase().includes(normalizedPlayerQuery) ||
+          player.teamAbbreviation.toLowerCase().includes(normalizedPlayerQuery),
+      )
+    : roster;
+
   return (
     <div className="generation-form-body">
       <fieldset>
@@ -92,15 +103,28 @@ export function IntentControls({
         <fieldset>
           <legend>Player rules</legend>
           <p>Lock players into the result or keep them out.</p>
+          {roster.length > 18 ? (
+            <label className="player-search player-search--rules">
+              <span>Find a player or team</span>
+              <input
+                type="search"
+                value={playerQuery}
+                placeholder="Search the snapshot"
+                onChange={(event) => setPlayerQuery(event.target.value)}
+              />
+            </label>
+          ) : null}
           <div className="player-rules" aria-label="Required and excluded players">
-            {roster.map((player) => {
+            {visibleRoster.map((player) => {
               const required = requiredPlayerIds.includes(player.id);
               const excluded = excludedPlayerIds.includes(player.id);
               return (
                 <div className="player-rule" key={player.id}>
                   <span>
                     <strong>{player.name}</strong>
-                    <small>{player.position}</small>
+                    <small>
+                      {player.teamAbbreviation} · {player.position}
+                    </small>
                   </span>
                   <label>
                     <input

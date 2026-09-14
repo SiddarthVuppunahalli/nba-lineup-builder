@@ -113,6 +113,8 @@ Implementation decisions: users explicitly name and save successful manual, gene
 
 ## Phase 8 — Real NBA data and both modes
 
+Status: implemented and verified locally; ready for checkpoint review.
+
 - Verify source feasibility, especially inputs needed for defensive metrics, before building the adapter.
 - Import real identities and dated rosters, initially as a manageable season snapshot.
 - Derive profiles reproducibly, documenting sources, missing data, limitations, and refresh strategy.
@@ -123,6 +125,15 @@ Implementation decisions: users explicitly name and save successful manual, gene
 - Benchmark bounded search against exhaustive results on small pools. Distinguish search exhaustion from proven infeasibility and do not claim guaranteed global optimality.
 
 Checkpoint: both modes support the full workflow with documented data provenance and acceptable generation time.
+
+Implementation decisions: the first immutable snapshot covers the ten highest-minute 2024–25
+players from Boston, Denver, New York, and Oklahoma City, while the fictional roster remains an
+explicit fallback. Fixed, versioned formulas derive all seven profiles from checked-in per-game and
+advanced inputs. Defensive ratings are disclosed box-score/position proxies because stable,
+complete tracking inputs were not feasible for the first adapter. Team search remains exhaustive.
+League generation and repair use a deterministic 18-player shortlist and exhaust its 8,568 fives;
+responses disclose pool coverage and never claim global optimality or proven infeasibility when the
+full eligible pool was not searched. See [NBA data documentation](nba-data.md).
 
 ## Phase 9 — Persistence
 

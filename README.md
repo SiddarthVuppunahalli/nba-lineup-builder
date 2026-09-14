@@ -6,7 +6,12 @@ Lineup Engine is a portfolio-quality full-stack application for turning basketba
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
 ```
 
-This repository currently contains **Phase 7: Full comparison and session versions**. It includes deterministic lineup validation, analysis, exhaustive generation, minimal-change repair, and arbitrary two-lineup comparison over a fictional demo roster, exposed through a real API and an interactive React experience. Users can name results, branch from earlier versions, and compare their decision path for the current browser session. The optional AI assistant still only translates plain-language requests into editable structured intent; it never selects players or evaluates basketball fit. Three curated examples and the cream, coral, and sage theme remain intact.
+This repository currently contains **Phase 8: Real NBA data and both modes**. It includes a dated,
+reproducible 2024–25 snapshot for Boston, Denver, New York, and Oklahoma City; exhaustive team
+workflows; and manual or bounded-generation league workflows across all 40 imported players. The
+fictional roster remains an explicit fallback. Search coverage, data provenance, defensive proxy
+limitations, and profile formulas are visible and documented. Session versions and the optional
+natural-language interpreter continue to use the same deterministic engine.
 
 See the [revised roadmap](docs/roadmap.md) for the agreed remaining phases and checkpoints, and the [theme guide](docs/theme.md) for reusable visual styles.
 
@@ -25,7 +30,7 @@ apps/api                    Express API boundary
 packages/basketball-engine Pure TypeScript basketball domain
 
 packages/shared             Cross-boundary request/response schemas
-packages/nba-data           Added in a later data phase
+packages/nba-data           Dated NBA snapshot and profile normalization
 ```
 
 The basketball engine is kept independent of React, Express, databases, AI providers, and external NBA data formats. See [docs/architecture.md](docs/architecture.md) for boundary and scaling details and [docs/basketball-methodology.md](docs/basketball-methodology.md) for every Phase 2 scoring rule.
@@ -86,4 +91,12 @@ pnpm lint
 
 ## Current limitations
 
-The application currently uses fictional profiles and exhaustively searches team-sized pools only (at most 18 eligible players). Basketball metrics and comparisons are transparent heuristics rather than predictive professional models. Natural-language interpretation requires a separately configured provider credential and supports only the documented intent vocabulary. Named versions last only for the current browser tab; real NBA data, league-wide search, durable persistence, and silent constraint relaxation remain outside the current phase.
+The real-data snapshot covers four teams and 40 players rather than the entire NBA. Defensive
+ratings are box-score/position proxies, and every basketball metric remains a transparent heuristic
+rather than a prediction or professional scouting grade. League generation and repair search a
+deterministic 18-player shortlist, so global optimality is not guaranteed unless the response says
+the eligible pool was exhausted. Natural-language interpretation still requires a separately
+configured credential. Named versions remain tab-local; durable persistence starts in Phase 9.
+
+See [docs/nba-data.md](docs/nba-data.md) for sources, exact derivation, missing-data rules, search
+semantics, and the refresh procedure.

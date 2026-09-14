@@ -12,7 +12,8 @@ import { compareLineupAnalyses } from '../comparison/compare-lineups.js';
 import { evaluateLineupConstraints } from '../generation/constraints.js';
 import {
   calculateObjectiveScore,
-  generateLineup,
+  generateLineupWithinPoolLimit,
+  MAX_EXHAUSTIVE_POOL_SIZE,
   type GenerationIssue,
   type InfeasibleConstraintSummary,
 } from '../generation/generate-lineup.js';
@@ -75,7 +76,10 @@ function canonicalCompare(left: GeneratedLineupCandidate, right: GeneratedLineup
   return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
 }
 
-export function repairLineup(input: RepairLineupInput): RepairLineupResult {
+export function repairLineupWithinPoolLimit(
+  input: RepairLineupInput,
+  maximumPoolSize: number,
+): RepairLineupResult {
   const current = analyzeLineup({
     playerIds: input.currentPlayerIds,
     players: input.players,
@@ -96,11 +100,10 @@ export function repairLineup(input: RepairLineupInput): RepairLineupResult {
     };
   }
 
-  const generated = generateLineup({
-    players: input.players,
-    profiles: input.profiles,
-    intent: input.intent,
-  });
+  const generated = generateLineupWithinPoolLimit(
+    { players: input.players, profiles: input.profiles, intent: input.intent },
+    maximumPoolSize,
+  );
   if (!generated.success) return generated;
 
   const required = new Set(input.intent.requiredPlayerIds);
@@ -167,4 +170,8 @@ export function repairLineup(input: RepairLineupInput): RepairLineupResult {
     evaluatedCandidateCount: generated.evaluatedCandidateCount,
     validCandidateCount: generated.validCandidateCount,
   };
+}
+
+export function repairLineup(input: RepairLineupInput): RepairLineupResult {
+  return repairLineupWithinPoolLimit(input, MAX_EXHAUSTIVE_POOL_SIZE);
 }

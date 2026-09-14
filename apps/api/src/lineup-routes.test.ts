@@ -3,20 +3,29 @@ import { describe, expect, it } from 'vitest';
 
 import { createApp } from './app.js';
 
-describe('demo roster routes', () => {
-  it('lists the available demo team', async () => {
+describe('lineup pool routes', () => {
+  it('lists real team, league, and fictional fallback pools with provenance', async () => {
     const response = await request(createApp()).get('/api/teams');
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      teams: [
-        {
-          id: 'metro-city-meteors',
-          name: 'Metro City Meteors',
-          abbreviation: 'MCM',
-        },
-      ],
-    });
+    expect(response.body.teams).toHaveLength(6);
+    expect(response.body.teams).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'nba-2024-25-bos',
+          mode: 'team',
+          season: '2024–25',
+          isDemo: false,
+          searchStrategy: 'exhaustive',
+        }),
+        expect.objectContaining({
+          id: 'nba-2024-25-league-snapshot',
+          mode: 'league',
+          searchStrategy: 'bounded',
+        }),
+        expect.objectContaining({ id: 'metro-city-meteors', isDemo: true }),
+      ]),
+    );
   });
 
   it('returns roster players with normalized profiles', async () => {
@@ -28,8 +37,28 @@ describe('demo roster routes', () => {
       id: 'jordan-vega',
       name: 'Jordan Vega',
       position: 'PG',
+      teamAbbreviation: 'MCM',
       profile: { shooting: 92, creation: 94 },
     });
+  });
+
+  it('returns a dated real roster and a cross-team league pool', async () => {
+    const team = await request(createApp()).get('/api/teams/nba-2024-25-bos/players');
+    const league = await request(createApp()).get('/api/teams/nba-2024-25-league-snapshot/players');
+
+    expect(team.status).toBe(200);
+    expect(team.body.team).toMatchObject({ name: 'Boston Celtics', snapshotDate: '2025-04-13' });
+    expect(team.body.players).toHaveLength(10);
+    expect(team.body.players).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'Jayson Tatum' })]),
+    );
+    expect(league.status).toBe(200);
+    expect(league.body.players).toHaveLength(40);
+    expect(
+      new Set(
+        league.body.players.map((player: { teamAbbreviation: string }) => player.teamAbbreviation),
+      ).size,
+    ).toBe(4);
   });
 
   it('returns an explicit error for an unknown team', async () => {
@@ -159,6 +188,33 @@ describe('POST /api/lineups/generate', () => {
       response.body.winner.constraints.every((item: { satisfied: boolean }) => item.satisfied),
     ).toBe(true);
     expect(response.body.alternatives.length).toBeLessThanOrEqual(2);
+  });
+
+  it('returns honest bounded-search metadata for league generation', async () => {
+    const response = await request(createApp())
+      .post('/api/lineups/generate')
+      .send({
+        teamId: 'nba-2024-25-league-snapshot',
+        intent: {
+          ...generationIntent,
+          minimumShooters: 0,
+          minimumCreators: 0,
+          metricMinimums: {},
+          requiredPlayerIds: [],
+          excludedPlayerIds: [],
+        },
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.winner.lineup.playerIds).toHaveLength(5);
+    expect(response.body.search).toEqual({
+      strategy: 'bounded-shortlist',
+      eligiblePlayerCount: 40,
+      searchedPlayerCount: 18,
+      combinationLimit: 8568,
+      exhausted: false,
+      optimalityGuaranteed: false,
+    });
   });
 
   it('returns a clear conflict for a valid but infeasible request', async () => {
@@ -322,6 +378,33 @@ describe('POST /api/lineups/compare', () => {
     expect(response.body.comparison.before.constraints).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: 'minimum-shooters' })]),
     );
+  });
+
+  it('compares cross-team league lineups without applying the generation pool bound', async () => {
+    const response = await request(createApp())
+      .post('/api/lineups/compare')
+      .send({
+        teamId: 'nba-2024-25-league-snapshot',
+        beforePlayerIds: [
+          'nba-2024-25-bos-jayson-tatum',
+          'nba-2024-25-bos-derrick-white',
+          'nba-2024-25-den-nikola-jokic',
+          'nba-2024-25-nyk-jalen-brunson',
+          'nba-2024-25-okc-alex-caruso',
+        ],
+        afterPlayerIds: [
+          'nba-2024-25-okc-shai-gilgeous-alexander',
+          'nba-2024-25-okc-luguentz-dort',
+          'nba-2024-25-bos-kristaps-porzingis',
+          'nba-2024-25-den-aaron-gordon',
+          'nba-2024-25-nyk-karl-anthony-towns',
+        ],
+        intent: { ...generationIntent, requiredPlayerIds: [], excludedPlayerIds: [] },
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.comparison.comparison.metrics).toHaveLength(7);
+    expect(response.body.comparison.addedPlayerIds).toHaveLength(5);
   });
 
   it('rejects an invalid comparison side without returning partial analysis', async () => {

@@ -81,7 +81,10 @@ function duplicates(ids: readonly string[]): string[] {
   return [...repeated].sort();
 }
 
-export function validateGenerationInput(input: GenerateLineupInput): GenerationIssue[] {
+export function validateGenerationInput(
+  input: GenerateLineupInput,
+  maximumPoolSize: number | null = MAX_EXHAUSTIVE_POOL_SIZE,
+): GenerationIssue[] {
   const issues: GenerationIssue[] = [];
   const playerIds = input.players.map((player) => player.id);
   const playerIdSet = new Set(playerIds);
@@ -102,11 +105,11 @@ export function validateGenerationInput(input: GenerateLineupInput): GenerationI
     ...new Set(input.intent.excludedPlayerIds.filter((id) => !playerIdSet.has(id))),
   ].sort();
 
-  if (input.players.length > MAX_EXHAUSTIVE_POOL_SIZE)
+  if (maximumPoolSize !== null && input.players.length > maximumPoolSize)
     issues.push({
       code: 'POOL_TOO_LARGE',
-      message: `Exhaustive generation supports at most ${MAX_EXHAUSTIVE_POOL_SIZE} eligible players; received ${input.players.length}.`,
-      maximum: MAX_EXHAUSTIVE_POOL_SIZE,
+      message: `Exhaustive generation supports at most ${maximumPoolSize} eligible players; received ${input.players.length}.`,
+      maximum: maximumPoolSize,
       received: input.players.length,
     });
   if (duplicatePlayers.length)
@@ -227,8 +230,11 @@ export function calculateObjectiveScore(
   return Number((weighted / totalWeight).toFixed(4));
 }
 
-export function generateLineup(input: GenerateLineupInput): GenerateLineupResult {
-  const issues = validateGenerationInput(input);
+export function generateLineupWithinPoolLimit(
+  input: GenerateLineupInput,
+  maximumPoolSize: number,
+): GenerateLineupResult {
+  const issues = validateGenerationInput(input, maximumPoolSize);
   if (issues.length) {
     const dataCodes = new Set([
       'MISSING_PROFILE',
@@ -322,4 +328,8 @@ export function generateLineup(input: GenerateLineupInput): GenerateLineupResult
     evaluatedCandidateCount: candidateIds.length,
     validCandidateCount: candidates.length,
   };
+}
+
+export function generateLineup(input: GenerateLineupInput): GenerateLineupResult {
+  return generateLineupWithinPoolLimit(input, MAX_EXHAUSTIVE_POOL_SIZE);
 }

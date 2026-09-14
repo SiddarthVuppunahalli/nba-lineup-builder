@@ -140,6 +140,7 @@ export function RepairWorkspace({
                   evaluatedCandidateCount: response.evaluatedCandidateCount,
                   validCandidateCount: response.validCandidateCount,
                   usedBalancedDefault: response.usedBalancedDefault,
+                  ...(response.search ? { search: response.search } : {}),
                 }
               : undefined
           }

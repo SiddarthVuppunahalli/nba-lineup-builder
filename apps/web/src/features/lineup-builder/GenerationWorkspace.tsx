@@ -19,6 +19,7 @@ interface GenerationWorkspaceProps {
   roster: RosterPlayerDto[];
   onGeneratedLineup: (playerIds: string[]) => void;
   onSaveVersion: (name: string, playerIds: readonly string[]) => void;
+  isBoundedSearch: boolean;
 }
 
 function errorMessage(error: Error | null): string | undefined {
@@ -47,6 +48,7 @@ export function GenerationWorkspace({
   roster,
   onGeneratedLineup,
   onSaveVersion,
+  isBoundedSearch,
 }: GenerationWorkspaceProps) {
   const mutation = useMutation({
     mutationFn: postLineupGeneration,
@@ -109,7 +111,11 @@ export function GenerationWorkspace({
         />
 
         <div className="roster-actions">
-          <p>Searches every five-player combination on this fictional roster.</p>
+          <p>
+            {isBoundedSearch
+              ? 'Builds a deterministic 18-player shortlist, then checks every five within that bound.'
+              : 'Searches every five-player combination in this roster.'}
+          </p>
           <button
             className="analyze-button"
             type="submit"
@@ -139,6 +145,7 @@ export function GenerationWorkspace({
                   evaluatedCandidateCount: response.evaluatedCandidateCount,
                   validCandidateCount: response.validCandidateCount,
                   usedBalancedDefault: response.usedBalancedDefault,
+                  ...(response.search ? { search: response.search } : {}),
                 }
               : undefined
           }

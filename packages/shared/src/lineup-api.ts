@@ -26,6 +26,13 @@ export const teamSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   abbreviation: z.string().min(1),
+  mode: z.enum(['team', 'league']).default('team'),
+  season: z.string().min(1).default('Demo'),
+  sourceLabel: z.string().min(1).default('Seeded fictional demo ratings'),
+  sourceUrl: z.string().url().optional(),
+  snapshotDate: z.string().min(1).default('unknown'),
+  isDemo: z.boolean().default(true),
+  searchStrategy: z.enum(['exhaustive', 'bounded']).default('exhaustive'),
 });
 
 export const playerProfileSchema = z.object({
@@ -42,6 +49,7 @@ export const rosterPlayerSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   teamId: z.string().min(1),
+  teamAbbreviation: z.string().min(1).default('MCM'),
   position: z.string().min(1),
   profile: playerProfileSchema,
 });
@@ -156,6 +164,15 @@ export const generatedLineupCandidateSchema = z.object({
   constraints: z.array(constraintResultSchema),
 });
 
+export const lineupSearchMetadataSchema = z.object({
+  strategy: z.enum(['exhaustive', 'bounded-shortlist']),
+  eligiblePlayerCount: z.number().int().nonnegative(),
+  searchedPlayerCount: z.number().int().nonnegative(),
+  combinationLimit: z.number().int().positive(),
+  exhausted: z.boolean(),
+  optimalityGuaranteed: z.boolean(),
+});
+
 export const generatedLineupResponseSchema = z.object({
   winner: generatedLineupCandidateSchema,
   alternatives: z.array(generatedLineupCandidateSchema).max(2),
@@ -163,6 +180,7 @@ export const generatedLineupResponseSchema = z.object({
   usedBalancedDefault: z.boolean(),
   evaluatedCandidateCount: z.number().int().nonnegative(),
   validCandidateCount: z.number().int().positive(),
+  search: lineupSearchMetadataSchema.optional(),
 });
 
 export const repairLineupRequestSchema = z.object({
@@ -216,6 +234,7 @@ export const repairedLineupResponseSchema = z.object({
   usedBalancedDefault: z.boolean(),
   evaluatedCandidateCount: z.number().int().nonnegative(),
   validCandidateCount: z.number().int().positive(),
+  search: lineupSearchMetadataSchema.optional(),
 });
 
 export const compareLineupsRequestSchema = z.object({
@@ -263,6 +282,7 @@ export type LineupIntentDto = z.infer<typeof lineupIntentSchema>;
 export type GenerateLineupRequest = z.infer<typeof generateLineupRequestSchema>;
 export type ConstraintResultDto = z.infer<typeof constraintResultSchema>;
 export type GeneratedLineupCandidateDto = z.infer<typeof generatedLineupCandidateSchema>;
+export type LineupSearchMetadataDto = z.infer<typeof lineupSearchMetadataSchema>;
 export type GeneratedLineupResponse = z.infer<typeof generatedLineupResponseSchema>;
 export type RepairLineupRequest = z.infer<typeof repairLineupRequestSchema>;
 export type InterpretIntentRequest = z.infer<typeof interpretIntentRequestSchema>;

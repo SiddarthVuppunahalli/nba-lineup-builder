@@ -4,22 +4,29 @@ import {
   DEMO_PLAYERS,
   DEMO_PROFILES,
   DEMO_TEAM,
+  generateLeagueLineup,
   generateLineup,
+  repairLeagueLineup,
   repairLineup,
   type LineupIntent,
 } from '@lineup-engine/basketball-engine';
 import {
+  NBA_2024_25_LEAGUE_POOL,
+  NBA_2024_25_TEAM_POOLS,
+  type LineupPool,
+} from '@lineup-engine/nba-data';
+import {
   apiErrorResponseSchema,
   comparedLineupsResponseSchema,
-  lineupAnalysisResponseSchema,
   generatedLineupResponseSchema,
+  lineupAnalysisResponseSchema,
   repairedLineupResponseSchema,
   rosterResponseSchema,
   teamsResponseSchema,
   type ApiErrorResponse,
   type ComparedLineupsResponse,
-  type LineupAnalysisResponse,
   type GeneratedLineupResponse,
+  type LineupAnalysisResponse,
   type RepairedLineupResponse,
   type RosterResponse,
   type TeamsResponse,
@@ -28,40 +35,104 @@ import {
 export type DemoAnalysisResult =
   | { success: true; data: LineupAnalysisResponse }
   | { success: false; status: 404 | 422; error: ApiErrorResponse };
-
 export type DemoGenerationResult =
   | { success: true; data: GeneratedLineupResponse }
   | { success: false; status: 404 | 409 | 422 | 500; error: ApiErrorResponse };
-
 export type DemoRepairResult =
   | { success: true; data: RepairedLineupResponse }
   | { success: false; status: 404 | 409 | 422 | 500; error: ApiErrorResponse };
-
 export type DemoComparisonResult =
   | { success: true; data: ComparedLineupsResponse }
   | { success: false; status: 404 | 422 | 500; error: ApiErrorResponse };
 
+const DEMO_POOL: LineupPool = {
+  team: DEMO_TEAM,
+  mode: 'team',
+  source: {
+    id: 'fictional-demo-v1',
+    label: 'Seeded fictional demo ratings',
+    url: 'https://github.com/',
+    season: 'Demo',
+    snapshotDate: '2026-09-14',
+    methodologyVersion: 'fictional-demo-v1',
+  },
+  isDemo: true,
+  searchStrategy: 'exhaustive',
+  players: DEMO_PLAYERS,
+  profiles: DEMO_PROFILES,
+  teamAbbreviations: new Map([[DEMO_TEAM.id, DEMO_TEAM.abbreviation]]),
+};
+
+const POOLS: readonly LineupPool[] = [
+  ...NBA_2024_25_TEAM_POOLS,
+  NBA_2024_25_LEAGUE_POOL,
+  DEMO_POOL,
+];
+
+function getPool(poolId: string): LineupPool | undefined {
+  return POOLS.find((pool) => pool.team.id === poolId);
+}
+
+function teamDto(pool: LineupPool) {
+  return {
+    ...pool.team,
+    mode: pool.mode,
+    season: pool.source.season,
+    sourceLabel: pool.source.label,
+    ...(pool.isDemo ? {} : { sourceUrl: pool.source.url }),
+    snapshotDate: pool.source.snapshotDate,
+    isDemo: pool.isDemo,
+    searchStrategy: pool.searchStrategy,
+  };
+}
+
+function combinationCount(playerCount: number): number {
+  if (playerCount < 5) return 0;
+  return (
+    (playerCount * (playerCount - 1) * (playerCount - 2) * (playerCount - 3) * (playerCount - 4)) /
+    120
+  );
+}
+
+function exhaustiveSearchMetadata(pool: LineupPool, intent: LineupIntent) {
+  const excluded = new Set(intent.excludedPlayerIds);
+  const eligiblePlayerCount = pool.players.filter((player) => !excluded.has(player.id)).length;
+  return {
+    strategy: 'exhaustive' as const,
+    eligiblePlayerCount,
+    searchedPlayerCount: eligiblePlayerCount,
+    combinationLimit: Math.max(1, combinationCount(eligiblePlayerCount)),
+    exhausted: true,
+    optimalityGuaranteed: true,
+  };
+}
+
+function notFound(poolId: string) {
+  return apiErrorResponseSchema.parse({
+    error: { code: 'TEAM_NOT_FOUND', message: `No lineup pool exists with the id "${poolId}".` },
+  });
+}
+
+export function getLineupPool(poolId: string): LineupPool | undefined {
+  return getPool(poolId);
+}
+
 export function listDemoTeams(): TeamsResponse {
-  return teamsResponseSchema.parse({ teams: [DEMO_TEAM] });
+  return teamsResponseSchema.parse({ teams: POOLS.map(teamDto) });
 }
 
 export function getDemoRoster(teamId: string): RosterResponse | null {
-  if (teamId !== DEMO_TEAM.id) {
-    return null;
-  }
-
-  const profilesByPlayerId = new Map(DEMO_PROFILES.map((profile) => [profile.playerId, profile]));
-
+  const pool = getPool(teamId);
+  if (!pool) return null;
+  const profilesByPlayerId = new Map(pool.profiles.map((profile) => [profile.playerId, profile]));
   return rosterResponseSchema.parse({
-    team: DEMO_TEAM,
-    players: DEMO_PLAYERS.map((player) => {
+    team: teamDto(pool),
+    players: pool.players.map((player) => {
       const profile = profilesByPlayerId.get(player.id);
-      if (!profile) {
-        throw new Error(`Demo roster configuration is missing a profile for ${player.id}.`);
-      }
-
+      if (!profile) throw new Error(`Roster configuration is missing a profile for ${player.id}.`);
       return {
         ...player,
+        teamAbbreviation: pool.teamAbbreviations.get(player.teamId) ?? pool.team.abbreviation,
         profile: {
           shooting: profile.shooting,
           creation: profile.creation,
@@ -80,25 +151,9 @@ export function analyzeDemoLineup(
   teamId: string,
   playerIds: readonly string[],
 ): DemoAnalysisResult {
-  if (teamId !== DEMO_TEAM.id) {
-    return {
-      success: false,
-      status: 404,
-      error: apiErrorResponseSchema.parse({
-        error: {
-          code: 'TEAM_NOT_FOUND',
-          message: `No team exists with the id "${teamId}".`,
-        },
-      }),
-    };
-  }
-
-  const result = analyzeLineup({
-    playerIds,
-    players: DEMO_PLAYERS,
-    profiles: DEMO_PROFILES,
-  });
-
+  const pool = getPool(teamId);
+  if (!pool) return { success: false, status: 404, error: notFound(teamId) };
+  const result = analyzeLineup({ playerIds, players: pool.players, profiles: pool.profiles });
   if (!result.success) {
     return {
       success: false,
@@ -112,46 +167,33 @@ export function analyzeDemoLineup(
       }),
     };
   }
-
   return {
     success: true,
-    data: lineupAnalysisResponseSchema.parse({
-      lineup: result.lineup,
-      analysis: result.analysis,
-    }),
+    data: lineupAnalysisResponseSchema.parse({ lineup: result.lineup, analysis: result.analysis }),
   };
 }
 
 export function generateDemoLineup(teamId: string, intent: LineupIntent): DemoGenerationResult {
-  if (teamId !== DEMO_TEAM.id) {
-    return {
-      success: false,
-      status: 404,
-      error: apiErrorResponseSchema.parse({
-        error: {
-          code: 'TEAM_NOT_FOUND',
-          message: `No team exists with the id "${teamId}".`,
-        },
-      }),
-    };
-  }
-
-  const result = generateLineup({ players: DEMO_PLAYERS, profiles: DEMO_PROFILES, intent });
+  const pool = getPool(teamId);
+  if (!pool) return { success: false, status: 404, error: notFound(teamId) };
+  const result =
+    pool.mode === 'league'
+      ? generateLeagueLineup({ players: pool.players, profiles: pool.profiles, intent })
+      : generateLineup({ players: pool.players, profiles: pool.profiles, intent });
   if (!result.success) {
-    if (result.reason === 'infeasible') {
+    if (result.reason === 'infeasible' || result.reason === 'search-limit') {
       return {
         success: false,
         status: 409,
         error: apiErrorResponseSchema.parse({
           error: {
-            code: 'INFEASIBLE_LINEUP',
+            code: result.reason === 'search-limit' ? 'LEAGUE_SEARCH_LIMIT' : 'INFEASIBLE_LINEUP',
             message: result.message,
             details: result.constraintSummary,
           },
         }),
       };
     }
-
     const dataFailure = result.reason === 'data-error';
     return {
       success: false,
@@ -167,8 +209,13 @@ export function generateDemoLineup(teamId: string, intent: LineupIntent): DemoGe
       }),
     };
   }
-
-  return { success: true, data: generatedLineupResponseSchema.parse(result) };
+  return {
+    success: true,
+    data: generatedLineupResponseSchema.parse({
+      ...result,
+      search: 'search' in result ? result.search : exhaustiveSearchMetadata(pool, intent),
+    }),
+  };
 }
 
 export function repairDemoLineup(
@@ -176,30 +223,30 @@ export function repairDemoLineup(
   currentPlayerIds: readonly string[],
   intent: LineupIntent,
 ): DemoRepairResult {
-  if (teamId !== DEMO_TEAM.id) {
-    return {
-      success: false,
-      status: 404,
-      error: apiErrorResponseSchema.parse({
-        error: { code: 'TEAM_NOT_FOUND', message: `No team exists with the id "${teamId}".` },
-      }),
-    };
-  }
-
-  const result = repairLineup({
-    currentPlayerIds,
-    players: DEMO_PLAYERS,
-    profiles: DEMO_PROFILES,
-    intent,
-  });
+  const pool = getPool(teamId);
+  if (!pool) return { success: false, status: 404, error: notFound(teamId) };
+  const result =
+    pool.mode === 'league'
+      ? repairLeagueLineup({
+          currentPlayerIds,
+          players: pool.players,
+          profiles: pool.profiles,
+          intent,
+        })
+      : repairLineup({
+          currentPlayerIds,
+          players: pool.players,
+          profiles: pool.profiles,
+          intent,
+        });
   if (!result.success) {
-    if (result.reason === 'infeasible') {
+    if (result.reason === 'infeasible' || result.reason === 'search-limit') {
       return {
         success: false,
         status: 409,
         error: apiErrorResponseSchema.parse({
           error: {
-            code: 'INFEASIBLE_REPAIR',
+            code: result.reason === 'search-limit' ? 'LEAGUE_SEARCH_LIMIT' : 'INFEASIBLE_REPAIR',
             message: result.message,
             details: result.constraintSummary,
           },
@@ -221,8 +268,13 @@ export function repairDemoLineup(
       }),
     };
   }
-
-  return { success: true, data: repairedLineupResponseSchema.parse(result) };
+  return {
+    success: true,
+    data: repairedLineupResponseSchema.parse({
+      ...result,
+      search: 'search' in result ? result.search : exhaustiveSearchMetadata(pool, intent),
+    }),
+  };
 }
 
 export function compareDemoLineups(
@@ -231,21 +283,13 @@ export function compareDemoLineups(
   afterPlayerIds: readonly string[],
   intent: LineupIntent,
 ): DemoComparisonResult {
-  if (teamId !== DEMO_TEAM.id) {
-    return {
-      success: false,
-      status: 404,
-      error: apiErrorResponseSchema.parse({
-        error: { code: 'TEAM_NOT_FOUND', message: `No team exists with the id "${teamId}".` },
-      }),
-    };
-  }
-
+  const pool = getPool(teamId);
+  if (!pool) return { success: false, status: 404, error: notFound(teamId) };
   const result = compareLineups({
     beforePlayerIds,
     afterPlayerIds,
-    players: DEMO_PLAYERS,
-    profiles: DEMO_PROFILES,
+    players: pool.players,
+    profiles: pool.profiles,
     intent,
   });
   if (!result.success) {
@@ -272,6 +316,5 @@ export function compareDemoLineups(
       }),
     };
   }
-
   return { success: true, data: comparedLineupsResponseSchema.parse(result) };
 }

@@ -1821,6 +1821,125 @@ a:focus-visible {
   font-size: 12px;
 }
 
+.pool-controls {
+  display: grid;
+  gap: 12px;
+  min-width: 285px;
+}
+
+.mode-switch {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-tint);
+}
+
+.mode-switch button {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mode-switch button[aria-pressed='true'] {
+  color: var(--color-coral-ink);
+  background: var(--color-surface);
+  box-shadow: 0 2px 8px rgb(48 54 47 / 8%);
+}
+
+.data-provenance {
+  display: grid;
+  grid-template-columns: minmax(15rem, 1fr) minmax(18rem, 1.5fr) auto;
+  gap: 20px;
+  align-items: center;
+  margin: -22px 0 28px;
+  padding: 14px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--color-sage-soft) 60%, var(--color-surface));
+}
+
+.data-provenance div {
+  display: grid;
+  gap: 3px;
+}
+
+.data-provenance span,
+.data-provenance p,
+.data-provenance a {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.data-provenance a {
+  color: var(--color-sage-ink);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.player-search {
+  display: grid;
+  gap: 7px;
+  padding: 16px 0;
+}
+
+.player-search > span {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.player-search input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.player-search--rules {
+  padding-top: 8px;
+}
+
+.no-player-results {
+  margin: 0;
+  padding: 24px 12px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .data-provenance {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 720px) {
+  .pool-controls {
+    min-width: 0;
+  }
+
+  .data-provenance {
+    margin-top: -12px;
+  }
+}
+
 .player-card--selected,
 .player-card--selected:hover:not(:disabled) {
   background: var(--color-coral-soft);

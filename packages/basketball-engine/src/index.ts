@@ -7,4 +7,5 @@ export * from './domain/types.js';
 export * from './domain/validation.js';
 export * from './generation/constraints.js';
 export * from './generation/generate-lineup.js';
+export * from './league/league-search.js';
 export * from './repair/repair-lineup.js';

@@ -1,4 +1,4 @@
-import type { AnalyzeLineupRequest } from '@lineup-engine/shared';
+import type { AnalyzeLineupRequest, TeamDto } from '@lineup-engine/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -16,6 +16,12 @@ interface LineupFormValues {
   playerIds: string[];
 }
 
+type PoolCategory = 'team' | 'league' | 'demo';
+
+function poolCategory(team: TeamDto): PoolCategory {
+  return team.isDemo ? 'demo' : team.mode;
+}
+
 function requestErrorMessage(error: Error | null): string | undefined {
   if (!error) return undefined;
   if (error instanceof ApiClientError) return error.message;
@@ -27,11 +33,19 @@ export function LineupBuilderPage() {
     'manual',
   );
   const [teamOverride, setTeamOverride] = useState('');
+  const [poolCategorySelection, setPoolCategorySelection] = useState<PoolCategory>('team');
   const [versions, setVersions] = useState<SessionLineupVersion[]>([]);
   const [activeParentVersionId, setActiveParentVersionId] = useState<string>();
   const nextVersionId = useRef(1);
   const teamsQuery = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
-  const selectedTeamId = teamOverride || teamsQuery.data?.teams[0]?.id || '';
+  const matchingPools =
+    teamsQuery.data?.teams.filter((team) => poolCategory(team) === poolCategorySelection) ?? [];
+  const availablePools = matchingPools.length > 0 ? matchingPools : (teamsQuery.data?.teams ?? []);
+  const selectedTeamId =
+    (availablePools.some((team) => team.id === teamOverride) ? teamOverride : '') ||
+    availablePools[0]?.id ||
+    '';
+  const selectedPool = teamsQuery.data?.teams.find((team) => team.id === selectedTeamId);
   const rosterQuery = useQuery({
     queryKey: ['roster', selectedTeamId],
     queryFn: () => fetchRoster(selectedTeamId),
@@ -45,6 +59,14 @@ export function LineupBuilderPage() {
 
   function changeTeam(teamId: string) {
     setTeamOverride(teamId);
+    reset({ playerIds: [] });
+    analysisMutation.reset();
+    setActiveParentVersionId(undefined);
+  }
+
+  function changePoolCategory(category: PoolCategory) {
+    setPoolCategorySelection(category);
+    setTeamOverride('');
     reset({ playerIds: [] });
     analysisMutation.reset();
     setActiveParentVersionId(undefined);
@@ -214,6 +236,7 @@ export function LineupBuilderPage() {
         players={rosterQuery.data.players}
         selectedPlayerIds={selectedPlayerIds}
         onTogglePlayer={togglePlayer}
+        searchable={selectedPool?.mode === 'league'}
       />
     );
   }
@@ -230,30 +253,75 @@ export function LineupBuilderPage() {
             A little shooting. A little size. The right five together. Explore your lineup’s
             strengths, tradeoffs, and the story behind every score.
           </p>
-          <span className="demo-note">Fictional demo roster · Illustrative ratings</span>
+          <span className="demo-note">
+            {selectedPool?.isDemo
+              ? 'Fictional fallback · Illustrative ratings'
+              : `${selectedPool?.season ?? 'Season snapshot'} · Derived profile ratings`}
+          </span>
         </div>
-        <label className="team-control">
-          <span>Team</span>
-          <select
-            value={selectedTeamId}
-            onChange={(event) => changeTeam(event.target.value)}
-            disabled={teamsQuery.isPending || teamsQuery.isError || !teamsQuery.data?.teams.length}
-          >
-            {!selectedTeamId && (
-              <option value="">
-                {teamsQuery.isPending ? 'Loading teams…' : 'No team selected'}
-              </option>
-            )}
-            {teamsQuery.data?.teams.map((team) => (
-              <option value={team.id} key={team.id}>
-                {team.name}
-              </option>
+        <div className="pool-controls">
+          <div className="mode-switch" aria-label="Player pool mode">
+            {(
+              [
+                ['team', 'Team'],
+                ['league', 'League'],
+                ['demo', 'Demo'],
+              ] as const
+            ).map(([category, label]) => (
+              <button
+                type="button"
+                key={category}
+                aria-pressed={poolCategorySelection === category}
+                onClick={() => changePoolCategory(category)}
+              >
+                {label}
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+          <label className="team-control">
+            <span>{poolCategorySelection === 'league' ? 'Snapshot' : 'Team'}</span>
+            <select
+              value={selectedTeamId}
+              onChange={(event) => changeTeam(event.target.value)}
+              disabled={teamsQuery.isPending || teamsQuery.isError || !availablePools.length}
+            >
+              {!selectedTeamId && (
+                <option value="">
+                  {teamsQuery.isPending ? 'Loading options…' : 'No option available'}
+                </option>
+              )}
+              {availablePools.map((team) => (
+                <option value={team.id} key={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </header>
 
-      {rosterReady && rosterQuery.data?.players.length ? (
+      {selectedPool ? (
+        <aside className="data-provenance" aria-label="Data source and search scope">
+          <div>
+            <strong>{selectedPool.mode === 'league' ? 'League pool' : 'Team roster'}</strong>
+            <span>
+              {selectedPool.sourceLabel} · snapshot {selectedPool.snapshotDate}
+            </span>
+          </div>
+          <p>
+            {selectedPool.searchStrategy === 'bounded'
+              ? 'Generation uses a deterministic bounded shortlist and reports when the full pool was not searched.'
+              : 'Generation checks every five-player combination in this roster.'}
+          </p>
+          {selectedPool.sourceUrl ? (
+            <a href={selectedPool.sourceUrl} target="_blank" rel="noreferrer">
+              View source
+            </a>
+          ) : null}
+        </aside>
+      ) : null}
+
+      {selectedPool?.isDemo && rosterReady && rosterQuery.data?.players.length ? (
         <DemoScenarios onSelect={loadDemoScenario} />
       ) : null}
 
@@ -296,6 +364,7 @@ export function LineupBuilderPage() {
         <GenerationWorkspace
           teamId={selectedTeamId}
           roster={rosterQuery.data.players}
+          isBoundedSearch={selectedPool?.searchStrategy === 'bounded'}
           onGeneratedLineup={useLineupForRepair}
           onSaveVersion={(name, playerIds) => saveVersion(name, playerIds, 'generated')}
         />

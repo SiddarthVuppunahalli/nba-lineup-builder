@@ -67,4 +67,9 @@ The comparison contains the before and after value for each of the seven normali
 
 ## Limitations
 
-The demo roster and profiles are fictional. The scores are curated to exercise the engine and should not be interpreted as professional scouting grades. Phase 8 will introduce reproducible profile derivation from a documented external data source while preserving these domain boundaries.
+The fictional demo scores are curated to exercise the engine and should not be interpreted as
+professional scouting grades. Phase 8 real profiles use a versioned normalization of public
+2024–25 per-game and advanced inputs. In particular, perimeter defense, interior defense, and
+switchability remain transparent box-score/position proxies rather than matchup grades. See
+[NBA data snapshot and profile derivation](nba-data.md) for exact inputs, formulas, provenance, and
+refresh limitations.

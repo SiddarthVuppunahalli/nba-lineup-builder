@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@lineup-engine/basketball-engine": "workspace:*",
+    "@lineup-engine/nba-data": "workspace:*",
     "@lineup-engine/shared": "workspace:*",
     "express": "^5.1.0",
     "openai": "^7.15.0",
