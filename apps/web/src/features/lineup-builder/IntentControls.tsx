@@ -9,6 +9,7 @@ interface IntentControlsProps {
   requiredPlayerIds: readonly string[];
   excludedPlayerIds: readonly string[];
   onTogglePlayer: (field: 'requiredPlayerIds' | 'excludedPlayerIds', playerId: string) => void;
+  showPlayerRules?: boolean;
 }
 
 export function IntentControls({
@@ -17,6 +18,7 @@ export function IntentControls({
   requiredPlayerIds,
   excludedPlayerIds,
   onTogglePlayer,
+  showPlayerRules = true,
 }: IntentControlsProps) {
   return (
     <div className="generation-form-body">
@@ -86,44 +88,46 @@ export function IntentControls({
         </div>
       </fieldset>
 
-      <fieldset>
-        <legend>Player rules</legend>
-        <p>Lock players into the result or keep them out.</p>
-        <div className="player-rules" aria-label="Required and excluded players">
-          {roster.map((player) => {
-            const required = requiredPlayerIds.includes(player.id);
-            const excluded = excludedPlayerIds.includes(player.id);
-            return (
-              <div className="player-rule" key={player.id}>
-                <span>
-                  <strong>{player.name}</strong>
-                  <small>{player.position}</small>
-                </span>
-                <label>
-                  <input
-                    type="checkbox"
-                    aria-label={`Require ${player.name}`}
-                    checked={required}
-                    disabled={excluded}
-                    onChange={() => onTogglePlayer('requiredPlayerIds', player.id)}
-                  />
-                  Require
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    aria-label={`Exclude ${player.name}`}
-                    checked={excluded}
-                    disabled={required}
-                    onChange={() => onTogglePlayer('excludedPlayerIds', player.id)}
-                  />
-                  Exclude
-                </label>
-              </div>
-            );
-          })}
-        </div>
-      </fieldset>
+      {showPlayerRules && (
+        <fieldset>
+          <legend>Player rules</legend>
+          <p>Lock players into the result or keep them out.</p>
+          <div className="player-rules" aria-label="Required and excluded players">
+            {roster.map((player) => {
+              const required = requiredPlayerIds.includes(player.id);
+              const excluded = excludedPlayerIds.includes(player.id);
+              return (
+                <div className="player-rule" key={player.id}>
+                  <span>
+                    <strong>{player.name}</strong>
+                    <small>{player.position}</small>
+                  </span>
+                  <label>
+                    <input
+                      type="checkbox"
+                      aria-label={`Require ${player.name}`}
+                      checked={required}
+                      disabled={excluded}
+                      onChange={() => onTogglePlayer('requiredPlayerIds', player.id)}
+                    />
+                    Require
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      aria-label={`Exclude ${player.name}`}
+                      checked={excluded}
+                      disabled={required}
+                      onChange={() => onTogglePlayer('excludedPlayerIds', player.id)}
+                    />
+                    Exclude
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
     </div>
   );
 }

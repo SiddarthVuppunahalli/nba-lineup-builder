@@ -1,6 +1,8 @@
 import {
   apiErrorResponseSchema,
   analyzeLineupRequestSchema,
+  comparedLineupsResponseSchema,
+  compareLineupsRequestSchema,
   healthResponseSchema,
   generateLineupRequestSchema,
   generatedLineupResponseSchema,
@@ -13,6 +15,8 @@ import {
   rosterResponseSchema,
   teamsResponseSchema,
   type AnalyzeLineupRequest,
+  type ComparedLineupsResponse,
+  type CompareLineupsRequest,
   type HealthResponse,
   type GenerateLineupRequest,
   type GeneratedLineupResponse,
@@ -121,6 +125,20 @@ export async function postLineupRepair(
 
   return repairedLineupResponseSchema.parse(
     await requestJson('/api/lineups/repair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validatedRequest),
+    }),
+  );
+}
+
+export async function postLineupComparison(
+  request: CompareLineupsRequest,
+): Promise<ComparedLineupsResponse> {
+  const validatedRequest = compareLineupsRequestSchema.parse(request);
+
+  return comparedLineupsResponseSchema.parse(
+    await requestJson('/api/lineups/compare', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(validatedRequest),

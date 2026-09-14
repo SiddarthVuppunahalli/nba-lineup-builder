@@ -218,6 +218,28 @@ export const repairedLineupResponseSchema = z.object({
   validCandidateCount: z.number().int().positive(),
 });
 
+export const compareLineupsRequestSchema = z.object({
+  teamId: z.string().trim().min(1),
+  beforePlayerIds: z.array(z.string().trim().min(1)).max(20),
+  afterPlayerIds: z.array(z.string().trim().min(1)).max(20),
+  intent: lineupIntentSchema.extend({
+    requiredPlayerIds: z.array(z.never()).length(0),
+    excludedPlayerIds: z.array(z.never()).length(0),
+  }),
+});
+
+export const comparedLineupsResponseSchema = z.object({
+  comparison: z.object({
+    before: generatedLineupCandidateSchema,
+    after: generatedLineupCandidateSchema,
+    removedPlayerIds: z.array(z.string()).max(5),
+    addedPlayerIds: z.array(z.string()).max(5),
+    retainedPlayerIds: z.array(z.string()).max(5),
+    comparison: lineupComparisonSchema,
+  }),
+  usedBalancedDefault: z.boolean(),
+});
+
 export const apiErrorResponseSchema = z.object({
   error: z.object({
     code: z.string().min(1),
@@ -249,4 +271,6 @@ export type InterpretedIntentResponse = z.infer<typeof interpretedIntentResponse
 export type MetricComparisonDto = z.infer<typeof metricComparisonSchema>;
 export type LineupComparisonDto = z.infer<typeof lineupComparisonSchema>;
 export type RepairedLineupResponse = z.infer<typeof repairedLineupResponseSchema>;
+export type CompareLineupsRequest = z.infer<typeof compareLineupsRequestSchema>;
+export type ComparedLineupsResponse = z.infer<typeof comparedLineupsResponseSchema>;
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

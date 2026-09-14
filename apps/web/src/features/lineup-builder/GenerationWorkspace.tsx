@@ -18,6 +18,7 @@ interface GenerationWorkspaceProps {
   teamId: string;
   roster: RosterPlayerDto[];
   onGeneratedLineup: (playerIds: string[]) => void;
+  onSaveVersion: (name: string, playerIds: readonly string[]) => void;
 }
 
 function errorMessage(error: Error | null): string | undefined {
@@ -45,6 +46,7 @@ export function GenerationWorkspace({
   teamId,
   roster,
   onGeneratedLineup,
+  onSaveVersion,
 }: GenerationWorkspaceProps) {
   const mutation = useMutation({
     mutationFn: postLineupGeneration,
@@ -141,6 +143,14 @@ export function GenerationWorkspace({
               : undefined
           }
           mode="generation"
+          versionSave={
+            response
+              ? {
+                  suggestedName: 'Generated lineup',
+                  onSave: (name) => onSaveVersion(name, response.winner.lineup.playerIds),
+                }
+              : undefined
+          }
         />
         {response && response.alternatives.length > 0 && (
           <section className="alternatives-card" aria-labelledby="alternatives-title">

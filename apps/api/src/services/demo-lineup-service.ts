@@ -1,5 +1,6 @@
 import {
   analyzeLineup,
+  compareLineups,
   DEMO_PLAYERS,
   DEMO_PROFILES,
   DEMO_TEAM,
@@ -9,12 +10,14 @@ import {
 } from '@lineup-engine/basketball-engine';
 import {
   apiErrorResponseSchema,
+  comparedLineupsResponseSchema,
   lineupAnalysisResponseSchema,
   generatedLineupResponseSchema,
   repairedLineupResponseSchema,
   rosterResponseSchema,
   teamsResponseSchema,
   type ApiErrorResponse,
+  type ComparedLineupsResponse,
   type LineupAnalysisResponse,
   type GeneratedLineupResponse,
   type RepairedLineupResponse,
@@ -33,6 +36,10 @@ export type DemoGenerationResult =
 export type DemoRepairResult =
   | { success: true; data: RepairedLineupResponse }
   | { success: false; status: 404 | 409 | 422 | 500; error: ApiErrorResponse };
+
+export type DemoComparisonResult =
+  | { success: true; data: ComparedLineupsResponse }
+  | { success: false; status: 404 | 422 | 500; error: ApiErrorResponse };
 
 export function listDemoTeams(): TeamsResponse {
   return teamsResponseSchema.parse({ teams: [DEMO_TEAM] });
@@ -216,4 +223,55 @@ export function repairDemoLineup(
   }
 
   return { success: true, data: repairedLineupResponseSchema.parse(result) };
+}
+
+export function compareDemoLineups(
+  teamId: string,
+  beforePlayerIds: readonly string[],
+  afterPlayerIds: readonly string[],
+  intent: LineupIntent,
+): DemoComparisonResult {
+  if (teamId !== DEMO_TEAM.id) {
+    return {
+      success: false,
+      status: 404,
+      error: apiErrorResponseSchema.parse({
+        error: { code: 'TEAM_NOT_FOUND', message: `No team exists with the id "${teamId}".` },
+      }),
+    };
+  }
+
+  const result = compareLineups({
+    beforePlayerIds,
+    afterPlayerIds,
+    players: DEMO_PLAYERS,
+    profiles: DEMO_PROFILES,
+    intent,
+  });
+  if (!result.success) {
+    const dataFailure = result.reason === 'data-error';
+    const side = result.reason === 'invalid-after' ? 'second' : 'first';
+    const invalidIntent = result.reason === 'invalid-intent';
+    return {
+      success: false,
+      status: dataFailure ? 500 : 422,
+      error: apiErrorResponseSchema.parse({
+        error: {
+          code: dataFailure
+            ? 'ROSTER_DATA_ERROR'
+            : invalidIntent
+              ? 'INVALID_COMPARISON_INTENT'
+              : 'INVALID_COMPARISON_LINEUP',
+          message: dataFailure
+            ? 'The roster is missing required basketball data.'
+            : invalidIntent
+              ? 'The comparison requirements are invalid.'
+              : `The ${side} lineup cannot be compared because it is invalid.`,
+          details: result.issues,
+        },
+      }),
+    };
+  }
+
+  return { success: true, data: comparedLineupsResponseSchema.parse(result) };
 }

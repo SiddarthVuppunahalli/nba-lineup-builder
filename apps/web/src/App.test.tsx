@@ -10,6 +10,7 @@ import {
   fetchRoster,
   fetchTeams,
   postLineupAnalysis,
+  postLineupComparison,
   postLineupGeneration,
   postIntentInterpretation,
   postLineupRepair,
@@ -23,6 +24,7 @@ vi.mock('./api/client.ts', () => ({
   fetchTeams: vi.fn(),
   fetchRoster: vi.fn(),
   postLineupAnalysis: vi.fn(),
+  postLineupComparison: vi.fn(),
   postLineupGeneration: vi.fn(),
   postIntentInterpretation: vi.fn(),
   postLineupRepair: vi.fn(),
@@ -33,6 +35,7 @@ const mockedFetchIntentInterpreterStatus = vi.mocked(fetchIntentInterpreterStatu
 const mockedFetchTeams = vi.mocked(fetchTeams);
 const mockedFetchRoster = vi.mocked(fetchRoster);
 const mockedPostLineupAnalysis = vi.mocked(postLineupAnalysis);
+const mockedPostLineupComparison = vi.mocked(postLineupComparison);
 const mockedPostLineupGeneration = vi.mocked(postLineupGeneration);
 const mockedPostIntentInterpretation = vi.mocked(postIntentInterpretation);
 const mockedPostLineupRepair = vi.mocked(postLineupRepair);
@@ -285,6 +288,63 @@ beforeEach(() => {
     usedBalancedDefault: false,
     evaluatedCandidateCount: 6,
     validCandidateCount: 4,
+  });
+  mockedPostLineupComparison.mockResolvedValue({
+    comparison: {
+      before: {
+        lineup: {
+          playerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'samir-cole'],
+        },
+        analysis: beforeAnalysis,
+        objectiveScore: 71.4,
+        constraints: [
+          {
+            id: 'minimum-shooters',
+            kind: 'minimum-shooters',
+            label: 'Credible shooters',
+            satisfied: false,
+            actual: 2,
+            required: 3,
+            description: '2 of 5 players meet the threshold; 3 required.',
+          },
+        ],
+      },
+      after: {
+        lineup: {
+          playerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'darius-knox'],
+        },
+        analysis: afterAnalysis,
+        objectiveScore: 78.6,
+        constraints: [
+          {
+            id: 'minimum-shooters',
+            kind: 'minimum-shooters',
+            label: 'Credible shooters',
+            satisfied: true,
+            actual: 3,
+            required: 3,
+            description: '3 of 5 players meet the threshold; 3 required.',
+          },
+        ],
+      },
+      removedPlayerIds: ['samir-cole'],
+      addedPlayerIds: ['darius-knox'],
+      retainedPlayerIds: ['eli-mercer', 'jordan-vega', 'malik-rhodes', 'theo-grant'],
+      comparison: {
+        metrics: [
+          { metric: 'shooting', before: 70, after: 80, delta: 10 },
+          { metric: 'creation', before: 70, after: 80, delta: 10 },
+          { metric: 'playmaking', before: 70, after: 80, delta: 10 },
+          { metric: 'rebounding', before: 80, after: 70, delta: -10 },
+          { metric: 'perimeterDefense', before: 70, after: 80, delta: 10 },
+          { metric: 'interiorDefense', before: 70, after: 80, delta: 10 },
+          { metric: 'switchability', before: 70, after: 80, delta: 10 },
+        ],
+        largestGain: { metric: 'shooting', before: 70, after: 80, delta: 10 },
+        largestTradeoff: { metric: 'rebounding', before: 80, after: 70, delta: -10 },
+      },
+    },
+    usedBalancedDefault: false,
   });
 });
 
@@ -639,5 +699,56 @@ describe('lineup repair and comparison', () => {
     expect(screen.getByText('Rebounding', { selector: '.tradeoff strong' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'The smallest change that works.' })).toBeVisible();
     expect(screen.getByText(/fewest swaps took priority over weighted fit/)).toBeVisible();
+  });
+});
+
+describe('session lineup versions', () => {
+  it('saves named versions, compares them, and branches without replacing history', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+
+    for (const name of playerNames.slice(0, 5)) {
+      await user.click(screen.getByRole('button', { name: `Select ${name}` }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
+    await screen.findByRole('heading', { name: 'How this five fits together.' });
+    const firstName = screen.getByRole('textbox', { name: 'Version name' });
+    await user.clear(firstName);
+    await user.type(firstName, 'Balanced start');
+    await user.click(screen.getByRole('button', { name: 'Save version' }));
+
+    await user.click(screen.getByRole('button', { name: 'Remove Samir Cole' }));
+    await user.click(screen.getByRole('button', { name: 'Select Darius Knox' }));
+    await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
+    await screen.findByRole('heading', { name: 'How this five fits together.' });
+    const secondName = screen.getByRole('textbox', { name: 'Version name' });
+    await user.clear(secondName);
+    await user.type(secondName, 'Defense branch');
+    await user.click(screen.getByRole('button', { name: 'Save version' }));
+
+    await user.click(screen.getByRole('tab', { name: 'Compare & versions' }));
+    expect(screen.getAllByText('Balanced start')[0]).toBeVisible();
+    expect(screen.getAllByText('Defense branch')[0]).toBeVisible();
+    expect(screen.getByText('manual · branched from Balanced start')).toBeVisible();
+    expect(screen.getByText(/These versions disappear/)).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Compare versions' }));
+    expect(mockedPostLineupComparison.mock.calls[0]?.[0]).toMatchObject({
+      teamId: 'metro-city-meteors',
+      beforePlayerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'samir-cole'],
+      afterPlayerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'darius-knox'],
+    });
+    expect(await screen.findByText('Largest tradeoff')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Balanced start Defense branch' })).toBeVisible();
+    expect(screen.getByText('× Misses')).toBeVisible();
+    expect(screen.getByText('✓ Meets')).toBeVisible();
+
+    await user.click(screen.getAllByRole('button', { name: 'Branch from here' })[0]!);
+    expect(screen.getByRole('tab', { name: 'Build manually' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Remove Samir Cole' })).toBeVisible();
   });
 });

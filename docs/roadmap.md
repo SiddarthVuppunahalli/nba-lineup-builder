@@ -100,12 +100,16 @@ Implementation decisions: natural-language parsing is an optional API adapter, n
 
 ## Phase 7 — Full comparison and session versions
 
+Status: implemented and verified locally; ready for checkpoint review.
+
 - Compare any two lineups with player changes, metric deltas, constraint satisfaction, and tradeoffs.
 - Keep named versions within the current session.
 - Allow branching from earlier versions without losing the starting lineup.
 - Clearly distinguish session-only versions from durable saving introduced in Phase 9.
 
 Checkpoint: users can follow and compare their decisions across a session.
+
+Implementation decisions: users explicitly name and save successful manual, generated, or repaired results. Versions are team-scoped React state and disappear on refresh or tab close; duplicate names receive numeric suffixes. The most recently saved version is the default parent, while **Branch from here** loads any earlier five without overwriting history and records it as the next version's parent. Full comparison is a deterministic engine/API operation over two valid fives and one shared editable intent. It reports added, removed, and retained players, all seven metric deltas, largest gain and tradeoff, weighted fit, and shooter/creator/metric-minimum satisfaction on both sides. Required/excluded IDs are not comparison criteria because they are generation eligibility rules. Durable persistence remains Phase 9.
 
 ## Phase 8 — Real NBA data and both modes
 

@@ -5,6 +5,7 @@ import type {
 } from '@lineup-engine/shared';
 
 import { MetricCard } from './MetricCard.tsx';
+import { SessionVersionSave } from './SessionVersionSave.tsx';
 
 interface AnalysisPanelProps {
   analysis: LineupAnalysisResponse | undefined;
@@ -23,6 +24,12 @@ interface AnalysisPanelProps {
         evaluatedCandidateCount: number;
         validCandidateCount: number;
         usedBalancedDefault: boolean;
+      }
+    | undefined;
+  versionSave?:
+    | {
+        suggestedName: string;
+        onSave: (name: string) => void;
       }
     | undefined;
 }
@@ -74,6 +81,7 @@ export function AnalysisPanel({
   canRetry,
   mode = 'manual',
   resultContext,
+  versionSave,
 }: AnalysisPanelProps) {
   if (isPending) {
     return (
@@ -200,6 +208,10 @@ export function AnalysisPanel({
       </div>
 
       <SelectedFive roster={roster} selectedPlayerIds={analysis.lineup.playerIds} />
+
+      {versionSave ? (
+        <SessionVersionSave suggestedName={versionSave.suggestedName} onSave={versionSave.onSave} />
+      ) : null}
 
       {resultContext && (
         <div className="generation-summary">

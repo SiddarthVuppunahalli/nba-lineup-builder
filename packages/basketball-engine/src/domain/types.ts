@@ -147,6 +147,15 @@ export interface LineupComparison {
   largestTradeoff?: MetricComparison;
 }
 
+export interface ComparedLineups {
+  before: GeneratedLineupCandidate;
+  after: GeneratedLineupCandidate;
+  removedPlayerIds: string[];
+  addedPlayerIds: string[];
+  retainedPlayerIds: string[];
+  comparison: LineupComparison;
+}
+
 export interface RepairedLineup {
   before: GeneratedLineupCandidate;
   after: GeneratedLineupCandidate;

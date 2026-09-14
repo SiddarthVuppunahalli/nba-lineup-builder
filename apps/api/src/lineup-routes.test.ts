@@ -299,3 +299,71 @@ describe('POST /api/lineups/repair', () => {
     });
   });
 });
+
+describe('POST /api/lineups/compare', () => {
+  const beforePlayerIds = ['andre-okafor', 'darius-knox', 'owen-price', 'luca-hayes', 'theo-grant'];
+  const afterPlayerIds = ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'samir-cole'];
+
+  it('compares any two valid lineups with changes, metrics, and requirements', async () => {
+    const response = await request(createApp())
+      .post('/api/lineups/compare')
+      .send({
+        teamId: 'metro-city-meteors',
+        beforePlayerIds,
+        afterPlayerIds,
+        intent: { ...generationIntent, requiredPlayerIds: [], excludedPlayerIds: [] },
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.comparison.comparison.metrics).toHaveLength(7);
+    expect(response.body.comparison.removedPlayerIds).toHaveLength(4);
+    expect(response.body.comparison.addedPlayerIds).toHaveLength(4);
+    expect(response.body.comparison.retainedPlayerIds).toEqual(['theo-grant']);
+    expect(response.body.comparison.before.constraints).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'minimum-shooters' })]),
+    );
+  });
+
+  it('rejects an invalid comparison side without returning partial analysis', async () => {
+    const response = await request(createApp())
+      .post('/api/lineups/compare')
+      .send({
+        teamId: 'metro-city-meteors',
+        beforePlayerIds: ['jordan-vega'],
+        afterPlayerIds,
+        intent: { ...generationIntent, requiredPlayerIds: [], excludedPlayerIds: [] },
+      });
+
+    expect(response.status).toBe(422);
+    expect(response.body).toMatchObject({
+      error: {
+        code: 'INVALID_COMPARISON_LINEUP',
+        message: expect.stringContaining('first lineup'),
+      },
+    });
+  });
+
+  it('rejects malformed comparison requests at the HTTP boundary', async () => {
+    const response = await request(createApp()).post('/api/lineups/compare').send({
+      teamId: 'metro-city-meteors',
+      beforePlayerIds,
+      afterPlayerIds: 'not-an-array',
+      intent: generationIntent,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_REQUEST');
+  });
+
+  it('does not silently treat generation eligibility rules as comparison requirements', async () => {
+    const response = await request(createApp()).post('/api/lineups/compare').send({
+      teamId: 'metro-city-meteors',
+      beforePlayerIds,
+      afterPlayerIds,
+      intent: generationIntent,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_REQUEST');
+  });
+});

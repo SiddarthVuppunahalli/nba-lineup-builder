@@ -14,6 +14,7 @@ interface RepairWorkspaceProps {
   teamId: string;
   roster: RosterPlayerDto[];
   currentPlayerIds: string[];
+  onSaveVersion: (name: string, playerIds: readonly string[]) => void;
 }
 
 function errorMessage(error: Error | null): string | undefined {
@@ -37,7 +38,12 @@ function errorDetails(error: Error | null): string[] {
   });
 }
 
-export function RepairWorkspace({ teamId, roster, currentPlayerIds }: RepairWorkspaceProps) {
+export function RepairWorkspace({
+  teamId,
+  roster,
+  currentPlayerIds,
+  onSaveVersion,
+}: RepairWorkspaceProps) {
   const mutation = useMutation({ mutationFn: postLineupRepair });
   const resetRepair = mutation.reset;
   const { control, register, handleSubmit, reset, setValue } = useForm<LineupIntentDto>({
@@ -138,6 +144,14 @@ export function RepairWorkspace({ teamId, roster, currentPlayerIds }: RepairWork
               : undefined
           }
           mode="repair"
+          versionSave={
+            response
+              ? {
+                  suggestedName: 'Repaired lineup',
+                  onSave: (name) => onSaveVersion(name, response.repair.after.lineup.playerIds),
+                }
+              : undefined
+          }
         />
       </div>
     </div>

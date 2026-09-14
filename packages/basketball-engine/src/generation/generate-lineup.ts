@@ -81,7 +81,7 @@ function duplicates(ids: readonly string[]): string[] {
   return [...repeated].sort();
 }
 
-function validateInput(input: GenerateLineupInput): GenerationIssue[] {
+export function validateGenerationInput(input: GenerateLineupInput): GenerationIssue[] {
   const issues: GenerationIssue[] = [];
   const playerIds = input.players.map((player) => player.id);
   const playerIdSet = new Set(playerIds);
@@ -228,7 +228,7 @@ export function calculateObjectiveScore(
 }
 
 export function generateLineup(input: GenerateLineupInput): GenerateLineupResult {
-  const issues = validateInput(input);
+  const issues = validateGenerationInput(input);
   if (issues.length) {
     const dataCodes = new Set([
       'MISSING_PROFILE',

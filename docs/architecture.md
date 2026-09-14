@@ -30,6 +30,8 @@ Lineup generation is a stateless operation over an eligible player pool, profile
 
 Lineup repair uses the same engine boundaries and search bound. It adds the current five as domain input, minimizes replacements before considering the weighted objective, and returns a final analyzed candidate plus a basic metric comparison. The browser displays these results but does not calculate swaps, scores, or deltas.
 
+Phase 7 moves arbitrary two-lineup comparison into a dedicated engine operation and thin API route. Both lineups are analyzed from roster profiles on the server, then evaluated against one shared structured intent. Named versions and parent links remain ephemeral browser state: they organize a user's current decision path but never become an alternate source of basketball calculations or imply durable persistence.
+
 The generator can initially run in the API process. If traffic or computation later requires workers, the same domain call can move behind a queue without changing its basketball logic. Roster and normalized player data are natural cache boundaries; no distributed infrastructure is needed for the MVP.
 
 ## Production serving

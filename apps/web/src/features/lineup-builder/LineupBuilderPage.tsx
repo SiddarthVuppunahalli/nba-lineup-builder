@@ -1,6 +1,6 @@
 import type { AnalyzeLineupRequest } from '@lineup-engine/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { ApiClientError, fetchRoster, fetchTeams, postLineupAnalysis } from '../../api/client.ts';
@@ -9,6 +9,8 @@ import { DemoScenarios, type DemoScenarioSelection } from './DemoScenarios.tsx';
 import { GenerationWorkspace } from './GenerationWorkspace.tsx';
 import { RepairWorkspace } from './RepairWorkspace.tsx';
 import { RosterPanel } from './RosterPanel.tsx';
+import { SessionVersionsWorkspace } from './SessionVersionsWorkspace.tsx';
+import type { SessionLineupVersion, SessionVersionSource } from './session-version.ts';
 
 interface LineupFormValues {
   playerIds: string[];
@@ -21,8 +23,13 @@ function requestErrorMessage(error: Error | null): string | undefined {
 }
 
 export function LineupBuilderPage() {
-  const [workflow, setWorkflow] = useState<'manual' | 'generation' | 'repair'>('manual');
+  const [workflow, setWorkflow] = useState<'manual' | 'generation' | 'repair' | 'versions'>(
+    'manual',
+  );
   const [teamOverride, setTeamOverride] = useState('');
+  const [versions, setVersions] = useState<SessionLineupVersion[]>([]);
+  const [activeParentVersionId, setActiveParentVersionId] = useState<string>();
+  const nextVersionId = useRef(1);
   const teamsQuery = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
   const selectedTeamId = teamOverride || teamsQuery.data?.teams[0]?.id || '';
   const rosterQuery = useQuery({
@@ -40,6 +47,7 @@ export function LineupBuilderPage() {
     setTeamOverride(teamId);
     reset({ playerIds: [] });
     analysisMutation.reset();
+    setActiveParentVersionId(undefined);
   }
 
   function togglePlayer(playerId: string) {
@@ -59,6 +67,42 @@ export function LineupBuilderPage() {
     analysisMutation.reset();
   }
 
+  function saveVersion(name: string, playerIds: readonly string[], source: SessionVersionSource) {
+    if (playerIds.length !== 5) return;
+    const existingNames = new Set(
+      versions
+        .filter((version) => version.teamId === selectedTeamId)
+        .map((version) => version.name),
+    );
+    let uniqueName = name;
+    let suffix = 2;
+    while (existingNames.has(uniqueName)) {
+      uniqueName = `${name} (${suffix})`;
+      suffix += 1;
+    }
+    const id = `session-version-${nextVersionId.current}`;
+    nextVersionId.current += 1;
+    const version: SessionLineupVersion = {
+      id,
+      teamId: selectedTeamId,
+      name: uniqueName,
+      playerIds: [...playerIds] as SessionLineupVersion['playerIds'],
+      source,
+      ...(activeParentVersionId ? { parentVersionId: activeParentVersionId } : {}),
+    };
+    setVersions((current) => [...current, version]);
+    setActiveParentVersionId(id);
+  }
+
+  function branchFromVersion(version: SessionLineupVersion) {
+    setValue('playerIds', [...version.playerIds], { shouldDirty: true });
+    analysisMutation.reset();
+    setActiveParentVersionId(version.id);
+    setWorkflow('manual');
+  }
+
+  const teamVersions = versions.filter((version) => version.teamId === selectedTeamId);
+
   function submitLineup(values: LineupFormValues) {
     if (!canAnalyze || values.playerIds.length !== 5) return;
     const request: AnalyzeLineupRequest = {
@@ -74,6 +118,7 @@ export function LineupBuilderPage() {
 
     setValue('playerIds', playerIds, { shouldDirty: true });
     analysisMutation.reset();
+    setActiveParentVersionId(undefined);
     setWorkflow(selection.workflow);
 
     if (selection.analyzeImmediately && playerIds.length === 5) {
@@ -237,6 +282,14 @@ export function LineupBuilderPage() {
         >
           Repair a lineup
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={workflow === 'versions'}
+          onClick={() => setWorkflow('versions')}
+        >
+          Compare &amp; versions
+        </button>
       </div>
 
       {workflow === 'generation' && rosterReady && rosterQuery.data?.players.length ? (
@@ -244,6 +297,7 @@ export function LineupBuilderPage() {
           teamId={selectedTeamId}
           roster={rosterQuery.data.players}
           onGeneratedLineup={useLineupForRepair}
+          onSaveVersion={(name, playerIds) => saveVersion(name, playerIds, 'generated')}
         />
       ) : workflow === 'repair' && rosterReady && rosterQuery.data?.players.length ? (
         selectedPlayerIds.length === 5 ? (
@@ -251,6 +305,7 @@ export function LineupBuilderPage() {
             teamId={selectedTeamId}
             roster={rosterQuery.data.players}
             currentPlayerIds={selectedPlayerIds}
+            onSaveVersion={(name, playerIds) => saveVersion(name, playerIds, 'repaired')}
           />
         ) : (
           <section className="analysis-card repair-prerequisite">
@@ -265,6 +320,17 @@ export function LineupBuilderPage() {
             </button>
           </section>
         )
+      ) : workflow === 'versions' && rosterReady && rosterQuery.data?.players.length ? (
+        <SessionVersionsWorkspace
+          teamId={selectedTeamId}
+          roster={rosterQuery.data.players}
+          versions={teamVersions}
+          onBranch={branchFromVersion}
+          onDelete={(versionId) => {
+            setVersions((current) => current.filter((version) => version.id !== versionId));
+            if (activeParentVersionId === versionId) setActiveParentVersionId(undefined);
+          }}
+        />
       ) : (
         <div className="builder-layout">
           <form className="roster-card" onSubmit={handleSubmit(submitLineup)}>
@@ -305,6 +371,14 @@ export function LineupBuilderPage() {
             selectedPlayerIds={selectedPlayerIds}
             onRetry={() => void handleSubmit(submitLineup)()}
             canRetry={canAnalyze}
+            versionSave={
+              analysisMutation.data
+                ? {
+                    suggestedName: 'Manual lineup',
+                    onSave: (name) => saveVersion(name, selectedPlayerIds, 'manual'),
+                  }
+                : undefined
+            }
           />
         </div>
       )}

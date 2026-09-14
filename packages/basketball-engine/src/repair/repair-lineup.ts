@@ -1,15 +1,14 @@
 import { analyzeLineup, type LineupAnalysisIssue } from '../analysis/analyze-lineup.js';
 import {
   LINEUP_SIZE,
-  METRIC_NAMES,
   type GeneratedLineupCandidate,
-  type LineupComparison,
   type LineupIntent,
   type MetricPriorities,
   type Player,
   type PlayerProfile,
   type RepairedLineup,
 } from '../domain/types.js';
+import { compareLineupAnalyses } from '../comparison/compare-lineups.js';
 import { evaluateLineupConstraints } from '../generation/constraints.js';
 import {
   calculateObjectiveScore,
@@ -66,29 +65,6 @@ function combinations(ids: readonly string[]): string[][] {
   }
   visit(0, []);
   return output;
-}
-
-function compareLineups(
-  before: GeneratedLineupCandidate['analysis'],
-  after: GeneratedLineupCandidate['analysis'],
-): LineupComparison {
-  const metrics = METRIC_NAMES.map((metric) => ({
-    metric,
-    before: before[metric].score,
-    after: after[metric].score,
-    delta: Number((after[metric].score - before[metric].score).toFixed(1)),
-  }));
-  const gains = metrics
-    .filter((metric) => metric.delta > 0)
-    .sort((left, right) => right.delta - left.delta);
-  const tradeoffs = metrics
-    .filter((metric) => metric.delta < 0)
-    .sort((left, right) => left.delta - right.delta);
-  return {
-    metrics,
-    ...(gains[0] ? { largestGain: gains[0] } : {}),
-    ...(tradeoffs[0] ? { largestTradeoff: tradeoffs[0] } : {}),
-  };
 }
 
 function canonicalCompare(left: GeneratedLineupCandidate, right: GeneratedLineupCandidate): number {
@@ -184,7 +160,7 @@ export function repairLineup(input: RepairLineupInput): RepairLineupResult {
       swapCount: selected.swapCount,
       removedPlayerIds,
       addedPlayerIds,
-      comparison: compareLineups(current.analysis, repairedCandidate.analysis),
+      comparison: compareLineupAnalyses(current.analysis, repairedCandidate.analysis),
     },
     appliedPriorities: generated.appliedPriorities,
     usedBalancedDefault: generated.usedBalancedDefault,

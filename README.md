@@ -6,7 +6,7 @@ Lineup Engine is a portfolio-quality full-stack application for turning basketba
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
 ```
 
-This repository currently contains **Phase 6: Natural-language intent**. It includes deterministic lineup validation, analysis, exhaustive generation, and minimal-change repair over a fictional demo roster, exposed through a real API and an interactive React experience. An optional AI assistant translates plain-language requests into the same editable structured intent used by generation and repair; it never selects players or evaluates basketball fit. Three curated examples remain available, and the builder preserves the cream, coral, and sage theme, explicit loading/empty/error states, and calculation evidence for every metric and constraint.
+This repository currently contains **Phase 7: Full comparison and session versions**. It includes deterministic lineup validation, analysis, exhaustive generation, minimal-change repair, and arbitrary two-lineup comparison over a fictional demo roster, exposed through a real API and an interactive React experience. Users can name results, branch from earlier versions, and compare their decision path for the current browser session. The optional AI assistant still only translates plain-language requests into editable structured intent; it never selects players or evaluates basketball fit. Three curated examples and the cream, coral, and sage theme remain intact.
 
 See the [revised roadmap](docs/roadmap.md) for the agreed remaining phases and checkpoints, and the [theme guide](docs/theme.md) for reusable visual styles.
 
@@ -80,9 +80,10 @@ pnpm lint
 - `POST /api/lineups/analyze` — validates and evaluates a five-player lineup
 - `POST /api/lineups/generate` — generates and ranks a lineup from structured intent
 - `POST /api/lineups/repair` — finds the fewest changes satisfying updated intent
+- `POST /api/lineups/compare` — compares two valid fives against shared requirements
 - `GET /api/intents/status` — reports whether natural-language interpretation is configured
 - `POST /api/intents/interpret` — returns a validated, editable structured-intent draft
 
 ## Current limitations
 
-The application currently uses fictional profiles and exhaustively searches team-sized pools only (at most 18 eligible players). Basketball metrics and comparisons are transparent heuristics rather than predictive professional models. Natural-language interpretation requires a separately configured provider credential and supports only the documented intent vocabulary. Full arbitrary/session comparison, real NBA data, league-wide search, persistence, and silent constraint relaxation remain outside the current phase.
+The application currently uses fictional profiles and exhaustively searches team-sized pools only (at most 18 eligible players). Basketball metrics and comparisons are transparent heuristics rather than predictive professional models. Natural-language interpretation requires a separately configured provider credential and supports only the documented intent vocabulary. Named versions last only for the current browser tab; real NBA data, league-wide search, durable persistence, and silent constraint relaxation remain outside the current phase.

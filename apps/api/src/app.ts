@@ -1,6 +1,7 @@
 import {
   analyzeLineupRequestSchema,
   apiErrorResponseSchema,
+  compareLineupsRequestSchema,
   healthResponseSchema,
   generateLineupRequestSchema,
   intentInterpreterStatusResponseSchema,
@@ -14,6 +15,7 @@ import type { NaturalLanguageIntentInterpreter } from './ai/intent-interpreter.j
 
 import {
   analyzeDemoLineup,
+  compareDemoLineups,
   generateDemoLineup,
   getDemoRoster,
   listDemoTeams,
@@ -179,6 +181,37 @@ export function createApp(options: CreateAppOptions = {}) {
       return;
     }
 
+    response.status(200).json(result.data);
+  });
+
+  app.post('/api/lineups/compare', (request, response) => {
+    const parsedRequest = compareLineupsRequestSchema.safeParse(request.body);
+    if (!parsedRequest.success) {
+      response.status(400).json(
+        apiErrorResponseSchema.parse({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'The lineup comparison request is malformed.',
+            details: parsedRequest.error.issues.map((issue) => ({
+              path: issue.path.join('.'),
+              message: issue.message,
+            })),
+          },
+        }),
+      );
+      return;
+    }
+
+    const result = compareDemoLineups(
+      parsedRequest.data.teamId,
+      parsedRequest.data.beforePlayerIds,
+      parsedRequest.data.afterPlayerIds,
+      parsedRequest.data.intent,
+    );
+    if (!result.success) {
+      response.status(result.status).json(result.error);
+      return;
+    }
     response.status(200).json(result.data);
   });
 
