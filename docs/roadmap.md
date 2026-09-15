@@ -164,6 +164,76 @@ profile reaches the 75-point creator threshold, the Spurs form starts with no ha
 creator minimum. The seven metrics remain equally weighted, and users can opt into either hard
 requirement without the product silently changing its meaning.
 
+## Phase 8.2 — Current league-wide roster data
+
+Status: planned as the next implementation checkpoint after Phase 9.
+
+- Expand the dated current-roster snapshot from San Antonio to all 30 NBA teams while keeping the
+  Spurs-first default experience.
+- Add a reproducible offline snapshot generator instead of maintaining the league dataset as a
+  hand-edited collection of TypeScript rows.
+- Use completed 2025–26 regular-season inputs for player profiles. For players traded during that
+  season, prefer the season-total (`TOT`) row when it exists so one player has one statistical
+  profile independent of current team.
+- Keep every current-roster identity visible. Players without a completed NBA sample, required
+  source fields, or the documented minimum sample remain unavailable with a specific reason; do
+  not invent ratings or silently omit them.
+- Reconcile identity differences explicitly, including suffixes, accents, duplicate names,
+  two-way contracts, and offseason team changes. Fail the snapshot build on unresolved or
+  ambiguous joins.
+- Retain the existing 400-minute eligibility threshold unless league-wide validation produces a
+  documented reason to revise it as a separately versioned methodology decision.
+- Keep team generation and repair exhaustive whenever the eligible roster fits the engine's
+  supported bound. Report roster, eligible, unavailable, and searched-player counts for every
+  team.
+- Preserve the historical Phase 8 snapshot, fictional fallback, manual builder, Phase 9
+  persistence, and Phase 3.5 theme.
+
+Checkpoint: a reproducible checked-in snapshot accounts for the current rosters of all 30 teams;
+every identity is either profiled or has an explicit unavailable reason; team-mode coverage is
+accurate; the Spurs experience and existing workflows remain unchanged.
+
+Suggested implementation defaults: use versioned raw-source artifacts and a generator that emits
+deterministic application data; keep runtime operation network-free; record source URLs, retrieval
+date, roster date, season, profile methodology, and reconciliation outcomes. Add aggregate and
+per-team validation tests so duplicate IDs, unaccounted players, ambiguous joins, incomplete
+provenance, or non-reproducible output fail before release.
+
+## Phase 8.3 — Full-pool league optimization
+
+Status: planned after Phase 8.2. Revalidate Phase 9 persistence after this checkpoint because saved
+league scenarios will reference the expanded player pool and solver-produced lineups.
+
+- Replace the 18-player league shortlist as the primary optimizer with a solver that considers
+  every eligible player in the current league snapshot.
+- Start with a CP-SAT feasibility spike. Model one binary selection variable per eligible player,
+  require exactly five selections, and encode required/excluded players, shooter/creator counts,
+  and supported metric minimums as hard constraints.
+- Preserve exact equivalence with the existing deterministic scoring and constraint semantics,
+  including rounding, thresholds, bonuses, penalties, and canonical tie behavior. Do not introduce
+  a second basketball model merely to suit the solver.
+- Compare solver results with exhaustive generation on small and team-sized fixtures, including
+  ties and deliberately infeasible requests.
+- Apply a documented production time limit. Report **optimal** or **infeasible** only when the
+  solver proves it; otherwise return the best candidate found with its bound/gap and a clear
+  time-limit status.
+- Keep a deterministic bounded-search fallback for environments where the solver is unavailable,
+  and preserve its honest non-optimality disclosure.
+- Verify that the chosen solver and native/runtime dependencies build and start in the deployed
+  Replit environment before treating the implementation as authoritative.
+- Preserve manual league selection, team-mode exhaustive search, structured and natural-language
+  intent, repair, comparison, persistence, and the existing theme.
+
+Checkpoint: league generation and repair consider the entire eligible current-player pool within a
+documented time budget, match exhaustive results on validation fixtures, disclose proof or search
+limits accurately, deploy successfully on Replit, and reopen persisted solver-produced scenarios
+with interpretable data and scoring versions.
+
+Implementation sequence note: Phases 8.2 and 8.3 were identified after Phase 9 was completed. Build
+them on top of the Phase 9 commit rather than branching from Phase 8.1, then run a focused Phase 9
+integration regression after Phase 8.3. This avoids maintaining parallel changes across the shared
+contracts, API, web workflow, documentation, and dependencies.
+
 ## Phase 9 — Persistence
 
 Status: implemented and verified locally; ready for a configured-PostgreSQL checkpoint review.

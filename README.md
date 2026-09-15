@@ -17,7 +17,8 @@ analysis, repair history, and data/scoring versions across browser refreshes.
 
 See the [revised roadmap](docs/roadmap.md) for the agreed remaining phases and checkpoints, and the [theme guide](docs/theme.md) for reusable visual styles.
 
-For continuation in a new task, use the [Sol implementation handoff](docs/handoff-sol.md), which records the Phase 3.5 checkpoint and the bounded Phase 4 specification.
+For continuation in a new task, use the [Implementation handoff](docs/implementation-handoff.md), which
+records the Phase 9 checkpoint and scopes the next implementation to Phase 8.2.
 
 ## Architecture
 
