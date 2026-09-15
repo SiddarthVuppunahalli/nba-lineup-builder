@@ -7,13 +7,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchHealth,
   fetchIntentInterpreterStatus,
+  fetchPersistenceStatus,
   fetchRoster,
+  fetchSavedScenario,
+  fetchSavedScenarios,
   fetchTeams,
   postLineupAnalysis,
   postLineupComparison,
   postLineupGeneration,
   postIntentInterpretation,
   postLineupRepair,
+  saveScenarioRequest,
 } from './api/client.ts';
 import { App } from './App.tsx';
 
@@ -21,24 +25,32 @@ vi.mock('./api/client.ts', () => ({
   ApiClientError: class ApiClientError extends Error {},
   fetchHealth: vi.fn(),
   fetchIntentInterpreterStatus: vi.fn(),
+  fetchPersistenceStatus: vi.fn(),
   fetchTeams: vi.fn(),
   fetchRoster: vi.fn(),
+  fetchSavedScenario: vi.fn(),
+  fetchSavedScenarios: vi.fn(),
   postLineupAnalysis: vi.fn(),
   postLineupComparison: vi.fn(),
   postLineupGeneration: vi.fn(),
   postIntentInterpretation: vi.fn(),
   postLineupRepair: vi.fn(),
+  saveScenarioRequest: vi.fn(),
 }));
 
 const mockedFetchHealth = vi.mocked(fetchHealth);
 const mockedFetchIntentInterpreterStatus = vi.mocked(fetchIntentInterpreterStatus);
+const mockedFetchPersistenceStatus = vi.mocked(fetchPersistenceStatus);
 const mockedFetchTeams = vi.mocked(fetchTeams);
 const mockedFetchRoster = vi.mocked(fetchRoster);
+const mockedFetchSavedScenario = vi.mocked(fetchSavedScenario);
+const mockedFetchSavedScenarios = vi.mocked(fetchSavedScenarios);
 const mockedPostLineupAnalysis = vi.mocked(postLineupAnalysis);
 const mockedPostLineupComparison = vi.mocked(postLineupComparison);
 const mockedPostLineupGeneration = vi.mocked(postLineupGeneration);
 const mockedPostIntentInterpretation = vi.mocked(postIntentInterpretation);
 const mockedPostLineupRepair = vi.mocked(postLineupRepair);
+const mockedSaveScenarioRequest = vi.mocked(saveScenarioRequest);
 
 const playerNames = [
   'Jordan Vega',
@@ -114,6 +126,8 @@ beforeEach(() => {
     timestamp: '2026-01-01T00:00:00.000Z',
   });
   mockedFetchIntentInterpreterStatus.mockResolvedValue({ available: true });
+  mockedFetchPersistenceStatus.mockResolvedValue({ available: false });
+  mockedFetchSavedScenarios.mockResolvedValue({ scenarios: [] });
   mockedFetchTeams.mockResolvedValue({
     teams: [demoTeam],
   });
@@ -840,7 +854,7 @@ describe('session lineup versions', () => {
     expect(screen.getAllByText('Balanced start')[0]).toBeVisible();
     expect(screen.getAllByText('Defense branch')[0]).toBeVisible();
     expect(screen.getByText('manual · branched from Balanced start')).toBeVisible();
-    expect(screen.getByText(/These versions disappear/)).toBeVisible();
+    expect(screen.getByText(/Save the scenario above to recover/)).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Compare versions' }));
     expect(mockedPostLineupComparison.mock.calls[0]?.[0]).toMatchObject({
@@ -859,5 +873,96 @@ describe('session lineup versions', () => {
       'true',
     );
     expect(screen.getByRole('button', { name: 'Remove Samir Cole' })).toBeVisible();
+  });
+
+  it('saves and reopens a durable scenario with its branch history', async () => {
+    mockedFetchPersistenceStatus.mockResolvedValue({ available: true });
+    const scenarioId = '33333333-3333-4333-8333-333333333333';
+    mockedFetchSavedScenarios.mockResolvedValue({
+      scenarios: [
+        {
+          id: scenarioId,
+          name: 'Saved branch',
+          teamId: 'metro-city-meteors',
+          versionCount: 2,
+          createdAt: '2026-09-15T08:00:00.000Z',
+          updatedAt: '2026-09-15T08:10:00.000Z',
+        },
+      ],
+    });
+    const analysis = {
+      lineup: {
+        playerIds: [
+          ...playerNames.slice(0, 5).map((name) => name.toLowerCase().replace(' ', '-')),
+        ] as [string, string, string, string, string],
+      },
+      analysis: {
+        shooting: metric,
+        creation: metric,
+        playmaking: metric,
+        rebounding: metric,
+        perimeterDefense: metric,
+        interiorDefense: metric,
+        switchability: metric,
+        findings: [],
+      },
+    };
+    mockedFetchSavedScenario.mockResolvedValue({
+      id: scenarioId,
+      name: 'Saved branch',
+      teamId: 'metro-city-meteors',
+      selectedPlayerIds: analysis.lineup.playerIds,
+      activeParentClientVersionId: 'saved-2',
+      versions: [
+        {
+          clientVersionId: 'saved-1',
+          name: 'Balanced start',
+          source: 'manual',
+          playerIds: analysis.lineup.playerIds,
+          analysis,
+          dataVersion: 'fictional-demo-v1:2026-09-14:fictional-demo-v1',
+          scoringVersion: 'lineup-analysis-v1',
+          createdAt: '2026-09-15T08:00:00.000Z',
+        },
+        {
+          clientVersionId: 'saved-2',
+          parentClientVersionId: 'saved-1',
+          name: 'Defense branch',
+          source: 'manual',
+          playerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'darius-knox'],
+          analysis: {
+            ...analysis,
+            lineup: {
+              playerIds: ['jordan-vega', 'malik-rhodes', 'eli-mercer', 'theo-grant', 'darius-knox'],
+            },
+          },
+          dataVersion: 'fictional-demo-v1:2026-09-14:fictional-demo-v1',
+          scoringVersion: 'lineup-analysis-v1',
+          createdAt: '2026-09-15T08:05:00.000Z',
+        },
+      ],
+      createdAt: '2026-09-15T08:00:00.000Z',
+      updatedAt: '2026-09-15T08:10:00.000Z',
+    });
+
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    await user.click(screen.getByRole('tab', { name: 'Compare & versions' }));
+    expect(await screen.findByText('Database ready')).toBeVisible();
+    await user.click(await screen.findByRole('button', { name: 'Open' }));
+
+    expect(await screen.findByText('manual · branched from Balanced start')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Update saved scenario' })).toBeVisible();
+    expect(mockedFetchSavedScenario).toHaveBeenCalledWith(expect.any(String), scenarioId);
+
+    const loadedScenario = await mockedFetchSavedScenario.mock.results[0]!.value;
+    mockedSaveScenarioRequest.mockResolvedValue(loadedScenario);
+    await user.click(screen.getByRole('button', { name: 'Update saved scenario' }));
+    expect(mockedSaveScenarioRequest).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ name: 'Saved branch', versions: expect.any(Array) }),
+      scenarioId,
+    );
   });
 });

@@ -1,17 +1,20 @@
 # Session versions and comparison
 
-Phase 7 adds a decision trail without introducing durable storage.
+Phase 7 introduced a tab-local decision trail. Phase 9 can now preserve that complete trail as an
+explicitly named PostgreSQL-backed scenario.
 
 ## Session version behavior
 
 - A user explicitly names and saves an analyzed, generated, or repaired five.
-- Versions live only in React memory for the current browser tab. Refreshing or closing the tab removes them.
+- Versions begin in React memory. When PostgreSQL is configured, saving their scenario makes the
+  complete branch history recoverable after a refresh.
 - Names are made unique within the selected team by adding a numeric suffix when necessary.
 - Saving another result continues from the most recently saved version. Choosing **Branch from here** loads an earlier five into the manual builder and makes that version the parent of the next saved result.
 - Branching never mutates or replaces the earlier version.
 - Versions are scoped by team so lineups from different rosters are not compared accidentally.
 
-Durable storage, recovery after refresh, accounts, and cross-session history remain Phase 9 work.
+Durable scenarios are scoped to an anonymous browser recovery key. Accounts and cross-browser
+recovery remain out of scope. See [persistence](persistence.md).
 
 ## Full comparison
 

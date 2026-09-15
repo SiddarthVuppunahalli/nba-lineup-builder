@@ -166,12 +166,23 @@ requirement without the product silently changing its meaning.
 
 ## Phase 9 — Persistence
 
+Status: implemented and verified locally; ready for a configured-PostgreSQL checkpoint review.
+
 - Introduce PostgreSQL and Drizzle with proper migrations.
 - Save scenarios, versions, generation intent, selections, analysis, and repair history.
 - Record data and scoring versions so historical analyses remain interpretable.
 - Provide clear save/load recovery and a simple anonymous/demo-session model.
 
 Checkpoint: a saved scenario can be reopened with understandable version history.
+
+Implementation decisions: persistence is optional so an unconfigured preview retains the complete
+stateless workflow. A browser-generated anonymous recovery key scopes scenarios; only its SHA-256
+digest is stored, and losing browser storage loses access because Phase 9 does not introduce
+accounts. Saving is explicit rather than automatic. Each immutable version snapshot stores its
+selection, parent, source, API-recomputed analysis, optional structured intent, optional repair
+swaps, and data/scoring versions. PostgreSQL access sits behind a repository boundary, Drizzle owns
+the checked-in schema and migration, and HTTP behavior is tested through an in-memory repository.
+See [persistence documentation](persistence.md).
 
 ## Phase 10 — Final polish and portfolio presentation
 

@@ -13,12 +13,13 @@ import { AnalysisPanel } from './AnalysisPanel.tsx';
 import { IntentControls } from './IntentControls.tsx';
 import { balancedIntent } from './intent-config.ts';
 import { NaturalLanguageIntent } from './NaturalLanguageIntent.tsx';
+import type { SessionVersionDraft } from './session-version.ts';
 
 interface GenerationWorkspaceProps {
   teamId: string;
   roster: RosterPlayerDto[];
   onGeneratedLineup: (playerIds: string[]) => void;
-  onSaveVersion: (name: string, playerIds: readonly string[]) => void;
+  onSaveVersion: (version: SessionVersionDraft) => void;
   isBoundedSearch: boolean;
   defaultMinimumShooters?: number;
   defaultMinimumCreators?: number;
@@ -163,7 +164,17 @@ export function GenerationWorkspace({
             response
               ? {
                   suggestedName: 'Generated lineup',
-                  onSave: (name) => onSaveVersion(name, response.winner.lineup.playerIds),
+                  onSave: (name) =>
+                    onSaveVersion({
+                      name,
+                      playerIds: response.winner.lineup.playerIds,
+                      source: 'generated',
+                      analysis: {
+                        lineup: response.winner.lineup,
+                        analysis: response.winner.analysis,
+                      },
+                      intent: mutation.variables?.intent ?? initialIntent,
+                    }),
                 }
               : undefined
           }

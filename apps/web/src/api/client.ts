@@ -12,6 +12,10 @@ import {
   lineupAnalysisResponseSchema,
   repairLineupRequestSchema,
   repairedLineupResponseSchema,
+  persistenceStatusResponseSchema,
+  savedScenarioSchema,
+  savedScenariosResponseSchema,
+  saveScenarioRequestSchema,
   rosterResponseSchema,
   teamsResponseSchema,
   type AnalyzeLineupRequest,
@@ -27,6 +31,10 @@ import {
   type RepairLineupRequest,
   type RepairedLineupResponse,
   type RosterResponse,
+  type PersistenceStatusResponse,
+  type SavedScenario,
+  type SavedScenariosResponse,
+  type SaveScenarioRequest,
   type TeamsResponse,
 } from '@lineup-engine/shared';
 
@@ -143,5 +151,51 @@ export async function postLineupComparison(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(validatedRequest),
     }),
+  );
+}
+
+export async function fetchPersistenceStatus(): Promise<PersistenceStatusResponse> {
+  return persistenceStatusResponseSchema.parse(await requestJson('/api/persistence/status'));
+}
+
+function sessionHeaders(sessionKey: string, includeJson = false): HeadersInit {
+  return {
+    'X-Lineup-Session': sessionKey,
+    ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
+  };
+}
+
+export async function fetchSavedScenarios(sessionKey: string): Promise<SavedScenariosResponse> {
+  return savedScenariosResponseSchema.parse(
+    await requestJson('/api/scenarios', { headers: sessionHeaders(sessionKey) }),
+  );
+}
+
+export async function fetchSavedScenario(
+  sessionKey: string,
+  scenarioId: string,
+): Promise<SavedScenario> {
+  return savedScenarioSchema.parse(
+    await requestJson(`/api/scenarios/${encodeURIComponent(scenarioId)}`, {
+      headers: sessionHeaders(sessionKey),
+    }),
+  );
+}
+
+export async function saveScenarioRequest(
+  sessionKey: string,
+  request: SaveScenarioRequest,
+  scenarioId?: string,
+): Promise<SavedScenario> {
+  const body = saveScenarioRequestSchema.parse(request);
+  return savedScenarioSchema.parse(
+    await requestJson(
+      scenarioId ? `/api/scenarios/${encodeURIComponent(scenarioId)}` : '/api/scenarios',
+      {
+        method: scenarioId ? 'PUT' : 'POST',
+        headers: sessionHeaders(sessionKey, true),
+        body: JSON.stringify(body),
+      },
+    ),
   );
 }

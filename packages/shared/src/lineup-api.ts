@@ -265,6 +265,56 @@ export const comparedLineupsResponseSchema = z.object({
   usedBalancedDefault: z.boolean(),
 });
 
+export const sessionVersionSourceSchema = z.enum(['manual', 'generated', 'repaired']);
+
+export const scenarioRepairSnapshotSchema = z.object({
+  startingPlayerIds: z.tuple([z.string(), z.string(), z.string(), z.string(), z.string()]),
+  removedPlayerIds: z.array(z.string()).max(5),
+  addedPlayerIds: z.array(z.string()).max(5),
+  swapCount: z.number().int().min(0).max(5),
+});
+
+export const scenarioVersionInputSchema = z.object({
+  clientVersionId: z.string().trim().min(1).max(100),
+  parentClientVersionId: z.string().trim().min(1).max(100).optional(),
+  name: z.string().trim().min(1).max(40),
+  source: sessionVersionSourceSchema,
+  playerIds: z.tuple([z.string(), z.string(), z.string(), z.string(), z.string()]),
+  intent: lineupIntentSchema.optional(),
+  repair: scenarioRepairSnapshotSchema.optional(),
+});
+
+export const saveScenarioRequestSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  teamId: z.string().trim().min(1),
+  selectedPlayerIds: z.array(z.string().trim().min(1)).max(5),
+  activeParentClientVersionId: z.string().trim().min(1).max(100).optional(),
+  versions: z.array(scenarioVersionInputSchema).min(1).max(100),
+});
+
+export const savedScenarioVersionSchema = scenarioVersionInputSchema.extend({
+  analysis: lineupAnalysisResponseSchema,
+  dataVersion: z.string().min(1),
+  scoringVersion: z.string().min(1),
+  createdAt: z.iso.datetime(),
+});
+
+export const savedScenarioSchema = saveScenarioRequestSchema.omit({ versions: true }).extend({
+  id: z.uuid(),
+  versions: z.array(savedScenarioVersionSchema).min(1).max(100),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const savedScenarioSummarySchema = savedScenarioSchema
+  .omit({ versions: true, selectedPlayerIds: true, activeParentClientVersionId: true })
+  .extend({ versionCount: z.number().int().positive() });
+
+export const persistenceStatusResponseSchema = z.object({ available: z.boolean() });
+export const savedScenariosResponseSchema = z.object({
+  scenarios: z.array(savedScenarioSummarySchema),
+});
+
 export const apiErrorResponseSchema = z.object({
   error: z.object({
     code: z.string().min(1),
@@ -299,4 +349,13 @@ export type LineupComparisonDto = z.infer<typeof lineupComparisonSchema>;
 export type RepairedLineupResponse = z.infer<typeof repairedLineupResponseSchema>;
 export type CompareLineupsRequest = z.infer<typeof compareLineupsRequestSchema>;
 export type ComparedLineupsResponse = z.infer<typeof comparedLineupsResponseSchema>;
+export type SessionVersionSourceDto = z.infer<typeof sessionVersionSourceSchema>;
+export type ScenarioRepairSnapshotDto = z.infer<typeof scenarioRepairSnapshotSchema>;
+export type ScenarioVersionInput = z.infer<typeof scenarioVersionInputSchema>;
+export type SaveScenarioRequest = z.infer<typeof saveScenarioRequestSchema>;
+export type SavedScenarioVersion = z.infer<typeof savedScenarioVersionSchema>;
+export type SavedScenario = z.infer<typeof savedScenarioSchema>;
+export type SavedScenarioSummary = z.infer<typeof savedScenarioSummarySchema>;
+export type PersistenceStatusResponse = z.infer<typeof persistenceStatusResponseSchema>;
+export type SavedScenariosResponse = z.infer<typeof savedScenariosResponseSchema>;
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

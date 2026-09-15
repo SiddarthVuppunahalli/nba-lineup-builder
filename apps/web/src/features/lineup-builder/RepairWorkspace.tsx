@@ -9,12 +9,13 @@ import { ComparisonPanel } from './ComparisonPanel.tsx';
 import { IntentControls } from './IntentControls.tsx';
 import { balancedIntent } from './intent-config.ts';
 import { NaturalLanguageIntent } from './NaturalLanguageIntent.tsx';
+import type { SessionVersionDraft } from './session-version.ts';
 
 interface RepairWorkspaceProps {
   teamId: string;
   roster: RosterPlayerDto[];
   currentPlayerIds: string[];
-  onSaveVersion: (name: string, playerIds: readonly string[]) => void;
+  onSaveVersion: (version: SessionVersionDraft) => void;
   defaultMinimumShooters?: number;
   defaultMinimumCreators?: number;
 }
@@ -158,7 +159,29 @@ export function RepairWorkspace({
             response
               ? {
                   suggestedName: 'Repaired lineup',
-                  onSave: (name) => onSaveVersion(name, response.repair.after.lineup.playerIds),
+                  onSave: (name) =>
+                    onSaveVersion({
+                      name,
+                      playerIds: response.repair.after.lineup.playerIds,
+                      source: 'repaired',
+                      analysis: {
+                        lineup: response.repair.after.lineup,
+                        analysis: response.repair.after.analysis,
+                      },
+                      intent: mutation.variables?.intent ?? initialIntent,
+                      repair: {
+                        startingPlayerIds: [...currentPlayerIds] as [
+                          string,
+                          string,
+                          string,
+                          string,
+                          string,
+                        ],
+                        removedPlayerIds: response.repair.removedPlayerIds,
+                        addedPlayerIds: response.repair.addedPlayerIds,
+                        swapCount: response.repair.swapCount,
+                      },
+                    }),
                 }
               : undefined
           }

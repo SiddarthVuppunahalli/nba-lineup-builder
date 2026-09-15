@@ -7,9 +7,14 @@ import {
   intentInterpreterStatusResponseSchema,
   interpretIntentRequestSchema,
   repairLineupRequestSchema,
+  persistenceStatusResponseSchema,
+  savedScenarioSchema,
+  savedScenariosResponseSchema,
+  saveScenarioRequestSchema,
 } from '@lineup-engine/shared';
 import express, { type ErrorRequestHandler } from 'express';
 import path from 'node:path';
+import { z } from 'zod';
 
 import type { NaturalLanguageIntentInterpreter } from './ai/intent-interpreter.js';
 
@@ -22,10 +27,19 @@ import {
   repairDemoLineup,
 } from './services/demo-lineup-service.js';
 import { interpretDemoIntent } from './services/intent-interpretation-service.js';
+import type { ScenarioRepository } from './persistence/scenario-repository.js';
+import { anonymousOwnerKey, saveScenario } from './persistence/scenario-service.js';
 
 interface CreateAppOptions {
   webDistPath?: string;
   intentInterpreter?: NaturalLanguageIntentInterpreter | undefined;
+  scenarioRepository?: ScenarioRepository | undefined;
+}
+
+const anonymousSessionSchema = z.uuid();
+
+function persistenceError(code: string, message: string) {
+  return apiErrorResponseSchema.parse({ error: { code, message } });
 }
 
 export function createApp(options: CreateAppOptions = {}) {
@@ -55,6 +69,145 @@ export function createApp(options: CreateAppOptions = {}) {
       }),
     );
   });
+
+  app.get('/api/persistence/status', (_request, response) => {
+    response
+      .status(200)
+      .json(
+        persistenceStatusResponseSchema.parse({ available: Boolean(options.scenarioRepository) }),
+      );
+  });
+
+  function sessionKey(request: express.Request, response: express.Response) {
+    const parsed = anonymousSessionSchema.safeParse(request.get('x-lineup-session'));
+    if (!parsed.success) {
+      response
+        .status(400)
+        .json(
+          persistenceError(
+            'INVALID_SESSION_KEY',
+            'A valid anonymous session key is required for saved scenarios.',
+          ),
+        );
+      return undefined;
+    }
+    return parsed.data;
+  }
+
+  app.get('/api/scenarios', async (request, response) => {
+    if (!options.scenarioRepository) {
+      response
+        .status(503)
+        .json(persistenceError('PERSISTENCE_UNAVAILABLE', 'Durable saving is not configured.'));
+      return;
+    }
+    const key = sessionKey(request, response);
+    if (!key) return;
+    try {
+      const scenarios = await options.scenarioRepository.list(anonymousOwnerKey(key));
+      response.status(200).json(savedScenariosResponseSchema.parse({ scenarios }));
+    } catch {
+      response
+        .status(503)
+        .json(
+          persistenceError('PERSISTENCE_ERROR', 'Saved scenarios are temporarily unavailable.'),
+        );
+    }
+  });
+
+  app.get('/api/scenarios/:scenarioId', async (request, response) => {
+    if (!options.scenarioRepository) {
+      response
+        .status(503)
+        .json(persistenceError('PERSISTENCE_UNAVAILABLE', 'Durable saving is not configured.'));
+      return;
+    }
+    const key = sessionKey(request, response);
+    if (!key) return;
+    const id = z.uuid().safeParse(request.params.scenarioId);
+    if (!id.success) {
+      response
+        .status(400)
+        .json(persistenceError('INVALID_SCENARIO_ID', 'The saved scenario identifier is invalid.'));
+      return;
+    }
+    try {
+      const scenario = await options.scenarioRepository.get(anonymousOwnerKey(key), id.data);
+      if (!scenario) {
+        response
+          .status(404)
+          .json(persistenceError('SCENARIO_NOT_FOUND', 'That saved scenario could not be found.'));
+        return;
+      }
+      response.status(200).json(savedScenarioSchema.parse(scenario));
+    } catch {
+      response
+        .status(503)
+        .json(
+          persistenceError('PERSISTENCE_ERROR', 'That scenario could not be loaded right now.'),
+        );
+    }
+  });
+
+  async function persistScenario(
+    request: express.Request,
+    response: express.Response,
+    scenarioId?: string,
+  ) {
+    if (!options.scenarioRepository) {
+      response
+        .status(503)
+        .json(persistenceError('PERSISTENCE_UNAVAILABLE', 'Durable saving is not configured.'));
+      return;
+    }
+    const key = sessionKey(request, response);
+    if (!key) return;
+    const parsedRequest = saveScenarioRequestSchema.safeParse(request.body);
+    if (!parsedRequest.success) {
+      response.status(400).json(
+        apiErrorResponseSchema.parse({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'The saved scenario request is malformed.',
+            details: parsedRequest.error.issues.map((issue) => ({
+              path: issue.path.join('.'),
+              message: issue.message,
+            })),
+          },
+        }),
+      );
+      return;
+    }
+    if (scenarioId && !z.uuid().safeParse(scenarioId).success) {
+      response
+        .status(400)
+        .json(persistenceError('INVALID_SCENARIO_ID', 'The saved scenario identifier is invalid.'));
+      return;
+    }
+    try {
+      const result = await saveScenario(
+        options.scenarioRepository,
+        key,
+        parsedRequest.data,
+        scenarioId,
+      );
+      if (!result.success) {
+        response.status(result.status).json(result.error);
+        return;
+      }
+      response.status(scenarioId ? 200 : 201).json(result.scenario);
+    } catch {
+      response
+        .status(503)
+        .json(persistenceError('PERSISTENCE_ERROR', 'That scenario could not be saved right now.'));
+    }
+  }
+
+  app.post('/api/scenarios', (request, response) => void persistScenario(request, response));
+  app.put(
+    '/api/scenarios/:scenarioId',
+    (request, response) => void persistScenario(request, response, request.params.scenarioId),
+  );
 
   app.post('/api/intents/interpret', async (request, response) => {
     const parsedRequest = interpretIntentRequestSchema.safeParse(request.body);

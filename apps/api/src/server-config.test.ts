@@ -11,6 +11,7 @@ describe('production server configuration', () => {
       host: '127.0.0.1',
       webDistPath: '/preview/web',
       openAiModel: 'gpt-5.6-luna',
+      databaseUrl: undefined,
     });
   });
 
@@ -29,5 +30,12 @@ describe('production server configuration', () => {
       resolveServerConfig({ OPENAI_API_KEY: 'secret', OPENAI_INTENT_MODEL: 'test-model' }),
     ).toMatchObject({ openAiApiKey: 'secret', openAiModel: 'test-model' });
     expect(resolveServerConfig({}).openAiApiKey).toBeUndefined();
+  });
+
+  it('enables persistence only when a database URL is configured', () => {
+    expect(
+      resolveServerConfig({ DATABASE_URL: 'postgres://lineup:test@localhost/lineups' }),
+    ).toMatchObject({ databaseUrl: 'postgres://lineup:test@localhost/lineups' });
+    expect(resolveServerConfig({}).databaseUrl).toBeUndefined();
   });
 });

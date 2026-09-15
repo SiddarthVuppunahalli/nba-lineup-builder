@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "A deterministic, explainable NBA lineup builder.",
-  "packageManager": "pnpm@10.15.1",
+  "packageManager": "pnpm@11.19.0",
   "engines": {
     "node": ">=20",
     "pnpm": ">=10"
@@ -16,6 +16,8 @@
     "build": "pnpm run build:packages && pnpm --filter @lineup-engine/api build && pnpm --filter @lineup-engine/web build",
     "start": "pnpm --filter @lineup-engine/api start",
     "preview": "pnpm run build && pnpm start",
+    "db:generate": "pnpm --filter @lineup-engine/api db:generate",
+    "db:migrate": "pnpm --filter @lineup-engine/api db:migrate",
     "check": "pnpm test && pnpm typecheck && pnpm lint && pnpm build",
     "test": "pnpm run build:packages && pnpm -r --if-present test",
     "typecheck": "pnpm run build:packages && pnpm -r --if-present typecheck",

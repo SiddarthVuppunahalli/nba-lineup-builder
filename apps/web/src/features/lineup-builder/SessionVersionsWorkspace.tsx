@@ -12,6 +12,8 @@ import { FullComparisonPanel } from './FullComparisonPanel.tsx';
 import { IntentControls } from './IntentControls.tsx';
 import { balancedIntent } from './intent-config.ts';
 import type { SessionLineupVersion } from './session-version.ts';
+import type { SavedScenarioSummary } from '@lineup-engine/shared';
+import { ScenarioPersistencePanel } from './ScenarioPersistencePanel.tsx';
 
 interface SessionVersionsWorkspaceProps {
   teamId: string;
@@ -19,6 +21,16 @@ interface SessionVersionsWorkspaceProps {
   versions: SessionLineupVersion[];
   onBranch: (version: SessionLineupVersion) => void;
   onDelete: (versionId: string) => void;
+  persistence: {
+    available: boolean;
+    scenarios: SavedScenarioSummary[];
+    activeScenarioId?: string;
+    activeScenarioName?: string;
+    isPending: boolean;
+    error?: string;
+    onSave: (name: string) => void;
+    onLoad: (scenarioId: string) => void;
+  };
 }
 
 function comparisonError(error: Error | null): string | undefined {
@@ -33,6 +45,7 @@ export function SessionVersionsWorkspace({
   versions,
   onBranch,
   onDelete,
+  persistence,
 }: SessionVersionsWorkspaceProps) {
   const [beforeId, setBeforeId] = useState('');
   const [afterId, setAfterId] = useState('');
@@ -72,17 +85,22 @@ export function SessionVersionsWorkspace({
 
   return (
     <div className="versions-workspace">
+      <ScenarioPersistencePanel
+        key={persistence.activeScenarioId ?? 'new-scenario'}
+        {...persistence}
+        versionCount={versions.length}
+      />
       <section className="roster-card versions-card" aria-labelledby="versions-title">
         <div className="panel-header">
           <div>
-            <span className="panel-kicker">This browser tab only</span>
-            <h2 id="versions-title">Session versions</h2>
+            <span className="panel-kicker">Decision history</span>
+            <h2 id="versions-title">Lineup versions</h2>
           </div>
           <span className="version-count">{versions.length}</span>
         </div>
         <p className="session-notice">
-          These versions disappear when you refresh or close this tab. Durable saving arrives in
-          Phase 9.
+          Versions remain editable in this tab. Save the scenario above to recover the complete
+          history after a refresh.
         </p>
 
         {versions.length === 0 ? (

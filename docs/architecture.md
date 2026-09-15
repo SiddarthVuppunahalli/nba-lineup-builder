@@ -22,6 +22,8 @@ Dependencies point inward toward stable contracts and domain logic:
 web -> shared <- api -> basketball-engine
                  |
                  +----> nba-data -> basketball-engine
+                 |
+                 +----> persistence repository -> PostgreSQL (Drizzle)
 ```
 
 The engine never imports either application.
@@ -55,6 +57,18 @@ profiled players; the four unavailable rookies and two below-minimum samples are
 counted as searched.
 
 The generator can initially run in the API process. If traffic or computation later requires workers, the same domain call can move behind a queue without changing its basketball logic. Roster and normalized player data are natural cache boundaries; no distributed infrastructure is needed for the MVP.
+
+## Persistence boundary
+
+Phase 9 adds a scenario repository owned by the API. Routes validate the anonymous recovery key and
+shared save contract, while the scenario service validates roster membership and recomputes every
+stored analysis through the existing engine-facing service. The production adapter uses Drizzle and
+PostgreSQL; route tests inject an in-memory adapter. Neither the basketball engine nor NBA data
+package imports database code.
+
+Scenario and version rows store snapshots rather than foreign keys to mutable roster records. Each
+version carries the pool snapshot/profile-methodology identifier and scoring version required to
+explain historical results after future formula or data refreshes.
 
 ## Production serving
 

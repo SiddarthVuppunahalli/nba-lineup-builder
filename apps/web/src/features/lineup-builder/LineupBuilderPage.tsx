@@ -1,16 +1,26 @@
-import type { AnalyzeLineupRequest, TeamDto } from '@lineup-engine/shared';
+import type { AnalyzeLineupRequest, SaveScenarioRequest, TeamDto } from '@lineup-engine/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
-import { ApiClientError, fetchRoster, fetchTeams, postLineupAnalysis } from '../../api/client.ts';
+import {
+  ApiClientError,
+  fetchPersistenceStatus,
+  fetchRoster,
+  fetchSavedScenario,
+  fetchSavedScenarios,
+  fetchTeams,
+  postLineupAnalysis,
+  saveScenarioRequest,
+} from '../../api/client.ts';
 import { AnalysisPanel } from './AnalysisPanel.tsx';
 import { DemoScenarios, type DemoScenarioSelection } from './DemoScenarios.tsx';
 import { GenerationWorkspace } from './GenerationWorkspace.tsx';
 import { RepairWorkspace } from './RepairWorkspace.tsx';
 import { RosterPanel } from './RosterPanel.tsx';
 import { SessionVersionsWorkspace } from './SessionVersionsWorkspace.tsx';
-import type { SessionLineupVersion, SessionVersionSource } from './session-version.ts';
+import { anonymousSessionKey } from './anonymous-session.ts';
+import type { SessionLineupVersion, SessionVersionDraft } from './session-version.ts';
 
 interface LineupFormValues {
   playerIds: string[];
@@ -36,8 +46,19 @@ export function LineupBuilderPage() {
   const [poolCategorySelection, setPoolCategorySelection] = useState<PoolCategory>('team');
   const [versions, setVersions] = useState<SessionLineupVersion[]>([]);
   const [activeParentVersionId, setActiveParentVersionId] = useState<string>();
-  const nextVersionId = useRef(1);
+  const [activeScenario, setActiveScenario] = useState<{ id: string; name: string }>();
+  const [sessionKey] = useState(anonymousSessionKey);
   const teamsQuery = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
+  const persistenceStatusQuery = useQuery({
+    queryKey: ['persistence-status'],
+    queryFn: fetchPersistenceStatus,
+  });
+  const persistenceAvailable = persistenceStatusQuery.data?.available ?? false;
+  const savedScenariosQuery = useQuery({
+    queryKey: ['saved-scenarios', sessionKey],
+    queryFn: () => fetchSavedScenarios(sessionKey),
+    enabled: persistenceAvailable,
+  });
   const matchingPools =
     teamsQuery.data?.teams.filter((team) => poolCategory(team) === poolCategorySelection) ?? [];
   const availablePools = matchingPools.length > 0 ? matchingPools : (teamsQuery.data?.teams ?? []);
@@ -60,12 +81,72 @@ export function LineupBuilderPage() {
     defaultValues: { playerIds: [] },
   });
   const selectedPlayerIds = useWatch({ control, name: 'playerIds' });
+  const saveScenarioMutation = useMutation({
+    mutationFn: ({ request }: { name: string; request: SaveScenarioRequest }) =>
+      saveScenarioRequest(sessionKey, request, activeScenario?.id),
+    onSuccess: (scenario) => {
+      setActiveScenario({ id: scenario.id, name: scenario.name });
+      setVersions((current) => [
+        ...current.filter((version) => version.teamId !== scenario.teamId),
+        ...scenario.versions.map((version) => ({
+          id: version.clientVersionId,
+          teamId: scenario.teamId,
+          name: version.name,
+          playerIds: version.playerIds,
+          source: version.source,
+          ...(version.parentClientVersionId
+            ? { parentVersionId: version.parentClientVersionId }
+            : {}),
+          analysis: version.analysis,
+          ...(version.intent ? { intent: version.intent } : {}),
+          ...(version.repair ? { repair: version.repair } : {}),
+          dataVersion: version.dataVersion,
+          scoringVersion: version.scoringVersion,
+          createdAt: version.createdAt,
+        })),
+      ]);
+      void savedScenariosQuery.refetch();
+    },
+  });
+  const loadScenarioMutation = useMutation({
+    mutationFn: (scenarioId: string) => fetchSavedScenario(sessionKey, scenarioId),
+    onSuccess: (scenario) => {
+      const team = teamsQuery.data?.teams.find((candidate) => candidate.id === scenario.teamId);
+      if (team) setPoolCategorySelection(poolCategory(team));
+      setTeamOverride(scenario.teamId);
+      reset({ playerIds: [...scenario.selectedPlayerIds] });
+      analysisMutation.reset();
+      setVersions((current) => [
+        ...current.filter((version) => version.teamId !== scenario.teamId),
+        ...scenario.versions.map((version) => ({
+          id: version.clientVersionId,
+          teamId: scenario.teamId,
+          name: version.name,
+          playerIds: version.playerIds,
+          source: version.source,
+          ...(version.parentClientVersionId
+            ? { parentVersionId: version.parentClientVersionId }
+            : {}),
+          analysis: version.analysis,
+          ...(version.intent ? { intent: version.intent } : {}),
+          ...(version.repair ? { repair: version.repair } : {}),
+          dataVersion: version.dataVersion,
+          scoringVersion: version.scoringVersion,
+          createdAt: version.createdAt,
+        })),
+      ]);
+      setActiveParentVersionId(scenario.activeParentClientVersionId);
+      setActiveScenario({ id: scenario.id, name: scenario.name });
+      setWorkflow('versions');
+    },
+  });
 
   function changeTeam(teamId: string) {
     setTeamOverride(teamId);
     reset({ playerIds: [] });
     analysisMutation.reset();
     setActiveParentVersionId(undefined);
+    setActiveScenario(undefined);
   }
 
   function changePoolCategory(category: PoolCategory) {
@@ -74,6 +155,7 @@ export function LineupBuilderPage() {
     reset({ playerIds: [] });
     analysisMutation.reset();
     setActiveParentVersionId(undefined);
+    setActiveScenario(undefined);
   }
 
   function togglePlayer(playerId: string) {
@@ -93,7 +175,8 @@ export function LineupBuilderPage() {
     analysisMutation.reset();
   }
 
-  function saveVersion(name: string, playerIds: readonly string[], source: SessionVersionSource) {
+  function saveVersion(draft: SessionVersionDraft) {
+    const { name, playerIds, source, analysis, intent, repair } = draft;
     if (playerIds.length !== 5) return;
     const existingNames = new Set(
       versions
@@ -106,15 +189,17 @@ export function LineupBuilderPage() {
       uniqueName = `${name} (${suffix})`;
       suffix += 1;
     }
-    const id = `session-version-${nextVersionId.current}`;
-    nextVersionId.current += 1;
+    const id = `session-version-${window.crypto.randomUUID()}`;
     const version: SessionLineupVersion = {
       id,
       teamId: selectedTeamId,
       name: uniqueName,
       playerIds: [...playerIds] as SessionLineupVersion['playerIds'],
       source,
+      analysis,
       ...(activeParentVersionId ? { parentVersionId: activeParentVersionId } : {}),
+      ...(intent ? { intent } : {}),
+      ...(repair ? { repair } : {}),
     };
     setVersions((current) => [...current, version]);
     setActiveParentVersionId(id);
@@ -128,6 +213,26 @@ export function LineupBuilderPage() {
   }
 
   const teamVersions = versions.filter((version) => version.teamId === selectedTeamId);
+
+  function persistCurrentScenario(name: string) {
+    if (teamVersions.length === 0) return;
+    const request: SaveScenarioRequest = {
+      name,
+      teamId: selectedTeamId,
+      selectedPlayerIds,
+      ...(activeParentVersionId ? { activeParentClientVersionId: activeParentVersionId } : {}),
+      versions: teamVersions.map((version) => ({
+        clientVersionId: version.id,
+        ...(version.parentVersionId ? { parentClientVersionId: version.parentVersionId } : {}),
+        name: version.name,
+        source: version.source,
+        playerIds: version.playerIds,
+        ...(version.intent ? { intent: version.intent } : {}),
+        ...(version.repair ? { repair: version.repair } : {}),
+      })),
+    };
+    saveScenarioMutation.mutate({ name, request });
+  }
 
   function submitLineup(values: LineupFormValues) {
     if (!canAnalyze || values.playerIds.length !== 5) return;
@@ -153,6 +258,9 @@ export function LineupBuilderPage() {
   }
 
   const rosterError = requestErrorMessage(rosterQuery.error);
+  const persistenceRequestError = requestErrorMessage(
+    saveScenarioMutation.error ?? loadScenarioMutation.error ?? savedScenariosQuery.error,
+  );
   const rosterReady = teamsQuery.isSuccess && rosterQuery.isSuccess && Boolean(selectedTeamId);
   const canAnalyze = rosterReady && selectedPlayerIds.length === 5 && !analysisMutation.isPending;
 
@@ -378,7 +486,7 @@ export function LineupBuilderPage() {
           defaultMinimumShooters={selectedPool?.defaultMinimumShooters ?? 3}
           defaultMinimumCreators={selectedPool?.defaultMinimumCreators ?? 1}
           onGeneratedLineup={useLineupForRepair}
-          onSaveVersion={(name, playerIds) => saveVersion(name, playerIds, 'generated')}
+          onSaveVersion={saveVersion}
         />
       ) : workflow === 'repair' && rosterReady && rosterQuery.data?.players.length ? (
         selectedPlayerIds.length === 5 ? (
@@ -389,7 +497,7 @@ export function LineupBuilderPage() {
             currentPlayerIds={selectedPlayerIds}
             defaultMinimumShooters={selectedPool?.defaultMinimumShooters ?? 3}
             defaultMinimumCreators={selectedPool?.defaultMinimumCreators ?? 1}
-            onSaveVersion={(name, playerIds) => saveVersion(name, playerIds, 'repaired')}
+            onSaveVersion={saveVersion}
           />
         ) : (
           <section className="analysis-card repair-prerequisite">
@@ -413,6 +521,17 @@ export function LineupBuilderPage() {
           onDelete={(versionId) => {
             setVersions((current) => current.filter((version) => version.id !== versionId));
             if (activeParentVersionId === versionId) setActiveParentVersionId(undefined);
+          }}
+          persistence={{
+            available: persistenceAvailable,
+            scenarios: savedScenariosQuery.data?.scenarios ?? [],
+            ...(activeScenario
+              ? { activeScenarioId: activeScenario.id, activeScenarioName: activeScenario.name }
+              : {}),
+            isPending: saveScenarioMutation.isPending || loadScenarioMutation.isPending,
+            ...(persistenceRequestError ? { error: persistenceRequestError } : {}),
+            onSave: persistCurrentScenario,
+            onLoad: (scenarioId) => loadScenarioMutation.mutate(scenarioId),
           }}
         />
       ) : (
@@ -459,7 +578,13 @@ export function LineupBuilderPage() {
               analysisMutation.data
                 ? {
                     suggestedName: 'Manual lineup',
-                    onSave: (name) => saveVersion(name, selectedPlayerIds, 'manual'),
+                    onSave: (name) =>
+                      saveVersion({
+                        name,
+                        playerIds: selectedPlayerIds,
+                        source: 'manual',
+                        analysis: analysisMutation.data,
+                      }),
                   }
                 : undefined
             }
