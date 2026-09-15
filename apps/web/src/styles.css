@@ -980,6 +980,26 @@ a:focus-visible {
   font-size: 12px;
 }
 
+.player-profile-unavailable {
+  display: grid;
+  gap: 2px;
+  max-width: 190px;
+  color: var(--color-muted);
+  text-align: right;
+}
+
+.player-profile-unavailable strong {
+  color: var(--color-coral-ink);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.player-profile-unavailable small {
+  font-size: 10px;
+  line-height: 1.35;
+}
+
 .roster-state {
   display: grid;
   min-height: 300px;

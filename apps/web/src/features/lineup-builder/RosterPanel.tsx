@@ -48,7 +48,8 @@ export function RosterPanel({
       <div className="roster-list" aria-label="Available players">
         {visiblePlayers.map((player) => {
           const selected = selectedPlayerIds.includes(player.id);
-          const disabled = selectionFull && !selected;
+          const profileUnavailable = player.profileStatus === 'unavailable' || !player.profile;
+          const disabled = profileUnavailable || (selectionFull && !selected);
 
           return (
             <button
@@ -58,7 +59,11 @@ export function RosterPanel({
               onClick={() => onTogglePlayer(player.id)}
               disabled={disabled}
               aria-pressed={selected}
-              aria-label={`${selected ? 'Remove' : 'Select'} ${player.name}`}
+              aria-label={
+                profileUnavailable
+                  ? `Profile unavailable for ${player.name}`
+                  : `${selected ? 'Remove' : 'Select'} ${player.name}`
+              }
             >
               <span className="player-selection" aria-hidden="true">
                 {selected ? '✓' : '+'}
@@ -69,14 +74,21 @@ export function RosterPanel({
                   {player.teamAbbreviation} · {player.position}
                 </span>
               </span>
-              <span className="player-profile" aria-hidden="true">
-                {profileHighlights.map(([metric, abbreviation]) => (
-                  <span key={metric}>
-                    <small>{abbreviation}</small>
-                    <strong>{player.profile[metric]}</strong>
-                  </span>
-                ))}
-              </span>
+              {player.profile ? (
+                <span className="player-profile" aria-hidden="true">
+                  {profileHighlights.map(([metric, abbreviation]) => (
+                    <span key={metric}>
+                      <small>{abbreviation}</small>
+                      <strong>{player.profile?.[metric]}</strong>
+                    </span>
+                  ))}
+                </span>
+              ) : (
+                <span className="player-profile-unavailable">
+                  <strong>Profile unavailable</strong>
+                  <small>{player.profileReason}</small>
+                </span>
+              )}
             </button>
           );
         })}

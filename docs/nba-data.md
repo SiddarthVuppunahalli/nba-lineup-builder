@@ -1,5 +1,26 @@
 # NBA data snapshot and profile derivation
 
+## Phase 8.1 current Spurs roster
+
+The default team experience uses the 18-player San Antonio roster shown on the
+[official Spurs team page](https://www.nba.com/team/1610612759), captured September 14, 2026.
+Profiles use the completed
+[2025–26 Basketball Reference per-game](https://www.basketball-reference.com/leagues/NBA_2026_per_game.html)
+and [advanced](https://www.basketball-reference.com/leagues/NBA_2026_advanced.html) tables.
+
+Four 2026 rookies—Ja'Kobi Gillespie, Maliq Brown, Tarris Reed Jr., and Jayden Quaintance—have no
+completed NBA regular-season sample. David Jones García played 68 minutes and Jordan McLaughlin
+played 282 minutes in 2025–26, both below the fixed 400-minute eligibility minimum. They remain visible in the roster but cannot be selected,
+required, generated, repaired, or compared. The interface explains the absence rather than
+inventing or over-interpreting ratings. The other 12 players are eligible, so team generation and
+repair exhaustively search all 792 possible fives.
+
+Tobias Harris and Taelon Peter changed teams during the offseason. Their profiles use their
+completed 2025–26 Detroit and Indiana rows respectively. This is historical evidence, not a claim
+that their performance will remain unchanged in San Antonio. Player profile metadata records
+`basketball-reference-2025-26-v1`, while roster provenance remains tied to the dated official NBA
+page.
+
 ## Phase 8 snapshot
 
 The first real-data release is a deliberately manageable, immutable 2024–25 regular-season
@@ -27,10 +48,10 @@ also returns the source label, source URL, season, and snapshot date for the sel
 
 ## Reproducible profile method (`box-score-profile-v1`)
 
-Raw rows are checked into `packages/nba-data/src/snapshot-2024-25.ts`. Fixed bounds convert each
-input to 0–100, values outside the bounds are clamped, weighted components are combined, and final
-ratings are rounded to one decimal. The formulas do not depend on the other players in the
-snapshot, so adding or removing a player cannot change anyone else's profile.
+Raw rows are checked into `packages/nba-data/src/snapshot-2024-25.ts` and `spurs-current.ts`. Fixed
+bounds convert each input to 0–100, values outside the bounds are clamped, weighted components are
+combined, and final ratings are rounded to one decimal. The formulas do not depend on the other
+players in the snapshot, so adding or removing a player cannot change anyone else's profile.
 
 | Profile           | Inputs and weights                                                                             |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
@@ -54,7 +75,8 @@ tracking only if coverage, licensing, stable access, and missing-value behavior 
 
 ## Team and league search
 
-Team mode exhaustively evaluates all five-player combinations from the selected ten-player roster.
+Team mode exhaustively evaluates all five-player combinations that have complete profiles. The
+current Spurs pool evaluates 12 players; the historical team pools evaluate ten each.
 League mode can manually select any five from all 40 players. Generation and repair first build the
 same deterministic 18-player shortlist from required/current players, active priorities, hard
 requirements, and individual profile relevance, then exhaustively evaluate its 8,568 possible

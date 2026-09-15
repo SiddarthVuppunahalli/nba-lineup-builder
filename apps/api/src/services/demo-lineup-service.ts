@@ -13,6 +13,7 @@ import {
 import {
   NBA_2024_25_LEAGUE_POOL,
   NBA_2024_25_TEAM_POOLS,
+  SPURS_CURRENT_POOL,
   type LineupPool,
 } from '@lineup-engine/nba-data';
 import {
@@ -64,6 +65,7 @@ const DEMO_POOL: LineupPool = {
 };
 
 const POOLS: readonly LineupPool[] = [
+  SPURS_CURRENT_POOL,
   ...NBA_2024_25_TEAM_POOLS,
   NBA_2024_25_LEAGUE_POOL,
   DEMO_POOL,
@@ -83,7 +85,16 @@ function teamDto(pool: LineupPool) {
     snapshotDate: pool.source.snapshotDate,
     isDemo: pool.isDemo,
     searchStrategy: pool.searchStrategy,
+    rosterPlayerCount: pool.players.length,
+    profiledPlayerCount: pool.profiles.length,
+    defaultMinimumShooters: pool === SPURS_CURRENT_POOL ? 0 : 3,
+    defaultMinimumCreators: pool === SPURS_CURRENT_POOL ? 0 : 1,
   };
+}
+
+function profiledPlayers(pool: LineupPool) {
+  const profileIds = new Set(pool.profiles.map((profile) => profile.playerId));
+  return pool.players.filter((player) => profileIds.has(player.id));
 }
 
 function combinationCount(playerCount: number): number {
@@ -96,7 +107,9 @@ function combinationCount(playerCount: number): number {
 
 function exhaustiveSearchMetadata(pool: LineupPool, intent: LineupIntent) {
   const excluded = new Set(intent.excludedPlayerIds);
-  const eligiblePlayerCount = pool.players.filter((player) => !excluded.has(player.id)).length;
+  const eligiblePlayerCount = profiledPlayers(pool).filter(
+    (player) => !excluded.has(player.id),
+  ).length;
   return {
     strategy: 'exhaustive' as const,
     eligiblePlayerCount,
@@ -129,19 +142,27 @@ export function getDemoRoster(teamId: string): RosterResponse | null {
     team: teamDto(pool),
     players: pool.players.map((player) => {
       const profile = profilesByPlayerId.get(player.id);
-      if (!profile) throw new Error(`Roster configuration is missing a profile for ${player.id}.`);
       return {
         ...player,
         teamAbbreviation: pool.teamAbbreviations.get(player.teamId) ?? pool.team.abbreviation,
-        profile: {
-          shooting: profile.shooting,
-          creation: profile.creation,
-          playmaking: profile.playmaking,
-          rebounding: profile.rebounding,
-          perimeterDefense: profile.perimeterDefense,
-          interiorDefense: profile.interiorDefense,
-          switchability: profile.switchability,
-        },
+        profileStatus: profile ? ('available' as const) : ('unavailable' as const),
+        ...(!profile
+          ? {
+              profileReason:
+                pool.profileUnavailableReasons?.get(player.id) ??
+                'No completed regular-season profile is available.',
+            }
+          : {
+              profile: {
+                shooting: profile.shooting,
+                creation: profile.creation,
+                playmaking: profile.playmaking,
+                rebounding: profile.rebounding,
+                perimeterDefense: profile.perimeterDefense,
+                interiorDefense: profile.interiorDefense,
+                switchability: profile.switchability,
+              },
+            }),
       };
     }),
   });
@@ -176,10 +197,11 @@ export function analyzeDemoLineup(
 export function generateDemoLineup(teamId: string, intent: LineupIntent): DemoGenerationResult {
   const pool = getPool(teamId);
   if (!pool) return { success: false, status: 404, error: notFound(teamId) };
+  const players = profiledPlayers(pool);
   const result =
     pool.mode === 'league'
-      ? generateLeagueLineup({ players: pool.players, profiles: pool.profiles, intent })
-      : generateLineup({ players: pool.players, profiles: pool.profiles, intent });
+      ? generateLeagueLineup({ players, profiles: pool.profiles, intent })
+      : generateLineup({ players, profiles: pool.profiles, intent });
   if (!result.success) {
     if (result.reason === 'infeasible' || result.reason === 'search-limit') {
       return {
@@ -225,17 +247,18 @@ export function repairDemoLineup(
 ): DemoRepairResult {
   const pool = getPool(teamId);
   if (!pool) return { success: false, status: 404, error: notFound(teamId) };
+  const players = profiledPlayers(pool);
   const result =
     pool.mode === 'league'
       ? repairLeagueLineup({
           currentPlayerIds,
-          players: pool.players,
+          players,
           profiles: pool.profiles,
           intent,
         })
       : repairLineup({
           currentPlayerIds,
-          players: pool.players,
+          players,
           profiles: pool.profiles,
           intent,
         });
@@ -285,10 +308,11 @@ export function compareDemoLineups(
 ): DemoComparisonResult {
   const pool = getPool(teamId);
   if (!pool) return { success: false, status: 404, error: notFound(teamId) };
+  const players = profiledPlayers(pool);
   const result = compareLineups({
     beforePlayerIds,
     afterPlayerIds,
-    players: pool.players,
+    players,
     profiles: pool.profiles,
     intent,
   });

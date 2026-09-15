@@ -6,12 +6,12 @@ Lineup Engine is a portfolio-quality full-stack application for turning basketba
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
 ```
 
-This repository currently contains **Phase 8: Real NBA data and both modes**. It includes a dated,
-reproducible 2024–25 snapshot for Boston, Denver, New York, and Oklahoma City; exhaustive team
-workflows; and manual or bounded-generation league workflows across all 40 imported players. The
-fictional roster remains an explicit fallback. Search coverage, data provenance, defensive proxy
-limitations, and profile formulas are visible and documented. Session versions and the optional
-natural-language interpreter continue to use the same deterministic engine.
+This repository currently contains **Phase 8.1: Spurs-first current roster data**. The default
+experience includes all 18 players on the dated 2026–27 San Antonio roster and evidence-backed
+profiles for the 12 players with at least 400 completed 2025–26 NBA minutes. Spurs generation is
+exhaustive across all 792 eligible fives. The earlier four-team historical snapshot, 40-player bounded
+league mode, and fictional fallback remain available. Search coverage, unavailable-player reasons,
+data provenance, defensive proxy limitations, and profile formulas are visible and documented.
 
 See the [revised roadmap](docs/roadmap.md) for the agreed remaining phases and checkpoints, and the [theme guide](docs/theme.md) for reusable visual styles.
 
@@ -91,7 +91,9 @@ pnpm lint
 
 ## Current limitations
 
-The real-data snapshot covers four teams and 40 players rather than the entire NBA. Defensive
+League mode still covers four historical teams and 40 players rather than the entire current NBA.
+The Spurs roster includes four 2026 rookies without completed NBA profiles and two players below the
+400-minute sample minimum; they are visible but ineligible rather than assigned unreliable ratings. Defensive
 ratings are box-score/position proxies, and every basketball metric remains a transparent heuristic
 rather than a prediction or professional scouting grade. League generation and repair search a
 deterministic 18-player shortlist, so global optimality is not guaranteed unless the response says

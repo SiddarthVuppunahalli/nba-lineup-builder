@@ -47,6 +47,13 @@ exhaustive evaluator. Search metadata crosses the API boundary so the UI can dis
 exhaustion from a bounded best-found result. Analysis and comparison accept the full pool because
 they evaluate user-supplied fives rather than enumerate combinations.
 
+Phase 8.1 allows a roster pool to retain player identities that do not yet have an evidence-backed
+profile. The API exposes those identities with an unavailable status and reason, while engine and
+AI boundaries receive only profiled players. This prevents missing data from becoming fabricated
+ratings or a whole-pool data failure. Current Spurs generation remains exhaustive over all 12
+profiled players; the four unavailable rookies and two below-minimum samples are not silently
+counted as searched.
+
 The generator can initially run in the API process. If traffic or computation later requires workers, the same domain call can move behind a queue without changing its basketball logic. Roster and normalized player data are natural cache boundaries; no distributed infrastructure is needed for the MVP.
 
 ## Production serving

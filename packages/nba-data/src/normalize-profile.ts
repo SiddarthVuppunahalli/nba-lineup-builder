@@ -16,7 +16,17 @@ function positionValue(position: string, values: Record<string, number>): number
   return Math.max(...positions.map((item) => values[item] ?? 50));
 }
 
-export function derivePlayerProfile(playerId: string, raw: RawSeasonPlayer): PlayerProfile {
+const DEFAULT_PROFILE_METADATA: NonNullable<PlayerProfile['metadata']> = {
+  sourceSeason: '2024-25',
+  sourceId: 'basketball-reference-2024-25-v1',
+  methodologyVersion: 'box-score-profile-v1',
+};
+
+export function derivePlayerProfile(
+  playerId: string,
+  raw: RawSeasonPlayer,
+  metadata: NonNullable<PlayerProfile['metadata']> = DEFAULT_PROFILE_METADATA,
+): PlayerProfile {
   const reboundRate = raw.minutesPerGame ? (raw.reboundsPerGame / raw.minutesPerGame) * 36 : 0;
   const assistTurnoverRatio = raw.turnoverPct ? raw.assistPct / raw.turnoverPct : raw.assistPct;
   const defensiveImpact = scale(raw.defensiveBoxPlusMinus, -2.5, 4);
@@ -60,10 +70,6 @@ export function derivePlayerProfile(playerId: string, raw: RawSeasonPlayer): Pla
       [blockImpact, 0.15],
       [positionValue(raw.position, { PG: 55, SG: 70, SF: 85, PF: 80, C: 60 }), 0.2],
     ]),
-    metadata: {
-      sourceSeason: '2024-25',
-      sourceId: 'basketball-reference-2024-25-v1',
-      methodologyVersion: 'box-score-profile-v1',
-    },
+    metadata,
   };
 }

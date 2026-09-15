@@ -8,9 +8,18 @@ describe('lineup pool routes', () => {
     const response = await request(createApp()).get('/api/teams');
 
     expect(response.status).toBe(200);
-    expect(response.body.teams).toHaveLength(6);
+    expect(response.body.teams).toHaveLength(7);
     expect(response.body.teams).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          id: 'nba-2026-27-sas',
+          mode: 'team',
+          season: '2026–27 roster · 2025–26 stats',
+          rosterPlayerCount: 18,
+          profiledPlayerCount: 12,
+          defaultMinimumShooters: 0,
+          defaultMinimumCreators: 0,
+        }),
         expect.objectContaining({
           id: 'nba-2024-25-bos',
           mode: 'team',
@@ -59,6 +68,38 @@ describe('lineup pool routes', () => {
         league.body.players.map((player: { teamAbbreviation: string }) => player.teamAbbreviation),
       ).size,
     ).toBe(4);
+  });
+
+  it('returns the full current Spurs roster and labels players without invented profiles', async () => {
+    const response = await request(createApp()).get('/api/teams/nba-2026-27-sas/players');
+
+    expect(response.status).toBe(200);
+    expect(response.body.team).toMatchObject({
+      name: 'San Antonio Spurs',
+      snapshotDate: '2026-09-14',
+      rosterPlayerCount: 18,
+      profiledPlayerCount: 12,
+    });
+    expect(response.body.players).toHaveLength(18);
+    expect(response.body.players).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Victor Wembanyama',
+          profileStatus: 'available',
+          profile: expect.objectContaining({ interiorDefense: expect.any(Number) }),
+        }),
+        expect.objectContaining({
+          name: "Ja'Kobi Gillespie",
+          profileStatus: 'unavailable',
+          profileReason: expect.stringContaining('No completed 2025–26'),
+        }),
+        expect.objectContaining({
+          name: 'David Jones García',
+          profileStatus: 'unavailable',
+          profileReason: expect.stringContaining('below the 400-minute minimum'),
+        }),
+      ]),
+    );
   });
 
   it('returns an explicit error for an unknown team', async () => {
@@ -214,6 +255,33 @@ describe('POST /api/lineups/generate', () => {
       combinationLimit: 8568,
       exhausted: false,
       optimalityGuaranteed: false,
+    });
+  });
+
+  it('exhaustively searches every profiled player on the current Spurs roster', async () => {
+    const response = await request(createApp())
+      .post('/api/lineups/generate')
+      .send({
+        teamId: 'nba-2026-27-sas',
+        intent: {
+          ...generationIntent,
+          minimumShooters: 0,
+          minimumCreators: 0,
+          metricMinimums: {},
+          requiredPlayerIds: [],
+          excludedPlayerIds: [],
+        },
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.evaluatedCandidateCount).toBe(792);
+    expect(response.body.search).toEqual({
+      strategy: 'exhaustive',
+      eligiblePlayerCount: 12,
+      searchedPlayerCount: 12,
+      combinationLimit: 792,
+      exhausted: true,
+      optimalityGuaranteed: true,
     });
   });
 

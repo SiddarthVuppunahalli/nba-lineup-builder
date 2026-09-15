@@ -373,6 +373,56 @@ function renderApp() {
 }
 
 describe('manual lineup builder', () => {
+  it('defaults to the current Spurs roster and disables players without completed-season data', async () => {
+    const user = userEvent.setup();
+    const spurs = {
+      ...demoTeam,
+      id: 'nba-2026-27-sas',
+      name: 'San Antonio Spurs',
+      abbreviation: 'SAS',
+      season: '2026–27 roster · 2025–26 stats',
+      sourceLabel: 'Current Spurs roster with completed 2025–26 profiles',
+      sourceUrl: 'https://www.nba.com/team/1610612759',
+      snapshotDate: '2026-09-14',
+      isDemo: false,
+      rosterPlayerCount: 18,
+      profiledPlayerCount: 12,
+      defaultMinimumShooters: 0,
+      defaultMinimumCreators: 0,
+    };
+    mockedFetchTeams.mockResolvedValue({ teams: [spurs, demoTeam] });
+    mockedFetchRoster.mockResolvedValue({
+      team: spurs,
+      players: [
+        { ...players[0]!, teamId: spurs.id, teamAbbreviation: 'SAS' },
+        {
+          id: 'nba-2026-27-sas-jakobi-gillespie',
+          name: "Ja'Kobi Gillespie",
+          teamId: spurs.id,
+          teamAbbreviation: 'SAS',
+          position: 'PG',
+          profileStatus: 'unavailable',
+          profileReason: 'No completed 2025–26 NBA regular-season profile is available.',
+        },
+      ],
+    });
+
+    renderApp();
+
+    expect(await screen.findByText('San Antonio Spurs')).toBeVisible();
+    expect(
+      screen.getByText(/12 of 18 current players have completed-season profiles/i),
+    ).toBeVisible();
+    expect(
+      await screen.findByRole('button', { name: "Profile unavailable for Ja'Kobi Gillespie" }),
+    ).toBeDisabled();
+    expect(screen.getByText('Profile unavailable')).toBeVisible();
+
+    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    expect(screen.getByLabelText('Minimum credible shooters')).toHaveValue('0');
+    expect(screen.getByLabelText('Minimum high-level creators')).toHaveValue('0');
+  });
+
   it('switches between real team and searchable league pools with source context', async () => {
     const user = userEvent.setup();
     const realTeam = {

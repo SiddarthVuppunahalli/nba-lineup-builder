@@ -20,6 +20,8 @@ interface GenerationWorkspaceProps {
   onGeneratedLineup: (playerIds: string[]) => void;
   onSaveVersion: (name: string, playerIds: readonly string[]) => void;
   isBoundedSearch: boolean;
+  defaultMinimumShooters?: number;
+  defaultMinimumCreators?: number;
 }
 
 function errorMessage(error: Error | null): string | undefined {
@@ -49,14 +51,21 @@ export function GenerationWorkspace({
   onGeneratedLineup,
   onSaveVersion,
   isBoundedSearch,
+  defaultMinimumShooters = balancedIntent.minimumShooters,
+  defaultMinimumCreators = balancedIntent.minimumCreators,
 }: GenerationWorkspaceProps) {
+  const initialIntent: LineupIntentDto = {
+    ...balancedIntent,
+    minimumShooters: defaultMinimumShooters,
+    minimumCreators: defaultMinimumCreators,
+  };
   const mutation = useMutation({
     mutationFn: postLineupGeneration,
     onSuccess: (response) => onGeneratedLineup([...response.winner.lineup.playerIds]),
   });
   const resetGeneration = mutation.reset;
   const { control, register, handleSubmit, reset, setValue } = useForm<LineupIntentDto>({
-    defaultValues: balancedIntent,
+    defaultValues: initialIntent,
   });
   const values = useWatch({ control });
   const initialized = useRef(false);
@@ -95,7 +104,7 @@ export function GenerationWorkspace({
             <span className="panel-kicker">Structured intent</span>
             <h2>Shape your best five</h2>
           </div>
-          <button className="text-button" type="button" onClick={() => reset(balancedIntent)}>
+          <button className="text-button" type="button" onClick={() => reset(initialIntent)}>
             Reset
           </button>
         </div>

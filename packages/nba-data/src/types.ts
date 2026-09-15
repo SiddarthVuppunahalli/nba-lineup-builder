@@ -37,4 +37,5 @@ export interface LineupPool {
   players: readonly Player[];
   profiles: readonly PlayerProfile[];
   teamAbbreviations: ReadonlyMap<string, string>;
+  profileUnavailableReasons?: ReadonlyMap<string, string>;
 }

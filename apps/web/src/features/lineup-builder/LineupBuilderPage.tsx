@@ -51,6 +51,10 @@ export function LineupBuilderPage() {
     queryFn: () => fetchRoster(selectedTeamId),
     enabled: Boolean(selectedTeamId),
   });
+  const profiledRoster =
+    rosterQuery.data?.players.filter(
+      (player) => player.profileStatus !== 'unavailable' && Boolean(player.profile),
+    ) ?? [];
   const analysisMutation = useMutation({ mutationFn: postLineupAnalysis });
   const { control, handleSubmit, reset, setValue } = useForm<LineupFormValues>({
     defaultValues: { playerIds: [] },
@@ -312,6 +316,11 @@ export function LineupBuilderPage() {
             {selectedPool.searchStrategy === 'bounded'
               ? 'Generation uses a deterministic bounded shortlist and reports when the full pool was not searched.'
               : 'Generation checks every five-player combination in this roster.'}
+            {selectedPool.rosterPlayerCount !== undefined &&
+            selectedPool.profiledPlayerCount !== undefined &&
+            selectedPool.profiledPlayerCount < selectedPool.rosterPlayerCount
+              ? ` ${selectedPool.profiledPlayerCount} of ${selectedPool.rosterPlayerCount} current players have completed-season profiles and are eligible.`
+              : ''}
           </p>
           {selectedPool.sourceUrl ? (
             <a href={selectedPool.sourceUrl} target="_blank" rel="noreferrer">
@@ -362,18 +371,24 @@ export function LineupBuilderPage() {
 
       {workflow === 'generation' && rosterReady && rosterQuery.data?.players.length ? (
         <GenerationWorkspace
+          key={selectedTeamId}
           teamId={selectedTeamId}
-          roster={rosterQuery.data.players}
+          roster={profiledRoster}
           isBoundedSearch={selectedPool?.searchStrategy === 'bounded'}
+          defaultMinimumShooters={selectedPool?.defaultMinimumShooters ?? 3}
+          defaultMinimumCreators={selectedPool?.defaultMinimumCreators ?? 1}
           onGeneratedLineup={useLineupForRepair}
           onSaveVersion={(name, playerIds) => saveVersion(name, playerIds, 'generated')}
         />
       ) : workflow === 'repair' && rosterReady && rosterQuery.data?.players.length ? (
         selectedPlayerIds.length === 5 ? (
           <RepairWorkspace
+            key={selectedTeamId}
             teamId={selectedTeamId}
-            roster={rosterQuery.data.players}
+            roster={profiledRoster}
             currentPlayerIds={selectedPlayerIds}
+            defaultMinimumShooters={selectedPool?.defaultMinimumShooters ?? 3}
+            defaultMinimumCreators={selectedPool?.defaultMinimumCreators ?? 1}
             onSaveVersion={(name, playerIds) => saveVersion(name, playerIds, 'repaired')}
           />
         ) : (
@@ -392,7 +407,7 @@ export function LineupBuilderPage() {
       ) : workflow === 'versions' && rosterReady && rosterQuery.data?.players.length ? (
         <SessionVersionsWorkspace
           teamId={selectedTeamId}
-          roster={rosterQuery.data.players}
+          roster={profiledRoster}
           versions={teamVersions}
           onBranch={branchFromVersion}
           onDelete={(versionId) => {

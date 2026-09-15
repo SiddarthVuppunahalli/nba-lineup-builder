@@ -61,10 +61,12 @@ export async function interpretDemoIntent(
   }
 
   try {
+    const profileIds = new Set(pool.profiles.map((profile) => profile.playerId));
+    const profiledPlayers = pool.players.filter((player) => profileIds.has(player.id));
     const parsed = providerIntentInterpretationSchema.safeParse(
       await interpreter.interpret({
         text,
-        players: pool.players.map(({ id, name, position }) => ({ id, name, position })),
+        players: profiledPlayers.map(({ id, name, position }) => ({ id, name, position })),
       }),
     );
     if (!parsed.success) {
@@ -96,7 +98,7 @@ export async function interpretDemoIntent(
       hasInvalidPlayerRules(
         intent.requiredPlayerIds,
         intent.excludedPlayerIds,
-        new Set(pool.players.map((player) => player.id)),
+        new Set(profiledPlayers.map((player) => player.id)),
       )
     ) {
       return errorResult(

@@ -135,6 +135,35 @@ League generation and repair use a deterministic 18-player shortlist and exhaust
 responses disclose pool coverage and never claim global optimality or proven infeasibility when the
 full eligible pool was not searched. See [NBA data documentation](nba-data.md).
 
+## Phase 8.1 — Spurs-first current roster
+
+Status: implemented and verified locally; ready for checkpoint review.
+
+- Make San Antonio the default real team and preserve all 18 identities from the official roster
+  snapshot dated September 14, 2026.
+- Pair current-roster identities with completed 2025–26 regular-season profiles rather than
+  presenting offseason projections as observed NBA data.
+- Keep players without a completed NBA sample visible, explain why they are unavailable, and never
+  synthesize ratings for them.
+- Exhaustively search every profiled Spurs player; do not apply the league shortlist to team mode.
+- Preserve the Phase 8 historical sample, league workflow, fictional fallback, manual builder, and
+  Phase 3.5 visual theme.
+
+Checkpoint: the current Spurs roster is the default experience, all roster identities are
+accounted for, and every eligible Spurs five is evaluated with documented provenance.
+
+Implementation decisions: 12 of the 18 current players have at least 400 completed-season NBA
+minutes and produce versioned profiles. Ja'Kobi Gillespie, Maliq Brown, Tarris Reed Jr., and Jayden
+Quaintance have no 2025–26 NBA sample; David Jones García's 68 minutes and Jordan McLaughlin's 282
+minutes are below the minimum. All six remain visible but ineligible. Tobias Harris and Taelon Peter use their 2025–26 Detroit and
+Indiana statistics respectively because profiles describe the most recent completed season, not a
+projection of their new team context. The 12-player eligible pool has 792 unique fives and is
+searched exhaustively.
+Because the v1 role thresholds were calibrated for the earlier demo workflow and no current Spurs
+profile reaches the 75-point creator threshold, the Spurs form starts with no hard shooter or
+creator minimum. The seven metrics remain equally weighted, and users can opt into either hard
+requirement without the product silently changing its meaning.
+
 ## Phase 9 — Persistence
 
 - Introduce PostgreSQL and Drizzle with proper migrations.

@@ -15,6 +15,8 @@ interface RepairWorkspaceProps {
   roster: RosterPlayerDto[];
   currentPlayerIds: string[];
   onSaveVersion: (name: string, playerIds: readonly string[]) => void;
+  defaultMinimumShooters?: number;
+  defaultMinimumCreators?: number;
 }
 
 function errorMessage(error: Error | null): string | undefined {
@@ -43,11 +45,18 @@ export function RepairWorkspace({
   roster,
   currentPlayerIds,
   onSaveVersion,
+  defaultMinimumShooters = balancedIntent.minimumShooters,
+  defaultMinimumCreators = balancedIntent.minimumCreators,
 }: RepairWorkspaceProps) {
+  const initialIntent: LineupIntentDto = {
+    ...balancedIntent,
+    minimumShooters: defaultMinimumShooters,
+    minimumCreators: defaultMinimumCreators,
+  };
   const mutation = useMutation({ mutationFn: postLineupRepair });
   const resetRepair = mutation.reset;
   const { control, register, handleSubmit, reset, setValue } = useForm<LineupIntentDto>({
-    defaultValues: balancedIntent,
+    defaultValues: initialIntent,
   });
   const values = useWatch({ control });
   const initialized = useRef(false);
@@ -89,7 +98,7 @@ export function RepairWorkspace({
             <span className="panel-kicker">Adapt your lineup</span>
             <h2>Set the new intent</h2>
           </div>
-          <button className="text-button" type="button" onClick={() => reset(balancedIntent)}>
+          <button className="text-button" type="button" onClick={() => reset(initialIntent)}>
             Reset
           </button>
         </div>

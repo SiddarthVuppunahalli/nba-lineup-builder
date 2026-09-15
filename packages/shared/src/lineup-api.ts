@@ -33,6 +33,10 @@ export const teamSchema = z.object({
   snapshotDate: z.string().min(1).default('unknown'),
   isDemo: z.boolean().default(true),
   searchStrategy: z.enum(['exhaustive', 'bounded']).default('exhaustive'),
+  rosterPlayerCount: z.number().int().nonnegative().optional(),
+  profiledPlayerCount: z.number().int().nonnegative().optional(),
+  defaultMinimumShooters: z.number().int().min(0).max(5).optional(),
+  defaultMinimumCreators: z.number().int().min(0).max(5).optional(),
 });
 
 export const playerProfileSchema = z.object({
@@ -51,7 +55,9 @@ export const rosterPlayerSchema = z.object({
   teamId: z.string().min(1),
   teamAbbreviation: z.string().min(1).default('MCM'),
   position: z.string().min(1),
-  profile: playerProfileSchema,
+  profileStatus: z.enum(['available', 'unavailable']).optional(),
+  profileReason: z.string().min(1).optional(),
+  profile: playerProfileSchema.optional(),
 });
 
 export const teamsResponseSchema = z.object({
