@@ -8,17 +8,24 @@ describe('lineup pool routes', () => {
     const response = await request(createApp()).get('/api/teams');
 
     expect(response.status).toBe(200);
-    expect(response.body.teams).toHaveLength(7);
+    expect(response.body.teams).toHaveLength(37);
     expect(response.body.teams).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'nba-2026-27-sas',
           mode: 'team',
-          season: '2026–27 roster · 2025–26 stats',
+          season: '2026–27 rosters · 2025–26 stats',
           rosterPlayerCount: 18,
           profiledPlayerCount: 12,
           defaultMinimumShooters: 0,
           defaultMinimumCreators: 0,
+        }),
+        expect.objectContaining({
+          id: 'nba-current-league-2026-09-15',
+          mode: 'league',
+          rosterPlayerCount: 598,
+          profiledPlayerCount: 392,
+          searchStrategy: 'bounded',
         }),
         expect.objectContaining({
           id: 'nba-2024-25-bos',
@@ -76,7 +83,7 @@ describe('lineup pool routes', () => {
     expect(response.status).toBe(200);
     expect(response.body.team).toMatchObject({
       name: 'San Antonio Spurs',
-      snapshotDate: '2026-09-14',
+      snapshotDate: '2026-09-15',
       rosterPlayerCount: 18,
       profiledPlayerCount: 12,
     });
@@ -100,6 +107,29 @@ describe('lineup pool routes', () => {
         }),
       ]),
     );
+  });
+
+  it('returns every current roster with accurate eligible and unavailable counts', async () => {
+    const teamsResponse = await request(createApp()).get('/api/teams');
+    const currentTeams = teamsResponse.body.teams.filter(
+      (team: { id: string; mode: string }) =>
+        team.id.startsWith('nba-2026-27-') && team.mode === 'team',
+    );
+    expect(currentTeams).toHaveLength(30);
+
+    const atlanta = await request(createApp()).get('/api/teams/nba-2026-27-atl/players');
+    expect(atlanta.status).toBe(200);
+    expect(atlanta.body.team).toMatchObject({
+      rosterPlayerCount: 23,
+      profiledPlayerCount: 17,
+      defaultMinimumShooters: 0,
+      defaultMinimumCreators: 0,
+    });
+    expect(
+      atlanta.body.players.filter(
+        (player: { profileStatus: string }) => player.profileStatus === 'unavailable',
+      ),
+    ).toHaveLength(6);
   });
 
   it('returns an explicit error for an unknown team', async () => {

@@ -6,12 +6,15 @@ Lineup Engine is a portfolio-quality full-stack application for turning basketba
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
 ```
 
-This repository currently contains **Phase 9: durable scenario persistence**. The default
+This repository currently contains **Phase 8.2 on top of Phase 9 persistence**. The default
 experience includes all 18 players on the dated 2026–27 San Antonio roster and evidence-backed
-profiles for the 12 players with at least 400 completed 2025–26 NBA minutes. Spurs generation is
-exhaustive across all 792 eligible fives. The earlier four-team historical snapshot, 40-player bounded
-league mode, and fictional fallback remain available. Search coverage, unavailable-player reasons,
-data provenance, defensive proxy limitations, and profile formulas are visible and documented.
+profiles for the 12 players with at least 400 completed 2025–26 NBA minutes. All 30 dated current
+team rosters are available: 598 identities are accounted for, 392 have eligible profiles, and 206
+remain visible with explicit unavailable reasons. Every current team has at most 17 eligible players,
+so team generation is exhaustive. The current 598-player league pool uses the existing bounded
+18-player shortlist. The earlier four-team historical snapshot, historical league mode, and fictional
+fallback remain available. Search coverage, unavailable-player reasons, data provenance, defensive
+proxy limitations, and profile formulas are visible and documented.
 When PostgreSQL is configured, named scenarios preserve selections, version branches, intent,
 analysis, repair history, and data/scoring versions across browser refreshes.
 
@@ -103,13 +106,14 @@ pnpm lint
 
 ## Current limitations
 
-League mode still covers four historical teams and 40 players rather than the entire current NBA.
-The Spurs roster includes four 2026 rookies without completed NBA profiles and two players below the
-400-minute sample minimum; they are visible but ineligible rather than assigned unreliable ratings. Defensive
+The official current-roster snapshot is an offseason/training-camp view dated September 15, 2026;
+team membership and roster sizes can change before opening night. The Spurs roster includes four
+2026 rookies without completed NBA profiles and two players below the 400-minute sample minimum;
+they are visible but ineligible rather than assigned unreliable ratings. Defensive
 ratings are box-score/position proxies, and every basketball metric remains a transparent heuristic
 rather than a prediction or professional scouting grade. League generation and repair search a
-deterministic 18-player shortlist, so global optimality is not guaranteed unless the response says
-the eligible pool was exhausted. Natural-language interpretation still requires a separately
+deterministic 18-player shortlist from the 392 eligible current players, so global optimality is not
+guaranteed unless the response says the eligible pool was exhausted. Natural-language interpretation still requires a separately
 configured credential. Durable saving requires a configured, migrated PostgreSQL database.
 Anonymous recovery is tied to the browser's local key; Phase 9 does not include accounts, sharing,
 cross-browser recovery, or automatic abandoned-session cleanup.

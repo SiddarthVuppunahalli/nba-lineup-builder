@@ -26,6 +26,12 @@ export interface SnapshotSource {
   season: string;
   snapshotDate: string;
   methodologyVersion: string;
+  sourceUrls?: readonly string[];
+  retrievalDate?: string;
+  rosterDate?: string;
+  statisticsSeason?: string;
+  minimumProfileMinutes?: number;
+  reconciliationVersion?: string;
 }
 
 export interface LineupPool {

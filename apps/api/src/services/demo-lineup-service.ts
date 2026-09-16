@@ -11,6 +11,9 @@ import {
   type LineupIntent,
 } from '@lineup-engine/basketball-engine';
 import {
+  NBA_CURRENT_LEAGUE_POOL,
+  NBA_CURRENT_SOURCE,
+  NBA_CURRENT_TEAM_POOLS,
   NBA_2024_25_LEAGUE_POOL,
   NBA_2024_25_TEAM_POOLS,
   SPURS_CURRENT_POOL,
@@ -66,6 +69,8 @@ const DEMO_POOL: LineupPool = {
 
 const POOLS: readonly LineupPool[] = [
   SPURS_CURRENT_POOL,
+  ...NBA_CURRENT_TEAM_POOLS.filter((pool) => pool !== SPURS_CURRENT_POOL),
+  NBA_CURRENT_LEAGUE_POOL,
   ...NBA_2024_25_TEAM_POOLS,
   NBA_2024_25_LEAGUE_POOL,
   DEMO_POOL,
@@ -76,6 +81,7 @@ function getPool(poolId: string): LineupPool | undefined {
 }
 
 function teamDto(pool: LineupPool) {
+  const usesCurrentProfiles = pool.source === NBA_CURRENT_SOURCE;
   return {
     ...pool.team,
     mode: pool.mode,
@@ -87,8 +93,8 @@ function teamDto(pool: LineupPool) {
     searchStrategy: pool.searchStrategy,
     rosterPlayerCount: pool.players.length,
     profiledPlayerCount: pool.profiles.length,
-    defaultMinimumShooters: pool === SPURS_CURRENT_POOL ? 0 : 3,
-    defaultMinimumCreators: pool === SPURS_CURRENT_POOL ? 0 : 1,
+    defaultMinimumShooters: usesCurrentProfiles ? 0 : 3,
+    defaultMinimumCreators: usesCurrentProfiles ? 0 : 1,
   };
 }
 

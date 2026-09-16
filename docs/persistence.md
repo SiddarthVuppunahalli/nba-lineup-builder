@@ -41,6 +41,11 @@ deterministic engine authoritative and prevents client-supplied scores from beco
 records. A future scoring migration can display the stored result under its original version rather
 than silently reinterpreting it with new rules.
 
+Phase 8.2 current-team versions use the data identifier
+`nba-rosters-2026-09-15-bref-2025-26-v1:2026-09-15:box-score-profile-v1`. Because selections and
+analysis are stored as snapshots, expanding the mutable roster catalog does not rewrite existing
+fictional or historical versions.
+
 ## Limits
 
 - A scenario can contain at most 100 versions.

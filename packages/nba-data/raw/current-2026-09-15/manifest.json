@@ -1,0 +1,22 @@
+{
+  "retrievalDate": "2026-09-15",
+  "rosterDate": "2026-09-15",
+  "statisticsSeason": "2025-26",
+  "sources": [
+    {
+      "name": "nba-rosters",
+      "url": "https://www.nba.com/players",
+      "sha256": "3f73bb0f38fbfcaf84d9b68c751632ded58cafd8980f29a882fa1f2ecf207b14"
+    },
+    {
+      "name": "basketball-reference-per-game",
+      "url": "https://www.basketball-reference.com/leagues/NBA_2026_per_game.html",
+      "sha256": "88ce6864b82e1eee34351be2aa6e9d34dfec59a103d138c6f021a72940726e66"
+    },
+    {
+      "name": "basketball-reference-advanced",
+      "url": "https://www.basketball-reference.com/leagues/NBA_2026_advanced.html",
+      "sha256": "9f813a4b6edc95bae1e54dbd5b4321fbe733922832690cd189d61edad523bb5e"
+    }
+  ]
+}

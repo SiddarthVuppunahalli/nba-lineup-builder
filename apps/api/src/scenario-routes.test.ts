@@ -115,6 +115,51 @@ describe('saved scenario routes', () => {
     expect(mutatedHistory.body.error.message).toContain('immutable');
   });
 
+  it('saves and reopens a current-team scenario with interpretable data versions', async () => {
+    const app = createApp({ scenarioRepository: new MemoryScenarioRepository() });
+    const spursFive = [
+      'nba-2026-27-sas-victor-wembanyama',
+      'nba-2026-27-sas-dylan-harper',
+      'nba-2026-27-sas-keldon-johnson',
+      'nba-2026-27-sas-de-aaron-fox',
+      'nba-2026-27-sas-stephon-castle',
+    ];
+    const created = await request(app)
+      .post('/api/scenarios')
+      .set('x-lineup-session', sessionKey)
+      .send({
+        name: 'Current Spurs five',
+        teamId: 'nba-2026-27-sas',
+        selectedPlayerIds: spursFive,
+        activeParentClientVersionId: 'spurs-v1',
+        versions: [
+          {
+            clientVersionId: 'spurs-v1',
+            name: 'Current roster start',
+            source: 'manual',
+            playerIds: spursFive,
+          },
+        ],
+      });
+
+    expect(created.status).toBe(201);
+    expect(created.body.versions[0]).toMatchObject({
+      dataVersion: 'nba-rosters-2026-09-15-bref-2025-26-v1:2026-09-15:box-score-profile-v1',
+      scoringVersion: 'lineup-analysis-v1',
+      analysis: { lineup: { playerIds: spursFive } },
+    });
+
+    const reopened = await request(app)
+      .get(`/api/scenarios/${created.body.id as string}`)
+      .set('x-lineup-session', sessionKey);
+    expect(reopened.status).toBe(200);
+    expect(reopened.body).toMatchObject({
+      teamId: 'nba-2026-27-sas',
+      selectedPlayerIds: spursFive,
+      versions: [{ dataVersion: expect.stringContaining('bref-2025-26-v1') }],
+    });
+  });
+
   it('distinguishes missing configuration, invalid session keys, and invalid lineups', async () => {
     const unavailable = await request(createApp())
       .post('/api/scenarios')

@@ -166,7 +166,7 @@ requirement without the product silently changing its meaning.
 
 ## Phase 8.2 — Current league-wide roster data
 
-Status: planned as the next implementation checkpoint after Phase 9.
+Status: implemented and verified locally; ready for checkpoint review.
 
 - Expand the dated current-roster snapshot from San Antonio to all 30 NBA teams while keeping the
   Spurs-first default experience.
@@ -198,6 +198,20 @@ deterministic application data; keep runtime operation network-free; record sour
 date, roster date, season, profile methodology, and reconciliation outcomes. Add aggregate and
 per-team validation tests so duplicate IDs, unaccounted players, ambiguous joins, incomplete
 provenance, or non-reproducible output fail before release.
+
+Implementation decisions: the dated September 15, 2026 official NBA league-roster payload contains
+598 identities across 30 teams. Completed 2025–26 Basketball Reference per-game and advanced rows
+produce 392 profiles at the unchanged 400-minute minimum; 206 players remain visible with an
+explicit no-sample or below-minimum reason. Basketball Reference labels aggregate traded-player
+rows `2TM`, `3TM`, or `4TM`; the generator treats those 61 rows as the requested season-total policy
+and never selects a single-team stint instead. Versioned JSON extracts, source hashes, explicit
+identity exceptions, and a check-only generator keep runtime operation network-free and make stale
+or non-reproducible output a release failure. Every current team has 10–17 eligible profiles and is
+therefore searched exhaustively within the existing engine bound. The full current league pool
+retains the Phase 8 bounded 18-player shortlist; full-pool optimization remains Phase 8.3.
+Current pools inherit the Spurs default of zero hard shooter and creator requirements because the v1
+role thresholds are not guaranteed on every real roster; users can still opt into either unchanged
+75-point rule explicitly.
 
 ## Phase 8.3 — Full-pool league optimization
 

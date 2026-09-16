@@ -1,0 +1,74 @@
+{
+  "nameOverrides": [
+    {
+      "nbaPlayerId": 1641842,
+      "brefPlayerKey": "hollaro01",
+      "reason": "NBA roster uses Ronald Holland II; Basketball Reference uses Ron Holland."
+    }
+  ],
+  "displayNameOverrides": [
+    {
+      "nbaPlayerId": 1642357,
+      "displayName": "David Jones García",
+      "reason": "Preserve the accented Spurs identity used by the existing product and team roster source."
+    }
+  ],
+  "confirmedNoSample": [
+    {
+      "nbaPlayerId": 1626209,
+      "reason": "No 2025–26 NBA regular-season row; returned from overseas play."
+    },
+    {
+      "nbaPlayerId": 202681,
+      "reason": "No 2025–26 NBA regular-season row while recovering from knee surgery."
+    },
+    {
+      "nbaPlayerId": 1629022,
+      "reason": "No 2025–26 NBA regular-season row is present in the completed-season source."
+    },
+    {
+      "nbaPlayerId": 1627777,
+      "reason": "No 2025–26 NBA regular-season row is present in the completed-season source."
+    },
+    {
+      "nbaPlayerId": 1627832,
+      "reason": "No 2025–26 NBA regular-season row while recovering from knee surgery."
+    },
+    {
+      "nbaPlayerId": 1631232,
+      "reason": "No 2025–26 NBA regular-season row is present in the completed-season source."
+    },
+    {
+      "nbaPlayerId": 1630169,
+      "reason": "No 2025–26 NBA regular-season row while recovering from an Achilles injury."
+    },
+    {
+      "nbaPlayerId": 1631219,
+      "reason": "No 2025–26 NBA regular-season row is present in the completed-season source."
+    },
+    {
+      "nbaPlayerId": 1626168,
+      "reason": "No 2025–26 NBA regular-season row is present in the completed-season source."
+    },
+    {
+      "nbaPlayerId": 1642850,
+      "reason": "No 2025–26 NBA regular-season row after missing the season with a knee injury."
+    },
+    {
+      "nbaPlayerId": 1629605,
+      "reason": "No 2025–26 NBA regular-season row; returned from overseas play."
+    },
+    {
+      "nbaPlayerId": 203081,
+      "reason": "No 2025–26 NBA regular-season row while recovering from an Achilles injury."
+    },
+    {
+      "nbaPlayerId": 1641745,
+      "reason": "No 2025–26 NBA regular-season row is present in the completed-season source."
+    },
+    {
+      "nbaPlayerId": 1627732,
+      "reason": "No 2025–26 NBA regular-season row is present in the completed-season source."
+    }
+  ]
+}

@@ -11,6 +11,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "snapshot:generate": "node scripts/generate-current-snapshot.mjs",
+    "snapshot:check": "node scripts/generate-current-snapshot.mjs --check",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },

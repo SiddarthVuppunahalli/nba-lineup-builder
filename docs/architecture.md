@@ -42,19 +42,24 @@ Lineup repair uses the same engine boundaries and search bound. It adds the curr
 
 Phase 7 moves arbitrary two-lineup comparison into a dedicated engine operation and thin API route. Both lineups are analyzed from roster profiles on the server, then evaluated against one shared structured intent. Named versions and parent links remain ephemeral browser state: they organize a user's current decision path but never become an alternate source of basketball calculations or imply durable persistence.
 
-Phase 8 adds immutable lineup pools in the API service. Real team pools contain ten players and use
-the existing exhaustive generator. The 40-player league snapshot is manually selectable in full,
-but generation and repair build a deterministic 18-player shortlist before invoking the same
-exhaustive evaluator. Search metadata crosses the API boundary so the UI can distinguish full-pool
-exhaustion from a bounded best-found result. Analysis and comparison accept the full pool because
-they evaluate user-supplied fives rather than enumerate combinations.
+Phase 8 adds immutable lineup pools in the API service. The historical real team pools contain ten
+players and use the existing exhaustive generator. Phase 8.2 adds 30 current team pools derived
+offline from versioned raw artifacts. Their 400-minute eligible pools range from 10 to 17 players,
+so every current team remains inside the engine's 18-player exhaustive bound. The current
+league-wide and historical 40-player pools are manually selectable in full, but generation and
+repair build a deterministic 18-player shortlist before invoking the same evaluator. Search
+metadata crosses the API boundary so the UI can distinguish full-pool exhaustion from a bounded
+best-found result. Analysis and comparison accept the full pool because they evaluate user-supplied
+fives rather than enumerate combinations.
 
 Phase 8.1 allows a roster pool to retain player identities that do not yet have an evidence-backed
 profile. The API exposes those identities with an unavailable status and reason, while engine and
 AI boundaries receive only profiled players. This prevents missing data from becoming fabricated
 ratings or a whole-pool data failure. Current Spurs generation remains exhaustive over all 12
 profiled players; the four unavailable rookies and two below-minimum samples are not silently
-counted as searched.
+counted as searched. Phase 8.2 applies the same separation across all current teams: roster identity
+and availability remain API concerns, while only the 392 evidence-backed profiles cross the engine
+boundary.
 
 The generator can initially run in the API process. If traffic or computation later requires workers, the same domain call can move behind a queue without changing its basketball logic. Roster and normalized player data are natural cache boundaries; no distributed infrastructure is needed for the MVP.
 

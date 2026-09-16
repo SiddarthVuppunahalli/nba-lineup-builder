@@ -18,7 +18,7 @@
     "preview": "pnpm run build && pnpm start",
     "db:generate": "pnpm --filter @lineup-engine/api db:generate",
     "db:migrate": "pnpm --filter @lineup-engine/api db:migrate",
-    "check": "pnpm test && pnpm typecheck && pnpm lint && pnpm build",
+    "check": "pnpm --filter @lineup-engine/nba-data snapshot:check && pnpm test && pnpm typecheck && pnpm lint && pnpm build",
     "test": "pnpm run build:packages && pnpm -r --if-present test",
     "typecheck": "pnpm run build:packages && pnpm -r --if-present typecheck",
     "lint": "eslint . --max-warnings=0 && prettier --check \"**/*.{ts,tsx,js,json,md,yaml,yml,css}\"",

@@ -8,7 +8,7 @@ describe('current Spurs pool', () => {
   it('keeps the full dated roster while separating players without completed-season profiles', () => {
     expect(SPURS_CURRENT_POOL.players).toHaveLength(18);
     expect(SPURS_CURRENT_POOL.profiles).toHaveLength(12);
-    expect(SPURS_CURRENT_POOL.source.snapshotDate).toBe('2026-09-14');
+    expect(SPURS_CURRENT_POOL.source.snapshotDate).toBe('2026-09-15');
     expect(SPURS_CURRENT_POOL.players.map((player) => player.name)).toEqual(
       expect.arrayContaining([
         'Victor Wembanyama',
