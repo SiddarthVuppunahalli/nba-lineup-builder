@@ -46,7 +46,7 @@ The basketball engine is kept independent of React, Express, databases, AI provi
 ## Prerequisites
 
 - Node.js 20 or newer
-- pnpm 10 or newer
+- pnpm 10.15.1 (the pinned and CI-tested version)
 
 ## Local setup
 
@@ -66,6 +66,13 @@ available. See [persistence setup and recovery behavior](docs/persistence.md).
 ### Replit checkpoint
 
 Import the GitHub repository into Replit and click **Run**. The included `.replit` file builds the workspace and starts the production service on the assigned port. For a public preview, choose an Autoscale deployment because the application includes API routes, then publish from Replit. No secrets or database are required for the current demo. Publishing can involve account or billing choices, so public-link creation remains a manual checkpoint.
+
+The pnpm pin matches Replit's existing 10.15.1 installation. Publishing logs with the previous
+11.19.0 pin showed repeated package-manager bootstrap attempts followed by thread exhaustion before
+application installation completed. Build-script approvals use the pnpm 10.15.1-compatible
+`onlyBuiltDependencies` (esbuild) and `ignoredBuiltDependencies` (protobufjs) settings. The committed
+lockfile, application dependencies, solver, and Phase 9 persistence are unchanged. Local verification
+does not replace a fresh Replit publishing and live-database checkpoint.
 
 ## Production preview
 

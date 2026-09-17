@@ -116,7 +116,8 @@ starting Phase 10.
 
 ## Verification and working style
 
-Use PowerShell in the repository. The workspace uses `pnpm@11.19.0`.
+Use PowerShell in the repository. The workspace now uses `pnpm@10.15.1` for Replit compatibility;
+this supersedes the earlier Phase 9 tooling pin without changing persistence behavior.
 
 ```powershell
 pnpm install
