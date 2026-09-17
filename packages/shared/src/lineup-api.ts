@@ -32,7 +32,7 @@ export const teamSchema = z.object({
   sourceUrl: z.string().url().optional(),
   snapshotDate: z.string().min(1).default('unknown'),
   isDemo: z.boolean().default(true),
-  searchStrategy: z.enum(['exhaustive', 'bounded']).default('exhaustive'),
+  searchStrategy: z.enum(['exhaustive', 'solver']).default('exhaustive'),
   rosterPlayerCount: z.number().int().nonnegative().optional(),
   profiledPlayerCount: z.number().int().nonnegative().optional(),
   defaultMinimumShooters: z.number().int().min(0).max(5).optional(),
@@ -171,12 +171,23 @@ export const generatedLineupCandidateSchema = z.object({
 });
 
 export const lineupSearchMetadataSchema = z.object({
-  strategy: z.enum(['exhaustive', 'bounded-shortlist']),
+  strategy: z.enum(['exhaustive', 'cp-sat', 'bounded-shortlist']),
   eligiblePlayerCount: z.number().int().nonnegative(),
   searchedPlayerCount: z.number().int().nonnegative(),
   combinationLimit: z.number().int().positive(),
   exhausted: z.boolean(),
   optimalityGuaranteed: z.boolean(),
+  solverStatus: z.enum(['optimal', 'feasible-time-limit', 'infeasible', 'fallback']).optional(),
+  solverVersion: z.string().min(1).optional(),
+  timeLimitMs: z.number().int().positive().optional(),
+  elapsedMs: z.number().int().nonnegative().optional(),
+  objectiveValue: z.number().min(0).max(100).optional(),
+  objectiveBound: z.number().min(0).max(100).optional(),
+  objectiveGap: z.number().nonnegative().optional(),
+  canonicalTieProven: z.boolean().optional(),
+  minimumSwapsProven: z.boolean().optional(),
+  incumbentSource: z.enum(['solver', 'bounded-seed']).optional(),
+  fallbackReason: z.string().min(1).optional(),
 });
 
 export const generatedLineupResponseSchema = z.object({

@@ -39,7 +39,7 @@ export interface LineupPool {
   mode: 'team' | 'league';
   source: SnapshotSource;
   isDemo: boolean;
-  searchStrategy: 'exhaustive' | 'bounded';
+  searchStrategy: 'exhaustive' | 'solver';
   players: readonly Player[];
   profiles: readonly PlayerProfile[];
   teamAbbreviations: ReadonlyMap<string, string>;

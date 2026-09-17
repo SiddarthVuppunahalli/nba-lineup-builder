@@ -200,13 +200,16 @@ export function analyzeDemoLineup(
   };
 }
 
-export function generateDemoLineup(teamId: string, intent: LineupIntent): DemoGenerationResult {
+export async function generateDemoLineup(
+  teamId: string,
+  intent: LineupIntent,
+): Promise<DemoGenerationResult> {
   const pool = getPool(teamId);
   if (!pool) return { success: false, status: 404, error: notFound(teamId) };
   const players = profiledPlayers(pool);
   const result =
     pool.mode === 'league'
-      ? generateLeagueLineup({ players, profiles: pool.profiles, intent })
+      ? await generateLeagueLineup({ players, profiles: pool.profiles, intent })
       : generateLineup({ players, profiles: pool.profiles, intent });
   if (!result.success) {
     if (result.reason === 'infeasible' || result.reason === 'search-limit') {
@@ -246,17 +249,17 @@ export function generateDemoLineup(teamId: string, intent: LineupIntent): DemoGe
   };
 }
 
-export function repairDemoLineup(
+export async function repairDemoLineup(
   teamId: string,
   currentPlayerIds: readonly string[],
   intent: LineupIntent,
-): DemoRepairResult {
+): Promise<DemoRepairResult> {
   const pool = getPool(teamId);
   if (!pool) return { success: false, status: 404, error: notFound(teamId) };
   const players = profiledPlayers(pool);
   const result =
     pool.mode === 'league'
-      ? repairLeagueLineup({
+      ? await repairLeagueLineup({
           currentPlayerIds,
           players,
           profiles: pool.profiles,

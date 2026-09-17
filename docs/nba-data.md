@@ -145,14 +145,26 @@ Team mode exhaustively evaluates all five-player combinations that have complete
 current teams evaluate 10–17 eligible players apiece; the Spurs pool evaluates 12, and the historical
 team pools evaluate ten each. Current league mode can manually select any five of 598 roster
 identities, of which 392 have eligible profiles. Historical league mode retains all 40 earlier
-profiles. Generation and repair in either league pool first build the same deterministic 18-player
-shortlist from required/current players, active priorities, hard requirements, and individual
-profile relevance, then exhaustively evaluate its 8,568 possible fives with the existing engine.
+profiles. Generation and repair in either league pool now build a CP-SAT model with one selection
+variable for every eligible player. Required/excluded players, shooter/creator counts, and all seven
+supported metric minimums remain hard constraints. Team mode is unchanged and exhaustive.
 
-If all eligible players fit inside the bound, the response marks the search exhausted and the
-result is globally optimal for that pool. Otherwise it reports the best result found in the
-shortlist, with `optimalityGuaranteed: false`. A bounded search that finds no valid lineup returns a
-search-limit result, not a claim that the full league request is infeasible.
+The production solver budget is 10 seconds with one worker, a fixed seed, and a deterministic-work
+limit. A deterministic 18-player exhaustive result is supplied as a known-valid incumbent. If
+CP-SAT proves the weighted objective and canonical tie, the response is `optimal`; if it proves no
+valid five exists, it is `infeasible`. Otherwise the response is `feasible-time-limit` and includes
+the retained objective, a proven upper bound, relative gap, elapsed time, and whether the retained
+incumbent came from CP-SAT or the bounded seed. On the 392-player balanced reference workflow the
+portable WebAssembly solver currently retains the seed and reports the trivial 100-point upper
+bound; this is full-pool modeling but not a claim of league-wide optimality.
+
+The scorer itself is unchanged. Profile and metric values are represented in tenths, every v1
+bonus/penalty and 0–100 clamp is encoded, metric scores use the same one-decimal rounding, and the
+weighted objective uses the same four-decimal result. Repair first minimizes incoming players,
+then maximizes that objective, then applies the canonical player-ID tie. Priorities with at most
+nine decimal places receive the exact integer model; rarer higher-precision API inputs use the
+honestly disclosed deterministic fallback. Solver-backed requests currently return the winner but
+not two ranked alternatives because the budget is reserved for the primary proof search.
 
 ## Refresh strategy
 

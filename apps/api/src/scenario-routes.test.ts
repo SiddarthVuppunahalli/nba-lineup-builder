@@ -160,6 +160,67 @@ describe('saved scenario routes', () => {
     });
   });
 
+  it('reopens a generated current-league lineup with its data and scoring versions', async () => {
+    const app = createApp({ scenarioRepository: new MemoryScenarioRepository() });
+    const solverFive = [
+      'nba-2026-27-den-nikola-jokic',
+      'nba-2026-27-lal-luka-doncic',
+      'nba-2026-27-lal-matisse-thybulle',
+      'nba-2026-27-por-robert-williams-iii',
+      'nba-2026-27-sas-victor-wembanyama',
+    ];
+    const intent = {
+      priorities: {
+        shooting: 1,
+        creation: 1,
+        playmaking: 1,
+        rebounding: 1,
+        perimeterDefense: 1,
+        interiorDefense: 1,
+        switchability: 1,
+      },
+      minimumShooters: 0,
+      minimumCreators: 0,
+      metricMinimums: {},
+      requiredPlayerIds: [],
+      excludedPlayerIds: [],
+    };
+    const created = await request(app)
+      .post('/api/scenarios')
+      .set('x-lineup-session', sessionKey)
+      .send({
+        name: 'Current league solver five',
+        teamId: 'nba-current-league-2026-09-15',
+        selectedPlayerIds: solverFive,
+        activeParentClientVersionId: 'league-v1',
+        versions: [
+          {
+            clientVersionId: 'league-v1',
+            name: 'Full-pool result',
+            source: 'generated',
+            playerIds: solverFive,
+            intent,
+          },
+        ],
+      });
+
+    expect(created.status).toBe(201);
+    expect(created.body.versions[0]).toMatchObject({
+      dataVersion: 'nba-rosters-2026-09-15-bref-2025-26-v1:2026-09-15:box-score-profile-v1',
+      scoringVersion: 'lineup-analysis-v1',
+      analysis: { lineup: { playerIds: solverFive } },
+    });
+    const reopened = await request(app)
+      .get(`/api/scenarios/${created.body.id as string}`)
+      .set('x-lineup-session', sessionKey);
+    expect(reopened.status).toBe(200);
+    expect(reopened.body.versions[0]).toMatchObject({
+      source: 'generated',
+      intent,
+      playerIds: solverFive,
+    });
+  });
+
   it('distinguishes missing configuration, invalid session keys, and invalid lineups', async () => {
     const unavailable = await request(createApp())
       .post('/api/scenarios')

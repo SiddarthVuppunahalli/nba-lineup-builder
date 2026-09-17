@@ -281,7 +281,7 @@ export function createApp(options: CreateAppOptions = {}) {
     response.status(200).json(result.data);
   });
 
-  app.post('/api/lineups/generate', (request, response) => {
+  app.post('/api/lineups/generate', async (request, response) => {
     const parsedRequest = generateLineupRequestSchema.safeParse(request.body);
     if (!parsedRequest.success) {
       const error = apiErrorResponseSchema.parse({
@@ -298,7 +298,7 @@ export function createApp(options: CreateAppOptions = {}) {
       return;
     }
 
-    const result = generateDemoLineup(parsedRequest.data.teamId, parsedRequest.data.intent);
+    const result = await generateDemoLineup(parsedRequest.data.teamId, parsedRequest.data.intent);
     if (!result.success) {
       response.status(result.status).json(result.error);
       return;
@@ -307,7 +307,7 @@ export function createApp(options: CreateAppOptions = {}) {
     response.status(200).json(result.data);
   });
 
-  app.post('/api/lineups/repair', (request, response) => {
+  app.post('/api/lineups/repair', async (request, response) => {
     const parsedRequest = repairLineupRequestSchema.safeParse(request.body);
     if (!parsedRequest.success) {
       const error = apiErrorResponseSchema.parse({
@@ -324,7 +324,7 @@ export function createApp(options: CreateAppOptions = {}) {
       return;
     }
 
-    const result = repairDemoLineup(
+    const result = await repairDemoLineup(
       parsedRequest.data.teamId,
       parsedRequest.data.currentPlayerIds,
       parsedRequest.data.intent,

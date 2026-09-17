@@ -456,7 +456,7 @@ describe('manual lineup builder', () => {
       name: '2024–25 league snapshot',
       abbreviation: 'NBA',
       mode: 'league' as const,
-      searchStrategy: 'bounded' as const,
+      searchStrategy: 'solver' as const,
     };
     const leaguePlayers = ['Boston Player', 'Denver Player', 'New York Player', 'OKC Player'].map(
       (name, index) => ({
@@ -476,7 +476,7 @@ describe('manual lineup builder', () => {
     renderApp();
     expect(await screen.findByText(/snapshot 2025-04-13/i)).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'League' }));
-    expect(await screen.findByText(/deterministic bounded shortlist/i)).toBeVisible();
+    expect(await screen.findByText(/time-limited full-pool optimizer/i)).toBeVisible();
     const search = screen.getByRole('searchbox', { name: 'Find a player or team' });
     await user.type(search, 'DEN');
     expect(screen.getByRole('button', { name: 'Select Denver Player' })).toBeVisible();

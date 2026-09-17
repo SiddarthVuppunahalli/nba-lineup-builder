@@ -148,7 +148,7 @@ export const NBA_CURRENT_LEAGUE_POOL: LineupPool = {
   mode: 'league',
   source: NBA_CURRENT_SOURCE,
   isDemo: false,
-  searchStrategy: 'bounded',
+  searchStrategy: 'solver',
   players,
   profiles,
   teamAbbreviations,

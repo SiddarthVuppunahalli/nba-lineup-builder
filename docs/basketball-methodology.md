@@ -2,6 +2,12 @@
 
 Phase 2 uses transparent heuristics over fictional 0–100 player profile scores. These rules are designed to be understandable and deterministic, not to predict game outcomes.
 
+Phase 8.3 changes how league-wide candidates are searched, not how they are scored. CP-SAT uses an
+integer encoding of these same rules: player profiles and final metrics are represented in tenths,
+metric rounding remains one decimal, weighted fit remains four decimals, and every threshold,
+bonus, penalty, clamp, hard minimum, and canonical tie is preserved. The authoritative analysis is
+still recomputed by the functions below before a solver candidate crosses the API boundary.
+
 ## Thresholds
 
 - Credible shooter: shooting score at least 75

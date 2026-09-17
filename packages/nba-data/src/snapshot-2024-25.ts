@@ -709,7 +709,7 @@ export const NBA_2024_25_LEAGUE_POOL: LineupPool = {
   mode: 'league',
   source: NBA_2024_25_SOURCE,
   isDemo: false,
-  searchStrategy: 'bounded',
+  searchStrategy: 'solver',
   players,
   profiles,
   teamAbbreviations: abbreviationByTeamId,

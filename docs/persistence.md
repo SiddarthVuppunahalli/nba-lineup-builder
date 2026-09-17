@@ -46,6 +46,13 @@ Phase 8.2 current-team versions use the data identifier
 analysis are stored as snapshots, expanding the mutable roster catalog does not rewrite existing
 fictional or historical versions.
 
+Phase 8.3 does not persist solver internals or mutable roster references. A league result is saved
+through the same generated/repaired version contract: selected IDs, recomputed analysis, structured
+intent, repair swaps when present, data version, and `lineup-analysis-v1` scoring version. Reopening
+a saved solver-produced current-league five therefore does not require CP-SAT to reproduce an old
+search; its immutable basketball snapshot remains interpretable even if a later solve finds a
+better incumbent.
+
 ## Limits
 
 - A scenario can contain at most 100 versions.

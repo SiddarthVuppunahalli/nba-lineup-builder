@@ -25,7 +25,7 @@ describe('lineup pool routes', () => {
           mode: 'league',
           rosterPlayerCount: 598,
           profiledPlayerCount: 392,
-          searchStrategy: 'bounded',
+          searchStrategy: 'solver',
         }),
         expect.objectContaining({
           id: 'nba-2024-25-bos',
@@ -37,7 +37,7 @@ describe('lineup pool routes', () => {
         expect.objectContaining({
           id: 'nba-2024-25-league-snapshot',
           mode: 'league',
-          searchStrategy: 'bounded',
+          searchStrategy: 'solver',
         }),
         expect.objectContaining({ id: 'metro-city-meteors', isDemo: true }),
       ]),
@@ -261,7 +261,7 @@ describe('POST /api/lineups/generate', () => {
     expect(response.body.alternatives.length).toBeLessThanOrEqual(2);
   });
 
-  it('returns honest bounded-search metadata for league generation', async () => {
+  it('returns proof-aware full-pool solver metadata for league generation', async () => {
     const response = await request(createApp())
       .post('/api/lineups/generate')
       .send({
@@ -278,15 +278,19 @@ describe('POST /api/lineups/generate', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.winner.lineup.playerIds).toHaveLength(5);
-    expect(response.body.search).toEqual({
-      strategy: 'bounded-shortlist',
+    expect(response.body.search).toMatchObject({
+      strategy: 'cp-sat',
       eligiblePlayerCount: 40,
-      searchedPlayerCount: 18,
-      combinationLimit: 8568,
-      exhausted: false,
-      optimalityGuaranteed: false,
+      searchedPlayerCount: 40,
+      combinationLimit: 658008,
+      solverVersion: 'or-tools-cp-sat-wasm-0.9.1',
+      timeLimitMs: 10000,
     });
-  });
+    expect(response.body.search.solverStatus).toMatch(/optimal|feasible-time-limit/);
+    expect(response.body.search.optimalityGuaranteed).toBe(
+      response.body.search.solverStatus === 'optimal',
+    );
+  }, 15_000);
 
   it('exhaustively searches every profiled player on the current Spurs roster', async () => {
     const response = await request(createApp())

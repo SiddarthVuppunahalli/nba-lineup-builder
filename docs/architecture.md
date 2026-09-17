@@ -36,7 +36,7 @@ Lineup generation is a stateless operation over an eligible player pool, profile
 intent. The Phase 4 evaluator exhaustively checks unique five-player combinations for pools of at
 most 18 players, applies hard constraints, and ranks valid candidates with a deterministic weighted
 objective. Team, league-snapshot, and demo-pool lookup remain in the API service rather than the
-engine; Phase 8 reuses the evaluator behind the bounded league-search adapter described below.
+engine; Phase 8.3 adds the full-pool solver adapter described below.
 
 Lineup repair uses the same engine boundaries and search bound. It adds the current five as domain input, minimizes replacements before considering the weighted objective, and returns a final analyzed candidate plus a basic metric comparison. The browser displays these results but does not calculate swaps, scores, or deltas.
 
@@ -45,12 +45,18 @@ Phase 7 moves arbitrary two-lineup comparison into a dedicated engine operation 
 Phase 8 adds immutable lineup pools in the API service. The historical real team pools contain ten
 players and use the existing exhaustive generator. Phase 8.2 adds 30 current team pools derived
 offline from versioned raw artifacts. Their 400-minute eligible pools range from 10 to 17 players,
-so every current team remains inside the engine's 18-player exhaustive bound. The current
-league-wide and historical 40-player pools are manually selectable in full, but generation and
-repair build a deterministic 18-player shortlist before invoking the same evaluator. Search
-metadata crosses the API boundary so the UI can distinguish full-pool exhaustion from a bounded
-best-found result. Analysis and comparison accept the full pool because they evaluate user-supplied
-fives rather than enumerate combinations.
+so every current team remains inside the engine's 18-player exhaustive bound. Analysis and
+comparison accept the full pool because they evaluate user-supplied fives rather than enumerate
+combinations.
+
+Phase 8.3 routes league generation and repair through an asynchronous CP-SAT adapter inside the
+pure basketball engine. The adapter uses the portable `or-tools-wasm` Node build and models one
+selection variable for every eligible player. It encodes the existing rounded metric scores and
+hard constraints with integers; the API and browser still own no basketball calculations. Team
+search stays exhaustive. League search metadata crosses the API boundary with the solver version,
+full modeled-player count, proof status, time budget, incumbent/bound gap, canonical tie proof, and
+repair swap proof. The old deterministic 18-player shortlist remains only as a seed and fallback
+when the optional solver cannot load or an exact integer priority representation is unsupported.
 
 Phase 8.1 allows a roster pool to retain player identities that do not yet have an evidence-backed
 profile. The API exposes those identities with an unavailable status and reason, while engine and

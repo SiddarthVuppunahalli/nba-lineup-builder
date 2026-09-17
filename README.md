@@ -6,22 +6,24 @@ Lineup Engine is a portfolio-quality full-stack application for turning basketba
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
 ```
 
-This repository currently contains **Phase 8.2 on top of Phase 9 persistence**. The default
+This repository currently contains **Phase 8.3 on top of Phase 9 persistence**. The default
 experience includes all 18 players on the dated 2026–27 San Antonio roster and evidence-backed
 profiles for the 12 players with at least 400 completed 2025–26 NBA minutes. All 30 dated current
 team rosters are available: 598 identities are accounted for, 392 have eligible profiles, and 206
 remain visible with explicit unavailable reasons. Every current team has at most 17 eligible players,
-so team generation is exhaustive. The current 598-player league pool uses the existing bounded
-18-player shortlist. The earlier four-team historical snapshot, historical league mode, and fictional
-fallback remain available. Search coverage, unavailable-player reasons, data provenance, defensive
-proxy limitations, and profile formulas are visible and documented.
+so team generation is exhaustive. Current league generation and repair model all 392 eligible
+profiles with a portable CP-SAT solver and disclose proof, time-limit, bound/gap, and fallback
+status. The deterministic 18-player search remains a seed and fallback. The earlier four-team
+historical snapshot, historical league mode, and fictional fallback remain available. Search
+coverage, unavailable-player reasons, data provenance, defensive proxy limitations, and profile
+formulas are visible and documented.
 When PostgreSQL is configured, named scenarios preserve selections, version branches, intent,
 analysis, repair history, and data/scoring versions across browser refreshes.
 
 See the [revised roadmap](docs/roadmap.md) for the agreed remaining phases and checkpoints, and the [theme guide](docs/theme.md) for reusable visual styles.
 
-For continuation in a new task, use the [Implementation handoff](docs/implementation-handoff.md), which
-records the Phase 9 checkpoint and scopes the next implementation to Phase 8.2.
+The existing [implementation handoff](docs/implementation-handoff.md) records the earlier Phase 8.2
+checkpoint; the roadmap and current repository now carry the Phase 8.3 decisions.
 
 ## Architecture
 
@@ -111,10 +113,11 @@ team membership and roster sizes can change before opening night. The Spurs rost
 2026 rookies without completed NBA profiles and two players below the 400-minute sample minimum;
 they are visible but ineligible rather than assigned unreliable ratings. Defensive
 ratings are box-score/position proxies, and every basketball metric remains a transparent heuristic
-rather than a prediction or professional scouting grade. League generation and repair search a
-deterministic 18-player shortlist from the 392 eligible current players, so global optimality is not
-guaranteed unless the response says the eligible pool was exhausted. Natural-language interpretation still requires a separately
-configured credential. Durable saving requires a configured, migrated PostgreSQL database.
+rather than a prediction or professional scouting grade. League generation and repair model all
+392 eligible current players, but a limited run can retain the deterministic 18-player seed; global
+optimality is guaranteed only when the response reports an `optimal` proof. Natural-language
+interpretation still requires a separately configured credential. Durable saving requires a
+configured, migrated PostgreSQL database.
 Anonymous recovery is tied to the browser's local key; Phase 9 does not include accounts, sharing,
 cross-browser recovery, or automatic abandoned-session cleanup.
 

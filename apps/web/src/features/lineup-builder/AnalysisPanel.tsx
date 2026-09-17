@@ -184,6 +184,18 @@ export function AnalysisPanel({
 
   const strengths = analysis.analysis.findings.filter((finding) => finding.severity === 'strength');
   const concerns = analysis.analysis.findings.filter((finding) => finding.severity === 'concern');
+  const solverSummary =
+    resultContext?.search?.strategy === 'cp-sat'
+      ? resultContext.search.solverStatus === 'optimal'
+        ? ` CP-SAT considered all ${resultContext.search.searchedPlayerCount} eligible players and proved this result optimal in ${resultContext.search.elapsedMs ?? 0} ms.`
+        : ` CP-SAT modeled all ${resultContext.search.searchedPlayerCount} eligible players and stopped within its ${resultContext.search.timeLimitMs ?? 0} ms budget. This is the best retained candidate, not a proven optimum.${resultContext.search.incumbentSource === 'bounded-seed' ? ' The solver retained the deterministic 18-player seed because it did not prove an improvement.' : ''}${resultContext.search.objectiveBound !== undefined ? ` The proven fit bound is ${resultContext.search.objectiveBound}${resultContext.search.objectiveGap !== undefined ? ` (${(resultContext.search.objectiveGap * 100).toFixed(2)}% gap)` : ''}.` : ''}`
+      : resultContext?.search?.solverStatus === 'fallback'
+        ? ` The full-pool solver was unavailable, so the deterministic ${resultContext.search.searchedPlayerCount}-player fallback was used; this is not a guaranteed league-wide optimum.`
+        : resultContext?.search && !resultContext.search.exhausted
+          ? ` This bounded search evaluated ${resultContext.search.searchedPlayerCount} of ${resultContext.search.eligiblePlayerCount} eligible players; the result is the best found within that shortlist, not a guaranteed league-wide optimum.`
+          : resultContext?.search?.optimalityGuaranteed
+            ? ' The eligible pool was fully exhausted.'
+            : '';
 
   return (
     <section className="analysis-card analysis-results" aria-labelledby="analysis-title">
@@ -222,17 +234,17 @@ export function AnalysisPanel({
             <strong>{resultContext.objectiveScore}</strong>
           </div>
           <p>
-            {mode === 'repair'
-              ? `Selected from ${resultContext.validCandidateCount} valid lineups after checking ${resultContext.evaluatedCandidateCount} combinations; fewest swaps took priority over weighted fit.`
-              : `Ranked first among ${resultContext.validCandidateCount} valid lineups after checking ${resultContext.evaluatedCandidateCount} combinations.`}
+            {resultContext.search?.strategy === 'cp-sat'
+              ? mode === 'repair'
+                ? 'Fewest swaps took priority over weighted fit across the full eligible pool.'
+                : 'Optimized weighted fit across the full eligible pool.'
+              : mode === 'repair'
+                ? `Selected from ${resultContext.validCandidateCount} valid lineups after checking ${resultContext.evaluatedCandidateCount} combinations; fewest swaps took priority over weighted fit.`
+                : `Ranked first among ${resultContext.validCandidateCount} valid lineups after checking ${resultContext.evaluatedCandidateCount} combinations.`}
             {resultContext.usedBalancedDefault
               ? ' Balanced priorities were applied because every weight was zero.'
               : ''}
-            {resultContext.search && !resultContext.search.exhausted
-              ? ` This bounded search evaluated ${resultContext.search.searchedPlayerCount} of ${resultContext.search.eligiblePlayerCount} eligible players; the result is the best found within that shortlist, not a guaranteed league-wide optimum.`
-              : resultContext.search?.optimalityGuaranteed
-                ? ' The eligible pool was fully exhausted.'
-                : ''}
+            {solverSummary}
           </p>
           <div className="constraint-list" aria-label="Requirement results">
             {resultContext.constraints.map((constraint) => (

@@ -20,7 +20,7 @@ interface GenerationWorkspaceProps {
   roster: RosterPlayerDto[];
   onGeneratedLineup: (playerIds: string[]) => void;
   onSaveVersion: (version: SessionVersionDraft) => void;
-  isBoundedSearch: boolean;
+  usesLeagueSolver: boolean;
   defaultMinimumShooters?: number;
   defaultMinimumCreators?: number;
 }
@@ -51,7 +51,7 @@ export function GenerationWorkspace({
   roster,
   onGeneratedLineup,
   onSaveVersion,
-  isBoundedSearch,
+  usesLeagueSolver,
   defaultMinimumShooters = balancedIntent.minimumShooters,
   defaultMinimumCreators = balancedIntent.minimumCreators,
 }: GenerationWorkspaceProps) {
@@ -122,8 +122,8 @@ export function GenerationWorkspace({
 
         <div className="roster-actions">
           <p>
-            {isBoundedSearch
-              ? 'Builds a deterministic 18-player shortlist, then checks every five within that bound.'
+            {usesLeagueSolver
+              ? 'Uses a time-limited full-pool solver across every eligible league player, with a deterministic fallback.'
               : 'Searches every five-player combination in this roster.'}
           </p>
           <button

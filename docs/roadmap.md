@@ -215,8 +215,9 @@ role thresholds are not guaranteed on every real roster; users can still opt int
 
 ## Phase 8.3 — Full-pool league optimization
 
-Status: planned after Phase 8.2. Revalidate Phase 9 persistence after this checkpoint because saved
-league scenarios will reference the expanded player pool and solver-produced lineups.
+Status: implemented and verified locally; live Replit publication remains a user-controlled
+platform checkpoint. Phase 9 persistence has been revalidated with a generated current-league
+lineup.
 
 - Replace the 18-player league shortlist as the primary optimizer with a solver that considers
   every eligible player in the current league snapshot.
@@ -242,6 +243,20 @@ Checkpoint: league generation and repair consider the entire eligible current-pl
 documented time budget, match exhaustive results on validation fixtures, disclose proof or search
 limits accurately, deploy successfully on Replit, and reopen persisted solver-produced scenarios
 with interpretable data and scoring versions.
+
+Implementation decisions: use the portable `or-tools-wasm` 0.9.1 CP-SAT build because the native
+Node release candidate had no usable Windows prebuild, while the WebAssembly package supports both
+Node and Linux without a platform-specific install. The exact integer model preserves v1
+one-decimal metrics, four-decimal weighted fit, threshold adjustments, clamps, hard constraints,
+repair swap priority, and canonical ties. Production uses a 10-second, single-worker, fixed-seed
+budget plus a deterministic-work limit. `optimal` requires proof of both the weighted objective and
+canonical tie; `infeasible` requires a solver proof. Limited runs expose incumbent, bound, gap, and
+incumbent source. The former 18-player search remains a deterministic seed/fallback, not the
+primary model. The current 392-player balanced reference run models all players but presently keeps
+the seed with a 100-point bound, so it is explicitly not globally optimal. Live Replit deployment
+was not performed because publishing/deployment requires explicit approval; the checked Node 22
+configuration, portable package runtime, production build, and local start are the pre-deployment
+evidence.
 
 Implementation sequence note: Phases 8.2 and 8.3 were identified after Phase 9 was completed. Build
 them on top of the Phase 9 commit rather than branching from Phase 8.1, then run a focused Phase 9

@@ -421,8 +421,8 @@ export function LineupBuilderPage() {
             </span>
           </div>
           <p>
-            {selectedPool.searchStrategy === 'bounded'
-              ? 'Generation uses a deterministic bounded shortlist and reports when the full pool was not searched.'
+            {selectedPool.searchStrategy === 'solver'
+              ? 'Generation and repair use a time-limited full-pool optimizer and disclose proof, gap, or fallback status.'
               : 'Generation checks every five-player combination in this roster.'}
             {selectedPool.rosterPlayerCount !== undefined &&
             selectedPool.profiledPlayerCount !== undefined &&
@@ -482,7 +482,7 @@ export function LineupBuilderPage() {
           key={selectedTeamId}
           teamId={selectedTeamId}
           roster={profiledRoster}
-          isBoundedSearch={selectedPool?.searchStrategy === 'bounded'}
+          usesLeagueSolver={selectedPool?.searchStrategy === 'solver'}
           defaultMinimumShooters={selectedPool?.defaultMinimumShooters ?? 3}
           defaultMinimumCreators={selectedPool?.defaultMinimumCreators ?? 1}
           onGeneratedLineup={useLineupForRepair}
