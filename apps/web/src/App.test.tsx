@@ -182,7 +182,7 @@ beforeEach(() => {
           satisfied: true,
           actual: 5,
           required: 3,
-          description: '5 of 5 players meet the 75-point shooting threshold; 3 required.',
+          description: '5 of 5 players meet the 65-point shooting threshold; 3 required.',
         },
       ],
     },
@@ -952,7 +952,9 @@ describe('session lineup versions', () => {
     expect(await screen.findByText('Database ready')).toBeVisible();
     await user.click(await screen.findByRole('button', { name: 'Open' }));
 
-    expect(await screen.findByText('manual · branched from Balanced start')).toBeVisible();
+    expect(
+      await screen.findByText('manual · branched from Balanced start · lineup-analysis-v1'),
+    ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Update saved scenario' })).toBeVisible();
     expect(mockedFetchSavedScenario).toHaveBeenCalledWith(expect.any(String), scenarioId);
 

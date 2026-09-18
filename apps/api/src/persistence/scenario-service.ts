@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
+import { SCORING_VERSION } from '@lineup-engine/basketball-engine';
 
 import {
   apiErrorResponseSchema,
@@ -12,7 +13,7 @@ import {
 import { analyzeDemoLineup, getLineupPool } from '../services/demo-lineup-service.js';
 import type { ScenarioRepository, ScenarioWrite } from './scenario-repository.js';
 
-export const SCORING_VERSION = 'lineup-analysis-v1';
+export { SCORING_VERSION };
 
 export function anonymousOwnerKey(sessionKey: string): string {
   return createHash('sha256').update(sessionKey).digest('hex');

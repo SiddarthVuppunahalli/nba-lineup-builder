@@ -1,5 +1,10 @@
 # Lineup Engine
 
+Current scoring uses an explicitly experimental role calibration: shooters qualify at 65 and
+creators at 60. Other scoring rules, player ratings, and eligibility are unchanged. New saved results
+use `lineup-analysis-v2-experimental-roles`; older snapshots keep their original scores and version.
+See [methodology and limitations](docs/basketball-methodology.md).
+
 Lineup Engine is a portfolio-quality full-stack application for turning basketball intent into valid, explainable NBA lineups. The product will eventually follow this workflow:
 
 ```text

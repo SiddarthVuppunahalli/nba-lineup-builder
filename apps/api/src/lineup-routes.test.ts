@@ -328,7 +328,7 @@ describe('POST /api/lineups/generate', () => {
           ...generationIntent,
           minimumCreators: 5,
           requiredPlayerIds: [],
-          excludedPlayerIds: [],
+          excludedPlayerIds: ['jordan-vega', 'malik-rhodes'],
         },
       });
 
@@ -394,7 +394,7 @@ describe('POST /api/lineups/repair', () => {
         currentPlayerIds,
         intent: {
           ...generationIntent,
-          minimumShooters: 3,
+          minimumShooters: 5,
           metricMinimums: {},
           requiredPlayerIds: ['darius-knox'],
           excludedPlayerIds: [],
@@ -426,7 +426,7 @@ describe('POST /api/lineups/repair', () => {
           minimumCreators: 5,
           metricMinimums: {},
           requiredPlayerIds: [],
-          excludedPlayerIds: [],
+          excludedPlayerIds: ['jordan-vega', 'malik-rhodes'],
         },
       });
 

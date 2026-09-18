@@ -1,5 +1,10 @@
 # NBA data snapshot and profile derivation
 
+The September 18 experimental scoring policy uses cutoffs of 65 shooting and 60 creation. The
+original 75/75 references below describe earlier checkpoints. Profile derivation remains
+`box-score-profile-v1`; source IDs, ratings, and eligibility are unchanged. See
+[the scoring decision and limitations](basketball-methodology.md#experimental-role-calibration-september-18-2026).
+
 ## Phase 8.2 current league snapshot
 
 The current release freezes the official NBA league-roster payload on September 15, 2026. It

@@ -1,5 +1,11 @@
 # Durable scenario persistence
 
+New versions use `lineup-analysis-v2-experimental-roles` (shooters 65, creators 60). Existing
+`lineup-analysis-v1` snapshots remain readable and immutable: reopening and updating an owned
+scenario preserves stored analysis, timestamps, and identifiers. Appended versions use current
+scoring. Profile/data identifiers are unchanged; no database migration is required. Fresh analysis,
+repair, generation, comparison, or save-as-new uses current rules, not legacy execution.
+
 Phase 9 adds optional PostgreSQL storage without making the lineup builder depend on a database.
 
 ## Setup

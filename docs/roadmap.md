@@ -1,5 +1,11 @@
 # Lineup Engine roadmap
 
+Current post-8.3 scoring checkpoint: `lineup-analysis-v2-experimental-roles` uses 65 shooting / 60
+creation after an accepted provisional calibration review. Earlier 75/75 references remain historical
+decisions. No defensive thresholds or penalty magnitudes change. Profile derivation and eligibility
+remain v1; saved history is preserved. Observed-lineup and representative cross-season validation
+remain deferred. See [the current methodology](basketball-methodology.md).
+
 This is the agreed continuation plan after Phase 3, committed as `c7f2c68`.
 Implement one phase at a time and stop at each checkpoint for review before moving on.
 

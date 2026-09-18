@@ -7,8 +7,9 @@ import type {
 } from '../domain/types.js';
 import { normalizeMetricScore } from './normalize-metric-score.js';
 
-export const SHOOTER_THRESHOLD = 75;
-export const CREATOR_THRESHOLD = 75;
+export const SCORING_VERSION = 'lineup-analysis-v2-experimental-roles';
+export const SHOOTER_THRESHOLD = 65;
+export const CREATOR_THRESHOLD = 60;
 
 function mean(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0) / values.length;

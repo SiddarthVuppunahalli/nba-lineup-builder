@@ -119,6 +119,7 @@ export function SessionVersionsWorkspace({
                     <small>
                       {version.source}
                       {parent ? ` · branched from ${parent.name}` : ''}
+                      {version.scoringVersion ? ` · ${version.scoringVersion}` : ''}
                     </small>
                     <span>
                       {version.playerIds

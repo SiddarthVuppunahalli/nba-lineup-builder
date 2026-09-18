@@ -1,8 +1,10 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import { saveScenarioRequestSchema } from '@lineup-engine/shared';
 
 import { createApp } from './app.js';
 import { MemoryScenarioRepository } from './persistence/memory-scenario-repository.js';
+import { anonymousOwnerKey, prepareScenario } from './persistence/scenario-service.js';
 
 const sessionKey = '11111111-1111-4111-8111-111111111111';
 const otherSessionKey = '22222222-2222-4222-8222-222222222222';
@@ -27,6 +29,36 @@ function scenarioBody() {
 }
 
 describe('saved scenario routes', () => {
+  it('reopens and updates legacy snapshots without rescoring or relabeling them', async () => {
+    const repository = new MemoryScenarioRepository();
+    const prepared = prepareScenario(saveScenarioRequestSchema.parse(scenarioBody()));
+    expect(prepared.success).toBe(true);
+    if (!prepared.success) return;
+    const legacy = prepared.scenario.versions[0]!;
+    legacy.scoringVersion = 'lineup-analysis-v1';
+    legacy.analysis.analysis.shooting.score = 12.3;
+    const stored = await repository.save(anonymousOwnerKey(sessionKey), prepared.scenario);
+    const app = createApp({ scenarioRepository: repository });
+    const reopened = await request(app)
+      .get(`/api/scenarios/${stored!.id}`)
+      .set('x-lineup-session', sessionKey);
+    expect(reopened.body.versions[0]).toEqual(stored!.versions[0]);
+    const body = scenarioBody();
+    const updated = await request(app)
+      .put(`/api/scenarios/${stored!.id}`)
+      .set('x-lineup-session', sessionKey)
+      .send({
+        ...body,
+        versions: [
+          ...body.versions,
+          { ...body.versions[0]!, clientVersionId: 'new-policy', name: 'Experimental branch' },
+        ],
+      });
+    expect(updated.status).toBe(200);
+    expect(updated.body.versions[0]).toEqual(stored!.versions[0]);
+    expect(updated.body.versions[1].scoringVersion).toBe('lineup-analysis-v2-experimental-roles');
+    expect(updated.body.versions[1].analysis.analysis.shooting.score).not.toBe(12.3);
+  });
   it('reports whether durable persistence is configured', async () => {
     expect((await request(createApp()).get('/api/persistence/status')).body).toEqual({
       available: false,
@@ -56,7 +88,7 @@ describe('saved scenario routes', () => {
         {
           clientVersionId: 'version-1',
           dataVersion: expect.stringContaining('fictional-demo-v1'),
-          scoringVersion: 'lineup-analysis-v1',
+          scoringVersion: 'lineup-analysis-v2-experimental-roles',
           analysis: { lineup: { playerIds: firstFive } },
         },
       ],
@@ -145,7 +177,7 @@ describe('saved scenario routes', () => {
     expect(created.status).toBe(201);
     expect(created.body.versions[0]).toMatchObject({
       dataVersion: 'nba-rosters-2026-09-15-bref-2025-26-v1:2026-09-15:box-score-profile-v1',
-      scoringVersion: 'lineup-analysis-v1',
+      scoringVersion: 'lineup-analysis-v2-experimental-roles',
       analysis: { lineup: { playerIds: spursFive } },
     });
 
@@ -207,7 +239,7 @@ describe('saved scenario routes', () => {
     expect(created.status).toBe(201);
     expect(created.body.versions[0]).toMatchObject({
       dataVersion: 'nba-rosters-2026-09-15-bref-2025-26-v1:2026-09-15:box-score-profile-v1',
-      scoringVersion: 'lineup-analysis-v1',
+      scoringVersion: 'lineup-analysis-v2-experimental-roles',
       analysis: { lineup: { playerIds: solverFive } },
     });
     const reopened = await request(app)

@@ -24,6 +24,26 @@ const intent: LineupIntent = {
 };
 
 describe('league search', () => {
+  it('matches exhaustive hard role constraints at the experimental boundaries', async () => {
+    const players = DEMO_PLAYERS.slice(0, 8);
+    const profiles = DEMO_PROFILES.slice(0, 8).map((p, i) => ({
+      ...p,
+      shooting: i < 2 ? 64.9 : 65,
+      creation: i < 2 ? 59.9 : 60,
+    }));
+    const boundaryIntent = { ...intent, minimumShooters: 5, minimumCreators: 5 };
+    const exhaustive = generateLineup({ players, profiles, intent: boundaryIntent });
+    const solved = await generateLeagueLineup({ players, profiles, intent: boundaryIntent });
+    expect(exhaustive.success).toBe(true);
+    expect(solved.success).toBe(true);
+    if (!exhaustive.success || !solved.success) return;
+    expect(solved.winner.lineup.playerIds).toEqual(exhaustive.winner.lineup.playerIds);
+    expect(solved.winner.analysis).toEqual(exhaustive.winner.analysis);
+    expect(solved.winner.objectiveScore).toBe(exhaustive.winner.objectiveScore);
+    expect(solved.search.solverStatus).toBe('optimal');
+    expect(solved.winner.lineup.playerIds).not.toContain(players[0]!.id);
+    expect(solved.winner.lineup.playerIds).not.toContain(players[1]!.id);
+  }, 30_000);
   it('matches exhaustive generation when the full pool fits within the bound', async () => {
     const exhaustive = generateLineup({ players: DEMO_PLAYERS, profiles: DEMO_PROFILES, intent });
     const league = await generateLeagueLineup({
@@ -189,7 +209,7 @@ describe('league search', () => {
     expect(result.search.solverStatus).toBe('fallback');
     expect(result.search.optimalityGuaranteed).toBe(false);
     expect(result.search.fallbackReason).toMatch(/priority precision/i);
-  });
+  }, 15_000);
 
   it('keeps an excluded current player available for before/after league repair evidence', async () => {
     const players: Player[] = Array.from({ length: 24 }, (_, index) => ({

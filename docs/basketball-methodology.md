@@ -10,8 +10,31 @@ still recomputed by the functions below before a solver candidate crosses the AP
 
 ## Thresholds
 
-- Credible shooter: shooting score at least 75
-- High-level creator: creation score at least 75
+- Credible shooting profile: shooting score at least 65
+- Creator profile: creation score at least 60
+
+### Experimental role calibration (September 18, 2026)
+
+Current scoring is `lineup-analysis-v2-experimental-roles`. This supersedes the original
+`lineup-analysis-v1` 75/75 offensive role cutoffs in all pools, including historical and fictional
+fallbacks. Only shooter and creator classification boundaries change. Profile formulas and
+`box-score-profile-v1`, source IDs, the 400-minute eligibility rule, weights, bonus/penalty magnitudes,
+defensive thresholds, rounding, and tie-breaking are unchanged. This is not a universal definition
+of “good” and does not rescale player ratings.
+
+The provisional decision follows offline screening of 392 eligible current profiles, threshold
+sensitivity, position distributions, team coverage, exhaustive team searches, and an accepted
+eight-case user spot check. At 65/60, 107 players qualify as shooters and 48 as creators; changing
+these two boundaries alone changed balanced winners on ten current teams. These are distribution
+and sensitivity checks, not prediction accuracy or independent scouting validation. Observed-lineup
+and representative second-season validation are deliberately deferred. Shooting volume edge cases,
+passing-led creation, defensive proxies, and existing lineup warning calibration remain limitations.
+
+The engine owns the scoring identifier and both cutoffs. Hard constraints, findings, bonuses,
+penalties, bounded fallback, and CP-SAT consume the same constants. Existing durable saved versions
+retain their immutable analysis and original scoring identifier. New versions use this experimental
+identifier; branching, fresh analysis, generation, repair, and comparison use current rules. There
+is no legacy rescoring migration or second legacy execution mode.
 
 ## Lineup metrics
 
@@ -61,7 +84,7 @@ Final scores are limited to 0–100 and rounded to one decimal. Expanded metric 
 
 Phase 4 ranks valid lineups with a normalized weighted mean of the seven lineup metric scores. Priority weights range from 0 to 1. The balanced preset assigns every metric a weight of 1; an all-zero set also uses that preset so the objective never divides by zero.
 
-Minimum shooter and creator counts are hard requirements and reuse the 75-point thresholds above. Optional metric minimums are also hard requirements and apply directly to the normalized scores displayed by the product. Required and excluded players are eligibility rules, not score adjustments. No requirement is silently relaxed.
+Minimum shooter and creator counts are hard requirements and reuse the role-specific thresholds above. Optional metric minimums are also hard requirements and apply directly to the normalized scores displayed by the product. Required and excluded players are eligibility rules, not score adjustments. No requirement is silently relaxed.
 
 For a team-sized pool, the engine evaluates every unique five-player combination after exclusions, retains only candidates satisfying every hard requirement, and sorts them by objective score. Equal objectives are resolved by sorted player IDs, making results independent of input order. Exhaustive generation is capped at 18 eligible players; larger-pool search remains a later phase.
 

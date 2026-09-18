@@ -8,6 +8,9 @@ import {
   generateLineup,
   repairLeagueLineup,
   repairLineup,
+  SCORING_VERSION,
+  SHOOTER_THRESHOLD,
+  CREATOR_THRESHOLD,
   type LineupIntent,
 } from '@lineup-engine/basketball-engine';
 import {
@@ -95,6 +98,8 @@ function teamDto(pool: LineupPool) {
     profiledPlayerCount: pool.profiles.length,
     defaultMinimumShooters: usesCurrentProfiles ? 0 : 3,
     defaultMinimumCreators: usesCurrentProfiles ? 0 : 1,
+    scoringVersion: SCORING_VERSION,
+    scoringLabel: `Experimental role calibration: shooters ≥${SHOOTER_THRESHOLD}, creators ≥${CREATOR_THRESHOLD}. Other scoring rules unchanged.`,
   };
 }
 

@@ -37,6 +37,8 @@ export const teamSchema = z.object({
   profiledPlayerCount: z.number().int().nonnegative().optional(),
   defaultMinimumShooters: z.number().int().min(0).max(5).optional(),
   defaultMinimumCreators: z.number().int().min(0).max(5).optional(),
+  scoringVersion: z.string().min(1).optional(),
+  scoringLabel: z.string().min(1).optional(),
 });
 
 export const playerProfileSchema = z.object({

@@ -38,7 +38,7 @@ function repair(inputIntent: LineupIntent, players = DEMO_PLAYERS, profiles = DE
 
 describe('repairLineup', () => {
   it('uses the fewest swaps needed to satisfy new requirements', () => {
-    const result = repair(intent({ minimumShooters: 3, requiredPlayerIds: ['darius-knox'] }));
+    const result = repair(intent({ minimumShooters: 5, requiredPlayerIds: ['darius-knox'] }));
 
     expect(result.repair.swapCount).toBe(2);
     expect(result.repair.removedPlayerIds).toHaveLength(2);
@@ -46,7 +46,7 @@ describe('repairLineup', () => {
     expect(result.repair.after.lineup.playerIds).toContain('darius-knox');
     expect(result.repair.after.constraints.every((constraint) => constraint.satisfied)).toBe(true);
     expect(result.repair.before.constraints).toContainEqual(
-      expect.objectContaining({ id: 'minimum-shooters', satisfied: false, actual: 1, required: 3 }),
+      expect.objectContaining({ id: 'minimum-shooters', satisfied: false, actual: 3, required: 5 }),
     );
   });
 
@@ -60,7 +60,7 @@ describe('repairLineup', () => {
   });
 
   it('reports every metric delta and identifies the largest gain and tradeoff', () => {
-    const result = repair(intent({ minimumShooters: 3 }));
+    const result = repair(intent({ minimumShooters: 5 }));
 
     expect(result.repair.comparison.metrics).toHaveLength(7);
     expect(result.repair.comparison.metrics).toContainEqual(
@@ -71,7 +71,7 @@ describe('repairLineup', () => {
   });
 
   it('is reproducible when the eligible pool is reordered', () => {
-    const request = intent({ minimumShooters: 3 });
+    const request = intent({ minimumShooters: 5 });
     const first = repair(request);
     const reordered = repair(request, [...DEMO_PLAYERS].reverse(), [...DEMO_PROFILES].reverse());
 
@@ -83,7 +83,7 @@ describe('repairLineup', () => {
     const result = repairLineup({
       currentPlayerIds: weakShootingLineup,
       players: DEMO_PLAYERS,
-      profiles: DEMO_PROFILES,
+      profiles: DEMO_PROFILES.map((profile) => ({ ...profile, creation: 59.9 })),
       intent: intent({ minimumCreators: 5 }),
     });
 

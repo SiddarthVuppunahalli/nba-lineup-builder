@@ -430,6 +430,7 @@ export function LineupBuilderPage() {
               ? ` ${selectedPool.profiledPlayerCount} of ${selectedPool.rosterPlayerCount} current players have completed-season profiles and are eligible.`
               : ''}
           </p>
+          {selectedPool.scoringLabel ? <p>{selectedPool.scoringLabel}</p> : null}
           {selectedPool.sourceUrl ? (
             <a href={selectedPool.sourceUrl} target="_blank" rel="noreferrer">
               View source

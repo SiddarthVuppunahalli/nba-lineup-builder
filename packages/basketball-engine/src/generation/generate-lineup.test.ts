@@ -107,7 +107,7 @@ describe('generateLineup', () => {
   it('reports infeasible requirements without relaxing them', () => {
     const result = generateLineup({
       players: DEMO_PLAYERS,
-      profiles: DEMO_PROFILES,
+      profiles: DEMO_PROFILES.map((profile) => ({ ...profile, creation: 59.9 })),
       intent: intent({ minimumCreators: 5 }),
     });
 

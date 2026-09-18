@@ -79,14 +79,14 @@ describe('analyzeLineup', () => {
       'eli-mercer',
       'theo-grant',
       'andre-okafor',
-      'darius-knox',
+      'owen-price',
     ]);
 
     expect(analysis.findings).toContainEqual(
       expect.objectContaining({
         id: 'creation:insufficient',
         severity: 'concern',
-        affectedPlayerIds: [],
+        affectedPlayerIds: ['eli-mercer'],
       }),
     );
   });
