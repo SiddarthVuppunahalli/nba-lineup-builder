@@ -201,6 +201,7 @@ describe('league search', () => {
       intent: {
         ...intent,
         priorities: { ...intent.priorities, shooting: 0.12345678901 },
+        excludedPlayerIds: [players[0]!.id, players[1]!.id],
       },
     });
     expect(result.success).toBe(true);
@@ -209,6 +210,8 @@ describe('league search', () => {
     expect(result.search.solverStatus).toBe('fallback');
     expect(result.search.optimalityGuaranteed).toBe(false);
     expect(result.search.fallbackReason).toMatch(/priority precision/i);
+    expect(result.winner.lineup.playerIds).not.toContain(players[0]!.id);
+    expect(result.winner.lineup.playerIds).not.toContain(players[1]!.id);
   }, 15_000);
 
   it('keeps an excluded current player available for before/after league repair evidence', async () => {

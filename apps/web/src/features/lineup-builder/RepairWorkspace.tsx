@@ -29,14 +29,10 @@ function errorMessage(error: Error | null): string | undefined {
 function errorDetails(error: Error | null): string[] {
   if (!(error instanceof ApiClientError) || !Array.isArray(error.details)) return [];
   return error.details.flatMap((detail) => {
-    if (
-      typeof detail === 'object' &&
-      detail !== null &&
-      'description' in detail &&
-      typeof detail.description === 'string'
-    ) {
+    if (typeof detail !== 'object' || detail === null) return [];
+    if ('description' in detail && typeof detail.description === 'string')
       return [detail.description];
-    }
+    if ('message' in detail && typeof detail.message === 'string') return [detail.message];
     return [];
   });
 }
@@ -77,6 +73,8 @@ export function RepairWorkspace({
 
   function togglePlayer(field: 'requiredPlayerIds' | 'excludedPlayerIds', playerId: string) {
     const selected = values[field] ?? [];
+    if (field === 'requiredPlayerIds' && !selected.includes(playerId) && selected.length >= 5)
+      return;
     setValue(
       field,
       selected.includes(playerId)

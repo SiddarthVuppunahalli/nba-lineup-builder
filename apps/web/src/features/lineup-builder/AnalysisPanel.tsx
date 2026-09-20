@@ -4,6 +4,7 @@ import type {
   LineupAnalysisResponse,
   RosterPlayerDto,
 } from '@lineup-engine/shared';
+import { useEffect, useRef } from 'react';
 
 import { MetricCard } from './MetricCard.tsx';
 import { SessionVersionSave } from './SessionVersionSave.tsx';
@@ -18,6 +19,10 @@ interface AnalysisPanelProps {
   onRetry: () => void;
   canRetry: boolean;
   mode?: 'manual' | 'generation' | 'repair';
+  revealOnSuccess?: boolean;
+  onBackToEditing?: () => void;
+  onRepair?: () => void;
+  onCompare?: () => void;
   resultContext?:
     | {
         objectiveScore: number;
@@ -82,9 +87,27 @@ export function AnalysisPanel({
   onRetry,
   canRetry,
   mode = 'manual',
+  revealOnSuccess = false,
+  onBackToEditing,
+  onRepair,
+  onCompare,
   resultContext,
   versionSave,
 }: AnalysisPanelProps) {
+  const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (!analysis || !revealOnSuccess || !resultHeadingRef.current) return;
+    const heading = resultHeadingRef.current;
+    heading.focus({ preventScroll: true });
+    const reducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reducedMotion && typeof heading.scrollIntoView === 'function') {
+      heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [analysis, revealOnSuccess]);
+
   if (isPending) {
     return (
       <section className="analysis-card analysis-loading" aria-live="polite">
@@ -208,7 +231,7 @@ export function AnalysisPanel({
                 ? 'Repaired lineup'
                 : 'Lineup analysis'}
           </div>
-          <h2 id="analysis-title">
+          <h2 id="analysis-title" ref={resultHeadingRef} tabIndex={-1}>
             {mode === 'generation'
               ? 'The strongest fit for your intent.'
               : mode === 'repair'
@@ -220,6 +243,32 @@ export function AnalysisPanel({
           <span aria-hidden="true">✓</span> Valid five
         </span>
       </div>
+
+      {onBackToEditing || onRepair || onCompare ? (
+        <div className="result-actions" aria-label="Result actions">
+          {onBackToEditing ? (
+            <button
+              className="result-action result-action--back"
+              type="button"
+              onClick={onBackToEditing}
+            >
+              <span aria-hidden="true">←</span> Back to editing
+            </button>
+          ) : null}
+          <div>
+            {onRepair ? (
+              <button className="result-action" type="button" onClick={onRepair}>
+                Repair this lineup
+              </button>
+            ) : null}
+            {onCompare ? (
+              <button className="result-action" type="button" onClick={onCompare}>
+                Compare versions
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <SelectedFive roster={roster} selectedPlayerIds={analysis.lineup.playerIds} />
 

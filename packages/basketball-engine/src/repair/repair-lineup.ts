@@ -79,6 +79,7 @@ function canonicalCompare(left: GeneratedLineupCandidate, right: GeneratedLineup
 export function repairLineupWithinPoolLimit(
   input: RepairLineupInput,
   maximumPoolSize: number,
+  knownPlayerIds?: readonly string[],
 ): RepairLineupResult {
   const current = analyzeLineup({
     playerIds: input.currentPlayerIds,
@@ -103,6 +104,7 @@ export function repairLineupWithinPoolLimit(
   const generated = generateLineupWithinPoolLimit(
     { players: input.players, profiles: input.profiles, intent: input.intent },
     maximumPoolSize,
+    knownPlayerIds,
   );
   if (!generated.success) return generated;
 

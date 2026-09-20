@@ -23,13 +23,20 @@ export function IntentControls({
 }: IntentControlsProps) {
   const [playerQuery, setPlayerQuery] = useState('');
   const normalizedPlayerQuery = playerQuery.trim().toLowerCase();
-  const visibleRoster = normalizedPlayerQuery
-    ? roster.filter(
-        (player) =>
-          player.name.toLowerCase().includes(normalizedPlayerQuery) ||
-          player.teamAbbreviation.toLowerCase().includes(normalizedPlayerQuery),
-      )
-    : roster;
+  const visibleRoster =
+    normalizedPlayerQuery.length >= 2
+      ? roster
+          .filter(
+            (player) =>
+              player.name.toLowerCase().includes(normalizedPlayerQuery) ||
+              player.teamAbbreviation.toLowerCase().includes(normalizedPlayerQuery),
+          )
+          .slice(0, 8)
+      : [];
+  const selectedRules = [
+    ...requiredPlayerIds.map((playerId) => ({ playerId, kind: 'required' as const })),
+    ...excludedPlayerIds.map((playerId) => ({ playerId, kind: 'excluded' as const })),
+  ];
 
   return (
     <div className="generation-form-body">
@@ -100,56 +107,100 @@ export function IntentControls({
       </fieldset>
 
       {showPlayerRules && (
-        <fieldset>
+        <fieldset className="player-rules-fieldset">
           <legend>Player rules</legend>
           <p>Lock players into the result or keep them out.</p>
-          {roster.length > 18 ? (
-            <label className="player-search player-search--rules">
-              <span>Find a player or team</span>
-              <input
-                type="search"
-                value={playerQuery}
-                placeholder="Search the snapshot"
-                onChange={(event) => setPlayerQuery(event.target.value)}
-              />
-            </label>
-          ) : null}
-          <div className="player-rules" aria-label="Required and excluded players">
-            {visibleRoster.map((player) => {
-              const required = requiredPlayerIds.includes(player.id);
-              const excluded = excludedPlayerIds.includes(player.id);
-              return (
-                <div className="player-rule" key={player.id}>
-                  <span>
-                    <strong>{player.name}</strong>
-                    <small>
-                      {player.teamAbbreviation} · {player.position}
-                    </small>
+          <div className="player-rule-chips" aria-label="Selected player rules">
+            {selectedRules.length === 0 ? (
+              <span className="player-rule-chips__empty">No player-specific rules.</span>
+            ) : (
+              selectedRules.map(({ playerId, kind }) => {
+                const player = roster.find((candidate) => candidate.id === playerId);
+                const label = kind === 'required' ? 'Required' : 'Excluded';
+                return (
+                  <span
+                    className={`player-rule-chip player-rule-chip--${kind}`}
+                    key={`${kind}-${playerId}`}
+                  >
+                    <span>
+                      <small>{label}</small>
+                      <strong>{player?.name ?? playerId}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${kind === 'required' ? 'requirement' : 'exclusion'} for ${player?.name ?? playerId}`}
+                      onClick={() =>
+                        onTogglePlayer(
+                          kind === 'required' ? 'requiredPlayerIds' : 'excludedPlayerIds',
+                          playerId,
+                        )
+                      }
+                    >
+                      ×
+                    </button>
                   </span>
-                  <label>
-                    <input
-                      type="checkbox"
-                      aria-label={`Require ${player.name}`}
-                      checked={required}
-                      disabled={excluded}
-                      onChange={() => onTogglePlayer('requiredPlayerIds', player.id)}
-                    />
-                    Require
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      aria-label={`Exclude ${player.name}`}
-                      checked={excluded}
-                      disabled={required}
-                      onChange={() => onTogglePlayer('excludedPlayerIds', player.id)}
-                    />
-                    Exclude
-                  </label>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
+          <details className="player-rule-picker">
+            <summary>
+              Add player rule
+              <span>
+                {selectedRules.length > 0 ? `${selectedRules.length} selected` : 'Optional'}
+              </span>
+            </summary>
+            <div className="player-rule-picker__body">
+              <label className="player-search player-search--rules">
+                <span>Find a player or team</span>
+                <input
+                  type="search"
+                  value={playerQuery}
+                  placeholder="Type at least 2 characters"
+                  onChange={(event) => setPlayerQuery(event.target.value)}
+                />
+              </label>
+              {normalizedPlayerQuery.length < 2 ? (
+                <p className="player-rule-picker__hint">
+                  Search to add a required or excluded player.
+                </p>
+              ) : (
+                <div className="player-rules" aria-label="Player rule search results">
+                  {visibleRoster.map((player) => {
+                    const required = requiredPlayerIds.includes(player.id);
+                    const excluded = excludedPlayerIds.includes(player.id);
+                    return (
+                      <div className="player-rule" key={player.id}>
+                        <span>
+                          <strong>{player.name}</strong>
+                          <small>
+                            {player.teamAbbreviation} · {player.position}
+                          </small>
+                        </span>
+                        <button
+                          type="button"
+                          disabled={required || excluded || requiredPlayerIds.length >= 5}
+                          onClick={() => onTogglePlayer('requiredPlayerIds', player.id)}
+                        >
+                          {required ? 'Required' : 'Require'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={required || excluded}
+                          onClick={() => onTogglePlayer('excludedPlayerIds', player.id)}
+                        >
+                          {excluded ? 'Excluded' : 'Exclude'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {visibleRoster.length === 0 ? (
+                    <p className="no-player-results">No players match that search.</p>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          </details>
         </fieldset>
       )}
     </div>

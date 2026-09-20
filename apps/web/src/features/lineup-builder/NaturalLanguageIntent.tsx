@@ -45,9 +45,12 @@ export function NaturalLanguageIntent({ teamId, onApply }: NaturalLanguageIntent
   return (
     <section className="natural-intent" aria-labelledby="natural-intent-title">
       <div>
-        <span className="panel-kicker">Optional AI assist</span>
+        <span className="panel-kicker">Start with your goals</span>
         <h3 id="natural-intent-title">Describe the lineup you want</h3>
-        <p>We’ll translate your words into the same settings below. You review every choice.</p>
+        <p>
+          Start here in your own words. We’ll turn the request into settings you can review and
+          edit.
+        </p>
       </div>
       <label>
         <span>Lineup request</span>

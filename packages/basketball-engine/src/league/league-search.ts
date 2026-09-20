@@ -246,6 +246,7 @@ function generateWithFallback(
   const result = generateLineupWithinPoolLimit(
     { ...input, players: shortlist.players, profiles: shortlist.profiles },
     LEAGUE_SHORTLIST_SIZE,
+    input.players.map((player) => player.id),
   );
   if (!result.success && result.reason === 'infeasible' && !shortlist.search.exhausted) {
     return {
@@ -284,6 +285,7 @@ export async function generateLeagueLineup(
   const hintResult = generateLineupWithinPoolLimit(
     { ...input, players: hintShortlist.players, profiles: hintShortlist.profiles },
     LEAGUE_SHORTLIST_SIZE,
+    input.players.map((player) => player.id),
   );
   const solved = await optimizeLeagueLineup(input.players, input.profiles, input.intent, {
     ...(hintResult.success ? { hintPlayerIds: hintResult.winner.lineup.playerIds } : {}),
@@ -332,6 +334,7 @@ function repairWithFallback(
   const result = repairLineupWithinPoolLimit(
     { ...input, players: shortlist.players, profiles: shortlist.profiles },
     LEAGUE_SHORTLIST_SIZE,
+    input.players.map((player) => player.id),
   );
   if (!result.success && result.reason === 'infeasible' && !shortlist.search.exhausted) {
     return {
@@ -382,6 +385,7 @@ export async function repairLeagueLineup(
   const hintResult = repairLineupWithinPoolLimit(
     { ...input, players: hintShortlist.players, profiles: hintShortlist.profiles },
     LEAGUE_SHORTLIST_SIZE,
+    input.players.map((player) => player.id),
   );
   const solved = await optimizeLeagueLineup(input.players, input.profiles, input.intent, {
     currentPlayerIds: input.currentPlayerIds,

@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  ApiClientError,
   fetchIntentInterpreterStatus,
   fetchPersistenceStatus,
   fetchRoster,
@@ -21,7 +22,18 @@ import {
 import { App } from './App.tsx';
 
 vi.mock('./api/client.ts', () => ({
-  ApiClientError: class ApiClientError extends Error {},
+  ApiClientError: class ApiClientError extends Error {
+    readonly status: number;
+    readonly code: string;
+    readonly details: unknown[];
+
+    constructor(message: string, status: number, code: string, details: unknown[] = []) {
+      super(message);
+      this.status = status;
+      this.code = code;
+      this.details = details;
+    }
+  },
   fetchIntentInterpreterStatus: vi.fn(),
   fetchPersistenceStatus: vi.fn(),
   fetchTeams: vi.fn(),
@@ -117,6 +129,11 @@ const metric = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: vi.fn().mockReturnValue({ matches: false }),
+  });
+  Element.prototype.scrollIntoView = vi.fn();
   mockedFetchIntentInterpreterStatus.mockResolvedValue({ available: true });
   mockedFetchPersistenceStatus.mockResolvedValue({ available: false });
   mockedFetchSavedScenarios.mockResolvedValue({ scenarios: [] });
@@ -382,10 +399,17 @@ describe('navigation foundation', () => {
   it('shows the landing hero and all three workflow choices', async () => {
     renderApp('/');
 
-    expect(screen.getByRole('heading', { name: '[PROJECT NAME]' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'STARTING FIVE' })).toBeVisible();
     expect(screen.getByRole('link', { name: /build a lineup/i })).toHaveAttribute('href', '/build');
     expect(screen.getByRole('link', { name: /repair/i })).toHaveAttribute('href', '/repair');
     expect(screen.getByRole('link', { name: /compare/i })).toHaveAttribute('href', '/compare');
+    expect(screen.getByRole('region', { name: 'Lineup workflows' })).toBeVisible();
+    expect(screen.queryByText('Next possession')).not.toBeInTheDocument();
+    expect(screen.queryByText('Choose a workflow')).not.toBeInTheDocument();
+    expect(screen.queryByText('What do you want to solve?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Create')).not.toBeInTheDocument();
+    expect(screen.queryByText('Adapt')).not.toBeInTheDocument();
+    expect(screen.queryByText('Decide')).not.toBeInTheDocument();
     expect(screen.queryByText(/system ready/i)).not.toBeInTheDocument();
   });
 
@@ -394,6 +418,10 @@ describe('navigation foundation', () => {
 
     expect(screen.getByRole('heading', { name: 'About me' })).toBeVisible();
     expect(screen.getByRole('heading', { name: '[FAVORITE PLAYER]' })).toBeVisible();
+    expect(screen.queryByText('[ABOUT THE PROJECT]')).not.toBeInTheDocument();
+    expect(screen.queryByText('01')).not.toBeInTheDocument();
+    expect(screen.queryByText('02')).not.toBeInTheDocument();
+    expect(screen.queryByText('03')).not.toBeInTheDocument();
     expect(screen.queryByTitle('[FAVORITE MOMENT]')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /back to landing/i })).toHaveAttribute('href', '/');
   });
@@ -405,6 +433,11 @@ describe('navigation foundation', () => {
       'href',
       '/#workflows',
     );
+    expect(screen.getByRole('region', { name: 'Player pool selection' })).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Team' })).toBeVisible();
+    expect(screen.queryByRole('tab', { name: 'Repair a lineup' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Compare & versions' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Choose the five. Understand the fit.')).not.toBeInTheDocument();
   });
 });
 
@@ -446,6 +479,7 @@ describe('manual lineup builder', () => {
     renderApp();
 
     expect(await screen.findByText('San Antonio Spurs')).toBeVisible();
+    await user.click(screen.getByText('Details +'));
     expect(
       screen.getByText(/12 of 18 current players have completed-season profiles/i),
     ).toBeVisible();
@@ -454,7 +488,8 @@ describe('manual lineup builder', () => {
     ).toBeDisabled();
     expect(screen.getByText('Profile unavailable')).toBeVisible();
 
-    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
+    await user.click(screen.getByText('Advanced controls'));
     expect(screen.getByLabelText('Minimum credible shooters')).toHaveValue('0');
     expect(screen.getByLabelText('Minimum high-level creators')).toHaveValue('0');
   });
@@ -498,6 +533,7 @@ describe('manual lineup builder', () => {
     renderApp();
     expect(await screen.findByText(/snapshot 2025-04-13/i)).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'League' }));
+    await user.click(screen.getByText('Details +'));
     expect(await screen.findByText(/time-limited full-pool optimizer/i)).toBeVisible();
     const search = screen.getByRole('searchbox', { name: 'Find a player or team' });
     await user.type(search, 'DEN');
@@ -545,7 +581,10 @@ describe('manual lineup builder', () => {
     ).toBeVisible();
     expect(screen.getByText('Strong spacing')).toBeVisible();
 
-    const shootingCard = screen.getByText('Shooting').closest('details');
+    const analysisSection = screen
+      .getByRole('heading', { name: 'How this five fits together.' })
+      .closest('section');
+    const shootingCard = within(analysisSection!).getByText('Shooting').closest('details');
     expect(shootingCard).not.toBeNull();
     await user.click(within(shootingCard!).getByText('Shooting'));
     expect(within(shootingCard!).getByText('Four-player spacing bonus')).toBeVisible();
@@ -653,9 +692,7 @@ describe('manual lineup builder', () => {
     await act(async () => {
       resolveAnalysis(response);
     });
-    expect(
-      await screen.findByRole('heading', { name: 'Build the lineup, then inspect the fit.' }),
-    ).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Select exactly five' })).toBeVisible();
     expect(
       screen.queryByRole('heading', { name: 'How this five fits together.' }),
     ).not.toBeInTheDocument();
@@ -668,7 +705,7 @@ describe('structured lineup generation', () => {
     renderApp();
 
     await screen.findByRole('button', { name: 'Select Jordan Vega' });
-    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
     await user.type(
       screen.getByRole('textbox', { name: 'Lineup request' }),
       'Prioritize spacing and defense, keep Jordan, and use two creators.',
@@ -679,11 +716,16 @@ describe('structured lineup generation', () => {
     expect(screen.getByText('Prioritize spacing and defense with two creators.')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Use as a starting point' }));
 
+    await user.click(screen.getByText('Advanced controls'));
     expect(screen.getByLabelText('Minimum credible shooters')).toHaveValue('4');
     expect(screen.getByLabelText('Minimum high-level creators')).toHaveValue('2');
     expect(screen.getByLabelText('Perimeter defense', { selector: 'input' })).toHaveValue(75);
-    expect(screen.getByRole('checkbox', { name: 'Require Jordan Vega' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Exclude Darius Knox' })).toBeChecked();
+    expect(screen.getByText('Required').closest('.player-rule-chip')).toHaveTextContent(
+      'Jordan Vega',
+    );
+    expect(screen.getByText('Excluded').closest('.player-rule-chip')).toHaveTextContent(
+      'Darius Knox',
+    );
   });
 
   it('shows clarification questions before an ambiguous interpretation is applied', async () => {
@@ -715,7 +757,7 @@ describe('structured lineup generation', () => {
     renderApp();
 
     await screen.findByRole('button', { name: 'Select Jordan Vega' });
-    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
     await user.type(
       screen.getByRole('textbox', { name: 'Lineup request' }),
       'Build a small-ball five.',
@@ -735,7 +777,7 @@ describe('structured lineup generation', () => {
     renderApp();
 
     await screen.findByRole('button', { name: 'Select Jordan Vega' });
-    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
     expect(
       await screen.findByText(
         'Natural-language help is unavailable. Every structured control below still works.',
@@ -750,7 +792,7 @@ describe('structured lineup generation', () => {
     renderApp();
 
     await screen.findByRole('button', { name: 'Select Jordan Vega' });
-    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
     expect(screen.getByRole('heading', { name: 'Shape your best five' })).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Generate lineup' }));
@@ -772,21 +814,20 @@ describe('structured lineup generation', () => {
     expect(screen.getByText('Credible shooters')).toBeVisible();
     expect(screen.getByText(/Ranked first among 4 valid lineups/)).toBeVisible();
 
+    await user.click(screen.getByText('Advanced controls'));
     await user.selectOptions(screen.getByLabelText('Shooting', { selector: 'select' }), '0.5');
     expect(
       screen.queryByRole('heading', { name: 'The strongest fit for your intent.' }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Set the rules. We’ll search every five.' }),
-    ).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Shape your best five' })).toBeVisible();
   });
 
   it('keeps the manual selection workflow available after visiting generation', async () => {
     const user = userEvent.setup();
     renderApp();
     await screen.findByRole('button', { name: 'Select Jordan Vega' });
-    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
-    await user.click(screen.getByRole('tab', { name: 'Build manually' }));
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
+    await user.click(screen.getByRole('tab', { name: 'Choose players' }));
 
     expect(screen.getByRole('button', { name: 'Select Jordan Vega' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Analyze lineup' })).toBeDisabled();
@@ -796,25 +837,224 @@ describe('structured lineup generation', () => {
     const user = userEvent.setup();
     renderApp();
     await screen.findByRole('button', { name: 'Select Jordan Vega' });
-    await user.click(screen.getByRole('tab', { name: 'Generate from intent' }));
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
     await user.click(screen.getByRole('button', { name: 'Generate lineup' }));
     await screen.findByRole('heading', { name: 'The strongest fit for your intent.' });
 
-    await user.click(screen.getByRole('tab', { name: 'Repair a lineup' }));
+    await user.click(screen.getByRole('button', { name: 'Repair this lineup' }));
     expect(screen.getByRole('heading', { name: 'Set the new intent' })).toBeVisible();
     expect(screen.getByText(/Jordan Vega · Malik Rhodes · Eli Mercer/)).toBeVisible();
+  });
+
+  it('preserves player selections and goal settings while switching Build methods', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(await screen.findByRole('button', { name: 'Select Jordan Vega' }));
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Lineup request' }),
+      'Prioritize shooting.',
+    );
+    await user.click(screen.getByText('Advanced controls'));
+    await user.selectOptions(screen.getByLabelText('Minimum credible shooters'), '4');
+
+    await user.click(screen.getByRole('tab', { name: 'Choose players' }));
+    expect(screen.getByRole('button', { name: 'Remove Jordan Vega' })).toBeVisible();
+
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
+    expect(screen.getByRole('textbox', { name: 'Lineup request' })).toHaveValue(
+      'Prioritize shooting.',
+    );
+    expect(screen.getByLabelText('Minimum credible shooters')).toHaveValue('4');
+  });
+
+  it('keeps league player rules compact with search, explicit actions, and removable chips', async () => {
+    const user = userEvent.setup();
+    const leaguePlayers = Array.from({ length: 40 }, (_, index) => ({
+      ...players[index % players.length]!,
+      id: `league-player-${index}`,
+      name: `League Player ${String(index + 1).padStart(2, '0')}`,
+      teamId: `team-${index % 30}`,
+      teamAbbreviation: `T${String(index % 30).padStart(2, '0')}`,
+    }));
+    mockedFetchRoster.mockResolvedValue({ team: demoTeam, players: leaguePlayers });
+    renderApp();
+
+    await screen.findByRole('button', { name: 'Select League Player 01' });
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
+    await user.click(screen.getByText('Advanced controls'));
+    expect(screen.getByText('No player-specific rules.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Require' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByText('Add player rule'));
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Find a player or team' }),
+      'League Player',
+    );
+    expect(screen.getAllByRole('button', { name: 'Require' })).toHaveLength(8);
+    expect(screen.getAllByRole('button', { name: 'Exclude' })).toHaveLength(8);
+
+    await user.click(screen.getAllByRole('button', { name: 'Require' })[0]!);
+    const removeRequirement = screen.getByRole('button', {
+      name: 'Remove requirement for League Player 01',
+    });
+    expect(removeRequirement.closest('.player-rule-chip')).toHaveTextContent('League Player 01');
+    await user.click(removeRequirement);
+    expect(screen.getByText('No player-specific rules.')).toBeVisible();
+  });
+
+  it('limits required player rules to five', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
+    await user.click(screen.getByText('Advanced controls'));
+    await user.click(screen.getByText('Add player rule'));
+    await user.type(screen.getByRole('searchbox', { name: 'Find a player or team' }), 'MCM');
+
+    for (let count = 0; count < 5; count += 1) {
+      await user.click(screen.getAllByRole('button', { name: 'Require' })[0]!);
+    }
+
+    expect(screen.getAllByText('Required', { selector: 'small' })).toHaveLength(5);
+    expect(screen.getByRole('button', { name: 'Require' })).toBeDisabled();
+  });
+
+  it('shows domain validation messages returned by generation', async () => {
+    const user = userEvent.setup();
+    mockedPostLineupGeneration.mockRejectedValueOnce(
+      new ApiClientError('The lineup generation intent is invalid.', 422, 'INVALID_INTENT', [
+        {
+          code: 'UNKNOWN_EXCLUDED_PLAYER',
+          message: 'Excluded players are not in the eligible pool: example-player.',
+          playerIds: ['example-player'],
+        },
+      ]),
+    );
+    renderApp();
+
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
+    await user.click(screen.getByRole('button', { name: 'Generate lineup' }));
+
+    expect(
+      await screen.findByText('Excluded players are not in the eligible pool: example-player.'),
+    ).toBeVisible();
+  });
+
+  it('shows generation loading and preserves infeasible messaging and retry behavior', async () => {
+    const user = userEvent.setup();
+    let rejectGeneration!: (reason: Error) => void;
+    mockedPostLineupGeneration.mockImplementationOnce(
+      () =>
+        new Promise((_, reject) => {
+          rejectGeneration = reject;
+        }),
+    );
+    renderApp();
+
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
+    await user.click(screen.getByRole('button', { name: 'Generate lineup' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Finding the best five for your intent…' }),
+    ).toBeVisible();
+
+    await act(async () => rejectGeneration(new Error('No lineup satisfies all requirements.')));
+    expect(
+      await screen.findByRole('heading', { name: 'Those requirements don’t fit this roster.' }),
+    ).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Retry generation' }));
+    expect(
+      await screen.findByRole('heading', { name: 'The strongest fit for your intent.' }),
+    ).toBeVisible();
+  });
+
+  it('reveals full-width results after the editor, moves focus, and returns to the exact five', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    for (const name of playerNames.slice(0, 5)) {
+      await user.click(screen.getByRole('button', { name: `Select ${name}` }));
+    }
+    const editor = screen.getByRole('heading', { name: 'Select exactly five' }).closest('form')!;
+    await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
+
+    const heading = await screen.findByRole('heading', { name: 'How this five fits together.' });
+    const results = heading.closest('.build-results')!;
+    expect(editor.compareDocumentPosition(results) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(heading).toHaveFocus();
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'start',
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Back to editing' }));
+    expect(editor).toHaveFocus();
+    for (const name of playerNames.slice(0, 5)) {
+      expect(screen.getByRole('button', { name: `Remove ${name}` })).toBeVisible();
+    }
+    expect(heading).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Repair this lineup' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Compare versions' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Save version' })).toBeVisible();
+  });
+
+  it('focuses successful results without auto-scrolling when reduced motion is requested', async () => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockReturnValue({ matches: true }),
+    });
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    for (const name of playerNames.slice(0, 5)) {
+      await user.click(screen.getByRole('button', { name: `Select ${name}` }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
+
+    const heading = await screen.findByRole('heading', { name: 'How this five fits together.' });
+    expect(heading).toHaveFocus();
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it('keeps long content in document flow at narrow widths', async () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 360 });
+    mockedFetchRoster.mockResolvedValue({
+      team: demoTeam,
+      players: [
+        {
+          ...players[0]!,
+          name: 'A Very Long Player Name That Must Remain Fully Available On Narrow Screens',
+        },
+        ...players.slice(1),
+      ],
+    });
+    const user = userEvent.setup();
+    renderApp();
+
+    expect(
+      await screen.findByText(
+        'A Very Long Player Name That Must Remain Fully Available On Narrow Screens',
+      ),
+    ).toBeVisible();
+    await user.click(screen.getByRole('tab', { name: 'Generate from goals' }));
+    const form = screen.getByRole('heading', { name: 'Shape your best five' }).closest('form')!;
+    expect(form.style.height).toBe('');
+    expect(form.style.maxHeight).toBe('');
+    expect(form.style.overflowY).toBe('');
   });
 });
 
 describe('lineup repair and comparison', () => {
   it('requires a starting five before opening repair controls', async () => {
     const user = userEvent.setup();
-    renderApp();
-    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+    renderApp('/repair');
 
-    await user.click(screen.getByRole('tab', { name: 'Repair a lineup' }));
     expect(
-      screen.getByRole('heading', { name: 'Select five players before repairing.' }),
+      await screen.findByRole('heading', { name: 'Select five players before repairing.' }),
     ).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Build starting five' }));
     expect(screen.getByRole('button', { name: 'Analyze lineup' })).toBeDisabled();
@@ -827,7 +1067,9 @@ describe('lineup repair and comparison', () => {
     for (const name of playerNames.slice(0, 5)) {
       await user.click(screen.getByRole('button', { name: `Select ${name}` }));
     }
-    await user.click(screen.getByRole('tab', { name: 'Repair a lineup' }));
+    await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
+    await screen.findByRole('heading', { name: 'How this five fits together.' });
+    await user.click(screen.getByRole('button', { name: 'Repair this lineup' }));
     expect(screen.getByRole('heading', { name: 'Set the new intent' })).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Repair lineup' }));
@@ -872,7 +1114,7 @@ describe('session lineup versions', () => {
     await user.type(secondName, 'Defense branch');
     await user.click(screen.getByRole('button', { name: 'Save version' }));
 
-    await user.click(screen.getByRole('tab', { name: 'Compare & versions' }));
+    await user.click(screen.getByRole('button', { name: 'Compare versions' }));
     expect(screen.getAllByText('Balanced start')[0]).toBeVisible();
     expect(screen.getAllByText('Defense branch')[0]).toBeVisible();
     expect(screen.getByText('manual · branched from Balanced start')).toBeVisible();
@@ -890,7 +1132,7 @@ describe('session lineup versions', () => {
     expect(screen.getByText('✓ Meets')).toBeVisible();
 
     await user.click(screen.getAllByRole('button', { name: 'Branch from here' })[0]!);
-    expect(screen.getByRole('tab', { name: 'Build manually' })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: 'Choose players' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
@@ -968,9 +1210,7 @@ describe('session lineup versions', () => {
     });
 
     const user = userEvent.setup();
-    renderApp();
-    await screen.findByRole('button', { name: 'Select Jordan Vega' });
-    await user.click(screen.getByRole('tab', { name: 'Compare & versions' }));
+    renderApp('/compare');
     expect(await screen.findByText('Database ready')).toBeVisible();
     await user.click(await screen.findByRole('button', { name: 'Open' }));
 

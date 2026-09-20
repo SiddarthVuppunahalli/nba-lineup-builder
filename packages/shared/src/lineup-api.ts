@@ -143,7 +143,7 @@ export const lineupIntentSchema = z.object({
       switchability: normalizedScoreSchema.optional(),
     })
     .default({}),
-  requiredPlayerIds: z.array(z.string().trim().min(1)).max(20),
+  requiredPlayerIds: z.array(z.string().trim().min(1)).max(5),
   excludedPlayerIds: z.array(z.string().trim().min(1)).max(20),
 });
 

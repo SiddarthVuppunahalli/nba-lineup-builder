@@ -84,10 +84,12 @@ function duplicates(ids: readonly string[]): string[] {
 export function validateGenerationInput(
   input: GenerateLineupInput,
   maximumPoolSize: number | null = MAX_EXHAUSTIVE_POOL_SIZE,
+  knownPlayerIds: readonly string[] = input.players.map((player) => player.id),
 ): GenerationIssue[] {
   const issues: GenerationIssue[] = [];
   const playerIds = input.players.map((player) => player.id);
   const playerIdSet = new Set(playerIds);
+  const knownPlayerIdSet = new Set(knownPlayerIds);
   const profileIds = input.profiles.map((profile) => profile.playerId);
   const duplicatePlayers = duplicates(playerIds);
   const duplicateProfiles = duplicates(profileIds);
@@ -99,10 +101,10 @@ export function validateGenerationInput(
     ...new Set(input.intent.requiredPlayerIds.filter((id) => excluded.has(id))),
   ].sort();
   const unknownRequired = [
-    ...new Set(input.intent.requiredPlayerIds.filter((id) => !playerIdSet.has(id))),
+    ...new Set(input.intent.requiredPlayerIds.filter((id) => !knownPlayerIdSet.has(id))),
   ].sort();
   const unknownExcluded = [
-    ...new Set(input.intent.excludedPlayerIds.filter((id) => !playerIdSet.has(id))),
+    ...new Set(input.intent.excludedPlayerIds.filter((id) => !knownPlayerIdSet.has(id))),
   ].sort();
 
   if (maximumPoolSize !== null && input.players.length > maximumPoolSize)
@@ -233,8 +235,9 @@ export function calculateObjectiveScore(
 export function generateLineupWithinPoolLimit(
   input: GenerateLineupInput,
   maximumPoolSize: number,
+  knownPlayerIds?: readonly string[],
 ): GenerateLineupResult {
-  const issues = validateGenerationInput(input, maximumPoolSize);
+  const issues = validateGenerationInput(input, maximumPoolSize, knownPlayerIds);
   if (issues.length) {
     const dataCodes = new Set([
       'MISSING_PROFILE',

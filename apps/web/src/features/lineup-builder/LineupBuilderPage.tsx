@@ -1,6 +1,6 @@
 import type { AnalyzeLineupRequest, SaveScenarioRequest, TeamDto } from '@lineup-engine/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 
@@ -45,11 +45,7 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
   const navigate = useNavigate();
   const [buildWorkflow, setBuildWorkflow] = useState<'manual' | 'generation'>('manual');
   const workflow =
-    routeWorkflow === 'build'
-      ? buildWorkflow
-      : routeWorkflow === 'repair'
-        ? 'repair'
-        : 'versions';
+    routeWorkflow === 'build' ? buildWorkflow : routeWorkflow === 'repair' ? 'repair' : 'versions';
   const [teamOverride, setTeamOverride] = useState('');
   const [poolCategorySelection, setPoolCategorySelection] = useState<PoolCategory>('team');
   const [versions, setVersions] = useState<SessionLineupVersion[]>([]);
@@ -85,6 +81,7 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
       (player) => player.profileStatus !== 'unavailable' && Boolean(player.profile),
     ) ?? [];
   const analysisMutation = useMutation({ mutationFn: postLineupAnalysis });
+  const manualEditorRef = useRef<HTMLFormElement>(null);
   const { control, handleSubmit, reset, setValue } = useForm<LineupFormValues>({
     defaultValues: { playerIds: [] },
   });
@@ -278,6 +275,15 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
   const rosterReady = teamsQuery.isSuccess && rosterQuery.isSuccess && Boolean(selectedTeamId);
   const canAnalyze = rosterReady && selectedPlayerIds.length === 5 && !analysisMutation.isPending;
 
+  function returnToEditor(editor: HTMLElement | null) {
+    if (!editor) return;
+    editor.focus({ preventScroll: true });
+    const reducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    editor.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+  }
+
   function rosterContent() {
     if (teamsQuery.isPending) {
       return (
@@ -369,22 +375,7 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
 
   return (
     <main className="workspace">
-      <header className="workspace-header">
-        <div>
-          <div className="eyebrow">The lineup lab</div>
-          <h1>
-            Choose the five. <span>Understand the fit.</span>
-          </h1>
-          <p>
-            A little shooting. A little size. The right five together. Explore your lineup’s
-            strengths, tradeoffs, and the story behind every score.
-          </p>
-          <span className="demo-note">
-            {selectedPool?.isDemo
-              ? 'Fictional fallback · Illustrative ratings'
-              : `${selectedPool?.season ?? 'Season snapshot'} · Derived profile ratings`}
-          </span>
-        </div>
+      <section className="pool-bar" aria-label="Player pool selection">
         <div className="pool-controls">
           <div className="mode-switch" aria-label="Player pool mode">
             {(
@@ -424,91 +415,176 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
             </select>
           </label>
         </div>
-      </header>
-
-      {selectedPool ? (
-        <aside className="data-provenance" aria-label="Data source and search scope">
-          <div>
-            <strong>{selectedPool.mode === 'league' ? 'League pool' : 'Team roster'}</strong>
-            <span>
-              {selectedPool.sourceLabel} · snapshot {selectedPool.snapshotDate}
-            </span>
-          </div>
-          <p>
-            {selectedPool.searchStrategy === 'solver'
-              ? 'Generation and repair use a time-limited full-pool optimizer and disclose proof, gap, or fallback status.'
-              : 'Generation checks every five-player combination in this roster.'}
-            {selectedPool.rosterPlayerCount !== undefined &&
-            selectedPool.profiledPlayerCount !== undefined &&
-            selectedPool.profiledPlayerCount < selectedPool.rosterPlayerCount
-              ? ` ${selectedPool.profiledPlayerCount} of ${selectedPool.rosterPlayerCount} current players have completed-season profiles and are eligible.`
-              : ''}
-          </p>
-          {selectedPool.scoringLabel ? <p>{selectedPool.scoringLabel}</p> : null}
-          {selectedPool.sourceUrl ? (
-            <a href={selectedPool.sourceUrl} target="_blank" rel="noreferrer">
-              View source
-            </a>
-          ) : null}
-        </aside>
-      ) : null}
+        {selectedPool ? (
+          <details className="data-provenance" aria-label="Data source and search scope">
+            <summary>
+              <strong>{selectedPool.mode === 'league' ? 'League pool' : 'Team roster'}</strong>
+              <span>
+                {selectedPool.sourceLabel} · snapshot {selectedPool.snapshotDate}
+              </span>
+              <span className="data-provenance__toggle">Details +</span>
+            </summary>
+            <div className="data-provenance__details">
+              <p>
+                {selectedPool.searchStrategy === 'solver'
+                  ? 'Generation and repair use a time-limited full-pool optimizer and disclose proof, gap, or fallback status.'
+                  : 'Generation checks every five-player combination in this roster.'}
+                {selectedPool.rosterPlayerCount !== undefined &&
+                selectedPool.profiledPlayerCount !== undefined &&
+                selectedPool.profiledPlayerCount < selectedPool.rosterPlayerCount
+                  ? ` ${selectedPool.profiledPlayerCount} of ${selectedPool.rosterPlayerCount} current players have completed-season profiles and are eligible.`
+                  : ''}
+              </p>
+              {selectedPool.scoringLabel ? <p>{selectedPool.scoringLabel}</p> : null}
+              {selectedPool.sourceUrl ? (
+                <a href={selectedPool.sourceUrl} target="_blank" rel="noreferrer">
+                  View source
+                </a>
+              ) : null}
+            </div>
+          </details>
+        ) : null}
+      </section>
 
       {selectedPool?.isDemo && rosterReady && rosterQuery.data?.players.length ? (
         <DemoScenarios onSelect={loadDemoScenario} />
       ) : null}
 
-      <div className="workflow-tabs" role="tablist" aria-label="Lineup workflow">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={workflow === 'manual'}
-          onClick={() => {
-            setBuildWorkflow('manual');
-            navigate('/build');
-          }}
-        >
-          Build manually
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={workflow === 'generation'}
-          onClick={() => {
-            setBuildWorkflow('generation');
-            navigate('/build');
-          }}
-        >
-          Generate from intent
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={workflow === 'repair'}
-          onClick={() => navigate('/repair')}
-        >
-          Repair a lineup
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={workflow === 'versions'}
-          onClick={() => navigate('/compare')}
-        >
-          Compare &amp; versions
-        </button>
-      </div>
+      {routeWorkflow === 'build' ? (
+        <section className="build-experience" aria-label="Build a lineup">
+          <div className="build-method-switch" role="tablist" aria-label="Build method">
+            <button
+              type="button"
+              role="tab"
+              aria-label="Choose players"
+              aria-selected={buildWorkflow === 'manual'}
+              aria-controls="choose-players-panel"
+              onClick={() => setBuildWorkflow('manual')}
+            >
+              <span>Choose players</span>
+              <small>Pick and analyze your five</small>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-label="Generate from goals"
+              aria-selected={buildWorkflow === 'generation'}
+              aria-controls="generate-goals-panel"
+              onClick={() => setBuildWorkflow('generation')}
+            >
+              <span>Generate from goals</span>
+              <small>Describe the fit you need</small>
+            </button>
+          </div>
 
-      {workflow === 'generation' && rosterReady && rosterQuery.data?.players.length ? (
-        <GenerationWorkspace
-          key={selectedTeamId}
-          teamId={selectedTeamId}
-          roster={profiledRoster}
-          usesLeagueSolver={selectedPool?.searchStrategy === 'solver'}
-          defaultMinimumShooters={selectedPool?.defaultMinimumShooters ?? 3}
-          defaultMinimumCreators={selectedPool?.defaultMinimumCreators ?? 1}
-          onGeneratedLineup={useLineupForRepair}
-          onSaveVersion={saveVersion}
-        />
+          <div
+            id="choose-players-panel"
+            role="tabpanel"
+            hidden={buildWorkflow !== 'manual'}
+            className="build-method-panel"
+          >
+            <div className="build-method-workspace">
+              <form
+                className="roster-card build-editor"
+                onSubmit={handleSubmit(submitLineup)}
+                ref={manualEditorRef}
+                tabIndex={-1}
+              >
+                <div className="panel-header">
+                  <div>
+                    <span className="panel-kicker">Available roster</span>
+                    <h2>Select exactly five</h2>
+                  </div>
+                  <div
+                    className={`selection-count ${selectedPlayerIds.length === 5 ? 'is-complete' : ''}`}
+                  >
+                    <strong>{selectedPlayerIds.length}</strong>
+                    <span>/ 5</span>
+                  </div>
+                </div>
+
+                {rosterContent()}
+
+                <div className="roster-actions">
+                  <p>
+                    {!rosterReady || !rosterQuery.data?.players.length
+                      ? 'Load an available roster to get started.'
+                      : selectedPlayerIds.length === 5
+                        ? 'Your five is ready for analysis.'
+                        : `Choose ${5 - selectedPlayerIds.length} more player${5 - selectedPlayerIds.length === 1 ? '' : 's'}.`}
+                  </p>
+                  <button className="analyze-button" type="submit" disabled={!canAnalyze}>
+                    Analyze lineup <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              </form>
+
+              {analysisMutation.isPending || analysisMutation.error || analysisMutation.data ? (
+                <div className="build-results" aria-live="polite">
+                  <AnalysisPanel
+                    analysis={analysisMutation.data}
+                    error={requestErrorMessage(analysisMutation.error)}
+                    isPending={analysisMutation.isPending}
+                    roster={rosterQuery.data?.players ?? []}
+                    selectedPlayerIds={selectedPlayerIds}
+                    onRetry={() => void handleSubmit(submitLineup)()}
+                    canRetry={canAnalyze}
+                    revealOnSuccess
+                    onBackToEditing={() => returnToEditor(manualEditorRef.current)}
+                    onRepair={() => navigate('/repair')}
+                    onCompare={() => navigate('/compare')}
+                    versionSave={
+                      analysisMutation.data
+                        ? {
+                            suggestedName: 'Manual lineup',
+                            onSave: (name) =>
+                              saveVersion({
+                                name,
+                                playerIds: selectedPlayerIds,
+                                source: 'manual',
+                                analysis: analysisMutation.data,
+                              }),
+                          }
+                        : undefined
+                    }
+                  />
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div
+            id="generate-goals-panel"
+            role="tabpanel"
+            hidden={buildWorkflow !== 'generation'}
+            className="build-method-panel"
+          >
+            {rosterReady && rosterQuery.data?.players.length ? (
+              <GenerationWorkspace
+                key={selectedTeamId}
+                teamId={selectedTeamId}
+                roster={profiledRoster}
+                usesLeagueSolver={selectedPool?.searchStrategy === 'solver'}
+                defaultMinimumShooters={selectedPool?.defaultMinimumShooters ?? 3}
+                defaultMinimumCreators={selectedPool?.defaultMinimumCreators ?? 1}
+                onGeneratedLineup={useLineupForRepair}
+                onSaveVersion={saveVersion}
+                onOpenRepair={() => navigate('/repair')}
+                onOpenCompare={() => navigate('/compare')}
+              />
+            ) : buildWorkflow === 'generation' ? (
+              <section className="roster-card build-editor">
+                <div className="panel-header">
+                  <div>
+                    <span className="panel-kicker">Player pool</span>
+                    <h2>Prepare generation</h2>
+                  </div>
+                </div>
+                {rosterContent()}
+              </section>
+            ) : null}
+          </div>
+        </section>
       ) : workflow === 'repair' && rosterReady && rosterQuery.data?.players.length ? (
         selectedPlayerIds.length === 5 ? (
           <RepairWorkspace
@@ -577,9 +653,7 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
                 <span>/ 5</span>
               </div>
             </div>
-
             {rosterContent()}
-
             <div className="roster-actions">
               <p>
                 {!rosterReady || !rosterQuery.data?.players.length
@@ -593,7 +667,6 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
               </button>
             </div>
           </form>
-
           <AnalysisPanel
             analysis={analysisMutation.data}
             error={requestErrorMessage(analysisMutation.error)}
