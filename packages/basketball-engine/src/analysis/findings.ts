@@ -68,7 +68,7 @@ export function deriveFindings(
     });
   }
 
-  if (analysis.interiorDefense.score < 60) {
+  if (analysis.interiorDefense.score < 50) {
     findings.push({
       id: 'interior-defense:limited',
       type: 'interior-defense',
@@ -79,7 +79,31 @@ export function deriveFindings(
     });
   }
 
-  if (analysis.perimeterDefense.score >= 75 && analysis.switchability.score >= 75) {
+  if (analysis.playmaking.score >= 65) {
+    findings.push({
+      id: 'playmaking:connected',
+      type: 'playmaking',
+      severity: 'strength',
+      title: 'Connected playmaking',
+      description:
+        'Strong collective passing and multiple connective options should keep the offense moving after the initial advantage.',
+      evidence: analysis.playmaking.evidence,
+    });
+  }
+
+  if (analysis.interiorDefense.score >= 60 && analysis.rebounding.score >= 60) {
+    findings.push({
+      id: 'paint-and-glass:foundation',
+      type: 'interior-defense',
+      severity: 'strength',
+      title: 'Paint-and-glass foundation',
+      description:
+        'The lineup has enough back-line defense and rebounding to protect the paint and finish possessions.',
+      evidence: [...analysis.interiorDefense.evidence, ...analysis.rebounding.evidence],
+    });
+  }
+
+  if (analysis.perimeterDefense.score >= 65 && analysis.switchability.score >= 65) {
     findings.push({
       id: 'switchability:versatile',
       type: 'switchability',

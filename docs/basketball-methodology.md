@@ -73,8 +73,10 @@ Findings are derived from the same metric results and thresholds used above:
 - strong spacing when at least four players meet the shooter threshold
 - insufficient creation when fewer than two meet the creator threshold
 - weak rebounding when the lineup score is below 40
-- limited interior defense when the lineup score is below 60
-- versatile perimeter defense when both perimeter defense and switchability reach 75
+- limited interior defense when the lineup score is below 50
+- connected playmaking when playmaking reaches 65
+- a paint-and-glass foundation when both interior defense and rebounding reach 60
+- versatile perimeter defense when both perimeter defense and switchability reach 65
 
 Every metric retains player scores, weighted components, and rule adjustments as structured evidence. Each weighted component records its source value and percentage in its description and its contribution in `value`. The engine adds the weighted contributions and rule adjustments to obtain the score; player ratings remain contextual evidence and are not added again.
 
