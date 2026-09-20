@@ -413,16 +413,31 @@ describe('navigation foundation', () => {
     expect(screen.queryByText(/system ready/i)).not.toBeInTheDocument();
   });
 
-  it('supports direct navigation to the About page without loading a video iframe', () => {
+  it('supports direct navigation to the personal About page with its media and profiles', () => {
     renderApp('/about');
 
     expect(screen.getByRole('heading', { name: 'About me' })).toBeVisible();
-    expect(screen.getByRole('heading', { name: '[FAVORITE PLAYER]' })).toBeVisible();
+    expect(screen.getByRole('img', { name: 'San Antonio Spurs logo' })).toBeVisible();
+    expect(screen.getByRole('img', { name: 'Kawhi Leonard' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'My favorite NBA moment' })).toBeVisible();
+    expect(screen.getByTitle('My favorite NBA moment')).toHaveAttribute(
+      'src',
+      'https://www.youtube.com/embed/ojM9nVvigyA',
+    );
+    expect(screen.queryByText(/privacy-enhanced/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Play video' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'LinkedIn profile' })).toHaveAttribute(
+      'href',
+      'https://www.linkedin.com/in/siddarthvuppunahalli',
+    );
+    expect(screen.getByRole('link', { name: 'GitHub profile' })).toHaveAttribute(
+      'href',
+      'https://github.com/SiddarthVuppunahalli',
+    );
     expect(screen.queryByText('[ABOUT THE PROJECT]')).not.toBeInTheDocument();
     expect(screen.queryByText('01')).not.toBeInTheDocument();
     expect(screen.queryByText('02')).not.toBeInTheDocument();
     expect(screen.queryByText('03')).not.toBeInTheDocument();
-    expect(screen.queryByTitle('[FAVORITE MOMENT]')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /back to landing/i })).toHaveAttribute('href', '/');
   });
 
@@ -842,7 +857,8 @@ describe('structured lineup generation', () => {
     await screen.findByRole('heading', { name: 'The strongest fit for your intent.' });
 
     await user.click(screen.getByRole('button', { name: 'Repair this lineup' }));
-    expect(screen.getByRole('heading', { name: 'Set the new intent' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Confirm the lineup to repair' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Describe what needs to change' })).toBeVisible();
     expect(screen.getByText(/Jordan Vega · Malik Rhodes · Eli Mercer/)).toBeVisible();
   });
 
@@ -985,6 +1001,11 @@ describe('structured lineup generation', () => {
     const heading = await screen.findByRole('heading', { name: 'How this five fits together.' });
     const results = heading.closest('.build-results')!;
     expect(editor.compareDocumentPosition(results) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const findings = screen.getByRole('heading', { name: 'What works' }).closest('.findings-grid')!;
+    const scores = results.querySelector('.metric-grid')!;
+    expect(
+      findings.compareDocumentPosition(scores) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(heading).toHaveFocus();
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
       behavior: 'smooth',
@@ -1070,7 +1091,8 @@ describe('lineup repair and comparison', () => {
     await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
     await screen.findByRole('heading', { name: 'How this five fits together.' });
     await user.click(screen.getByRole('button', { name: 'Repair this lineup' }));
-    expect(screen.getByRole('heading', { name: 'Set the new intent' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Confirm the lineup to repair' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Describe what needs to change' })).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Repair lineup' }));
     expect(mockedPostLineupRepair.mock.calls[0]?.[0]).toEqual(
@@ -1080,12 +1102,23 @@ describe('lineup repair and comparison', () => {
       }),
     );
     expect(await screen.findByRole('heading', { name: '1 swap made.' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: '1 swap made.' })).toHaveFocus();
     expect(screen.getByText('Samir Cole', { selector: '.swap-summary strong' })).toBeVisible();
     expect(screen.getByText('Darius Knox', { selector: '.swap-summary strong' })).toBeVisible();
+    const fixedRequirements = screen
+      .getByRole('heading', { name: 'Requirements fixed' })
+      .closest<HTMLElement>('.repair-constraint-summary')!;
+    expect(
+      within(fixedRequirements).getByText('3 of 5 players meet the threshold; 3 required.'),
+    ).toBeVisible();
     expect(screen.getByText('Largest tradeoff')).toBeVisible();
     expect(screen.getByText('Rebounding', { selector: '.tradeoff strong' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'The smallest change that works.' })).toBeVisible();
     expect(screen.getByText(/fewest swaps took priority over weighted fit/)).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Back to editing' }));
+    expect(
+      screen.getByRole('heading', { name: 'Confirm the lineup to repair' }).closest('form'),
+    ).toHaveFocus();
   });
 });
 
@@ -1115,6 +1148,12 @@ describe('session lineup versions', () => {
     await user.click(screen.getByRole('button', { name: 'Save version' }));
 
     await user.click(screen.getByRole('button', { name: 'Compare versions' }));
+    expect(screen.getByLabelText('Selected comparison versions')).toHaveTextContent(
+      'Balanced start',
+    );
+    expect(screen.getByLabelText('Selected comparison versions')).toHaveTextContent(
+      'Defense branch',
+    );
     expect(screen.getAllByText('Balanced start')[0]).toBeVisible();
     expect(screen.getAllByText('Defense branch')[0]).toBeVisible();
     expect(screen.getByText('manual · branched from Balanced start')).toBeVisible();
@@ -1128,8 +1167,14 @@ describe('session lineup versions', () => {
     });
     expect(await screen.findByText('Largest tradeoff')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Balanced start Defense branch' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Balanced start Defense branch' })).toHaveFocus();
     expect(screen.getByText('× Misses')).toBeVisible();
     expect(screen.getByText('✓ Meets')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Back to selection' }));
+    expect(
+      screen.getByRole('heading', { name: 'Choose the two lineups' }).closest('form'),
+    ).toHaveFocus();
 
     await user.click(screen.getAllByRole('button', { name: 'Branch from here' })[0]!);
     expect(screen.getByRole('tab', { name: 'Choose players' })).toHaveAttribute(

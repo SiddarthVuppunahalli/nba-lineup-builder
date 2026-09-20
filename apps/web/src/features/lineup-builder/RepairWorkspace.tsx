@@ -18,6 +18,7 @@ interface RepairWorkspaceProps {
   onSaveVersion: (version: SessionVersionDraft) => void;
   defaultMinimumShooters?: number;
   defaultMinimumCreators?: number;
+  onEditStartingFive: () => void;
 }
 
 function errorMessage(error: Error | null): string | undefined {
@@ -44,6 +45,7 @@ export function RepairWorkspace({
   onSaveVersion,
   defaultMinimumShooters = balancedIntent.minimumShooters,
   defaultMinimumCreators = balancedIntent.minimumCreators,
+  onEditStartingFive,
 }: RepairWorkspaceProps) {
   const initialIntent: LineupIntentDto = {
     ...balancedIntent,
@@ -57,6 +59,7 @@ export function RepairWorkspace({
   });
   const values = useWatch({ control });
   const initialized = useRef(false);
+  const editorRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (!initialized.current) {
@@ -90,15 +93,31 @@ export function RepairWorkspace({
     : undefined;
 
   return (
-    <div className="builder-layout generation-layout">
-      <form className="roster-card generation-form" onSubmit={handleSubmit(submit)}>
+    <div className="repair-workflow">
+      <header className="workflow-intro">
+        <span className="panel-kicker">Repair a lineup</span>
+        <h1>Keep the core. Fix the fit.</h1>
+        <p>
+          Confirm the five you are starting from, describe the new intent, then inspect every
+          change.
+        </p>
+      </header>
+
+      <form
+        className="roster-card generation-form repair-editor"
+        onSubmit={handleSubmit(submit)}
+        ref={editorRef}
+        tabIndex={-1}
+      >
         <div className="panel-header">
           <div>
-            <span className="panel-kicker">Adapt your lineup</span>
-            <h2>Set the new intent</h2>
+            <span className="step-label">
+              <b>1</b> Starting five
+            </span>
+            <h2>Confirm the lineup to repair</h2>
           </div>
-          <button className="text-button" type="button" onClick={() => reset(initialIntent)}>
-            Reset
+          <button className="text-button" type="button" onClick={onEditStartingFive}>
+            Edit in Build
           </button>
         </div>
 
@@ -111,79 +130,119 @@ export function RepairWorkspace({
           </strong>
         </div>
 
-        <NaturalLanguageIntent key={teamId} teamId={teamId} onApply={(intent) => reset(intent)} />
+        <section className="repair-intent" aria-labelledby="repair-intent-title">
+          <div className="repair-section-heading">
+            <div>
+              <span className="step-label">
+                <b>2</b> New intent
+              </span>
+              <h2 id="repair-intent-title">Describe what needs to change</h2>
+            </div>
+            <button className="text-button" type="button" onClick={() => reset(initialIntent)}>
+              Reset intent
+            </button>
+          </div>
 
-        <IntentControls
-          roster={roster}
-          register={register}
-          requiredPlayerIds={values.requiredPlayerIds ?? []}
-          excludedPlayerIds={values.excludedPlayerIds ?? []}
-          onTogglePlayer={togglePlayer}
-        />
+          <NaturalLanguageIntent key={teamId} teamId={teamId} onApply={(intent) => reset(intent)} />
+
+          <details className="advanced-intent">
+            <summary>
+              <span>
+                <strong>Configure intent</strong>
+                <small>Priorities, hard requirements, score floors, and player rules</small>
+              </span>
+              <span aria-hidden="true">+</span>
+            </summary>
+            <IntentControls
+              roster={roster}
+              register={register}
+              requiredPlayerIds={values.requiredPlayerIds ?? []}
+              excludedPlayerIds={values.excludedPlayerIds ?? []}
+              onTogglePlayer={togglePlayer}
+            />
+          </details>
+        </section>
 
         <div className="roster-actions">
-          <p>Fewest swaps first, then the strongest fit among equally small changes.</p>
+          <p>
+            <strong>3 · Run repair.</strong> Fewest swaps first, then the strongest fit among
+            equally small changes.
+          </p>
           <button className="analyze-button" type="submit" disabled={mutation.isPending}>
             {mutation.isPending ? 'Repairing…' : 'Repair lineup'} <span aria-hidden="true">→</span>
           </button>
         </div>
       </form>
 
-      <div className="generation-result">
+      <div className="generation-result build-results repair-results" aria-live="polite">
         {response && <ComparisonPanel response={response} roster={roster} />}
-        <AnalysisPanel
-          analysis={analysis}
-          error={errorMessage(mutation.error)}
-          errorDetails={errorDetails(mutation.error)}
-          isPending={mutation.isPending}
-          roster={roster}
-          selectedPlayerIds={response?.repair.after.lineup.playerIds ?? currentPlayerIds}
-          onRetry={() => void handleSubmit(submit)()}
-          canRetry={!mutation.isPending}
-          resultContext={
-            response
-              ? {
-                  objectiveScore: response.repair.after.objectiveScore,
-                  constraints: response.repair.after.constraints,
-                  evaluatedCandidateCount: response.evaluatedCandidateCount,
-                  validCandidateCount: response.validCandidateCount,
-                  usedBalancedDefault: response.usedBalancedDefault,
-                  ...(response.search ? { search: response.search } : {}),
-                }
-              : undefined
-          }
-          mode="repair"
-          versionSave={
-            response
-              ? {
-                  suggestedName: 'Repaired lineup',
-                  onSave: (name) =>
-                    onSaveVersion({
-                      name,
-                      playerIds: response.repair.after.lineup.playerIds,
-                      source: 'repaired',
-                      analysis: {
-                        lineup: response.repair.after.lineup,
-                        analysis: response.repair.after.analysis,
-                      },
-                      intent: mutation.variables?.intent ?? initialIntent,
-                      repair: {
-                        startingPlayerIds: [...currentPlayerIds] as [
-                          string,
-                          string,
-                          string,
-                          string,
-                          string,
-                        ],
-                        removedPlayerIds: response.repair.removedPlayerIds,
-                        addedPlayerIds: response.repair.addedPlayerIds,
-                        swapCount: response.repair.swapCount,
-                      },
-                    }),
-                }
-              : undefined
-          }
-        />
+        {mutation.isPending || mutation.error || response ? (
+          <AnalysisPanel
+            analysis={analysis}
+            error={errorMessage(mutation.error)}
+            errorDetails={errorDetails(mutation.error)}
+            isPending={mutation.isPending}
+            roster={roster}
+            selectedPlayerIds={response?.repair.after.lineup.playerIds ?? currentPlayerIds}
+            onRetry={() => void handleSubmit(submit)()}
+            canRetry={!mutation.isPending}
+            resultContext={
+              response
+                ? {
+                    objectiveScore: response.repair.after.objectiveScore,
+                    constraints: response.repair.after.constraints,
+                    evaluatedCandidateCount: response.evaluatedCandidateCount,
+                    validCandidateCount: response.validCandidateCount,
+                    usedBalancedDefault: response.usedBalancedDefault,
+                    ...(response.search ? { search: response.search } : {}),
+                  }
+                : undefined
+            }
+            mode="repair"
+            onBackToEditing={() => {
+              const editor = editorRef.current;
+              if (!editor) return;
+              editor.focus({ preventScroll: true });
+              const reducedMotion =
+                typeof window.matchMedia === 'function' &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+              editor.scrollIntoView({
+                behavior: reducedMotion ? 'auto' : 'smooth',
+                block: 'start',
+              });
+            }}
+            versionSave={
+              response
+                ? {
+                    suggestedName: 'Repaired lineup',
+                    onSave: (name) =>
+                      onSaveVersion({
+                        name,
+                        playerIds: response.repair.after.lineup.playerIds,
+                        source: 'repaired',
+                        analysis: {
+                          lineup: response.repair.after.lineup,
+                          analysis: response.repair.after.analysis,
+                        },
+                        intent: mutation.variables?.intent ?? initialIntent,
+                        repair: {
+                          startingPlayerIds: [...currentPlayerIds] as [
+                            string,
+                            string,
+                            string,
+                            string,
+                            string,
+                          ],
+                          removedPlayerIds: response.repair.removedPlayerIds,
+                          addedPlayerIds: response.repair.addedPlayerIds,
+                          swapCount: response.repair.swapCount,
+                        },
+                      }),
+                  }
+                : undefined
+            }
+          />
+        ) : null}
       </div>
     </div>
   );

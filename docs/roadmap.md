@@ -291,11 +291,34 @@ See [persistence documentation](persistence.md).
 
 ## Phase 10 — Final polish and portfolio presentation
 
+Status: Repair/Compare redesign and cross-workflow polish implemented and verified locally; stopped
+at the redesign checkpoint pending final content, licensing, and deployment review.
+
 - Finish accessibility, responsive layouts, failure handling, and restrained motion.
 - Complete setup/deployment instructions, methodology, architecture, screenshots, and a concise demo script.
 - Verify a production deployment that works without visitor setup.
 
 Checkpoint: a visitor understands the product and completes the main workflow independently.
+
+Redesign checkpoint decisions: Repair now follows starting-five confirmation → new intent → repair →
+before/after evidence, and routes an empty starting state through Build without resetting team or
+pool context. Compare now treats tab-local versions and durable scenarios as one `/compare`
+experience, with explicit paired selections and results below the controls. Both workflows reuse the
+existing engine endpoints and shared intent/version contracts; scoring, data, solver behavior,
+persistence, anonymous recovery, and AI interpretation are unchanged. Results use the established
+focus-managed reveal and reduced-motion behavior. Home, About, Back, loading, empty, failure, and
+progressive-disclosure treatments are aligned across workflow routes.
+
+Remaining Phase 10 work after this checkpoint:
+
+- replace landing-page placeholder copy and complete a final editorial pass, including About copy;
+- complete a formal accessibility audit with assistive technology and device coverage beyond the
+  local keyboard, zoom-equivalent, reduced-motion code-path, and responsive checks;
+- add a repository license and finish rights review for NBA names, marks, remote headshots, source
+  data, the embedded YouTube clip, fonts, and generated imagery before public portfolio use;
+- run a configured PostgreSQL recovery test, configured AI-provider test, live Replit deployment,
+  production smoke test, and cross-browser/device matrix;
+- decide whether public deployment should proxy or replace third-party media dependencies.
 
 ## Working checkpoints and Replit learning
 

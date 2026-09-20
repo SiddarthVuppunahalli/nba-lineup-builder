@@ -5,7 +5,7 @@ creators at 60. Other scoring rules, player ratings, and eligibility are unchang
 use `lineup-analysis-v2-experimental-roles`; older snapshots keep their original scores and version.
 See [methodology and limitations](docs/basketball-methodology.md).
 
-Lineup Engine is a portfolio-quality full-stack application for turning basketball intent into valid, explainable NBA lineups. The product will eventually follow this workflow:
+Lineup Engine is a portfolio-quality full-stack application for turning basketball intent into valid, explainable NBA lineups. The current product follows this workflow:
 
 ```text
 Intent -> Generate -> Evaluate -> Validate -> Repair -> Explain
@@ -26,6 +26,27 @@ When PostgreSQL is configured, named scenarios preserve selections, version bran
 analysis, repair history, and data/scoring versions across browser refreshes.
 
 See the [revised roadmap](docs/roadmap.md) for the agreed remaining phases and checkpoints, and the [theme guide](docs/theme.md) for reusable visual styles.
+
+## Redesigned workflows
+
+- **Build** supports manual selection or intent-driven generation and shares one compact
+  required/excluded-player control.
+- **Repair** confirms the starting five, captures a new intent, minimizes swaps, and reveals the
+  before/after changes, fixed requirements, metric movement, and tradeoffs below the controls. If no
+  five exists, it returns to Build without changing the selected team or pool.
+- **Compare** unifies tab-local versions and optional saved scenarios. Users open or create history,
+  choose a clearly labeled starting and compared version, and inspect lineup changes, weighted fit,
+  metric deltas, requirement satisfaction, and major tradeoffs below the selection area.
+
+Results use focus-managed, reduced-motion-aware reveals and include a Back-to-editing or
+Back-to-selection control. Data provenance, scoring methodology, search coverage, and solver proof
+remain available through accessible disclosures.
+
+![Repair empty state](docs/screenshots/repair.png)
+
+![Unified Compare experience](docs/screenshots/compare.png)
+
+See the [demo script](docs/demo-script.md) for a concise portfolio walkthrough.
 
 The existing [implementation handoff](docs/implementation-handoff.md) records the earlier Phase 8.2
 checkpoint; the roadmap and current repository now carry the Phase 8.3 decisions.

@@ -91,7 +91,7 @@ describe('analyzeLineup', () => {
     );
   });
 
-  it('flags weak rebounding and limited interior defense', () => {
+  it('does not flag weak rebounding at or above 40 but still flags limited interior defense', () => {
     const analysis = analyze([
       'jordan-vega',
       'malik-rhodes',
@@ -100,11 +100,27 @@ describe('analyzeLineup', () => {
       'samir-cole',
     ]);
 
+    expect(analysis.rebounding.score).toBeGreaterThanOrEqual(40);
     expect(analysis.rebounding.score).toBeLessThan(60);
     expect(analysis.interiorDefense.score).toBeLessThan(60);
-    expect(analysis.findings.map((finding) => finding.id)).toEqual(
-      expect.arrayContaining(['rebounding:weak', 'interior-defense:limited']),
-    );
+    expect(analysis.findings.map((finding) => finding.id)).not.toContain('rebounding:weak');
+    expect(analysis.findings.map((finding) => finding.id)).toContain('interior-defense:limited');
+  });
+
+  it('flags weak rebounding only when the lineup score is below 40', () => {
+    const lowReboundingProfiles = DEMO_PROFILES.map((profile) => ({
+      ...profile,
+      rebounding: 20,
+    }));
+    const result = analyzeLineup({
+      playerIds: spacingLineup,
+      players: DEMO_PLAYERS,
+      profiles: lowReboundingProfiles,
+    });
+
+    if (!result.success) throw new Error('Expected low-rebounding analysis to succeed.');
+    expect(result.analysis.rebounding.score).toBeLessThan(40);
+    expect(result.analysis.findings.map((finding) => finding.id)).toContain('rebounding:weak');
   });
 
   it('recognizes a switchable perimeter defense lineup', () => {

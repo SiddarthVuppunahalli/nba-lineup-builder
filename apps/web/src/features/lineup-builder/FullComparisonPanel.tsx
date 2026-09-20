@@ -1,4 +1,5 @@
 import type { ComparedLineupsResponse, RosterPlayerDto } from '@lineup-engine/shared';
+import { useEffect, useRef } from 'react';
 
 import { intentMetrics } from './intent-config.ts';
 
@@ -7,6 +8,7 @@ interface FullComparisonPanelProps {
   beforeName: string;
   afterName: string;
   roster: RosterPlayerDto[];
+  onBackToSelection: () => void;
 }
 
 function formatDelta(delta: number): string {
@@ -18,7 +20,9 @@ export function FullComparisonPanel({
   beforeName,
   afterName,
   roster,
+  onBackToSelection,
 }: FullComparisonPanelProps) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const result = response.comparison;
   const metricLabels = new Map(intentMetrics);
   const playerName = (id: string) => roster.find((player) => player.id === id)?.name ?? id;
@@ -29,12 +33,34 @@ export function FullComparisonPanel({
     ]),
   ];
 
+  useEffect(() => {
+    const heading = headingRef.current;
+    if (!heading) return;
+    heading.focus({ preventScroll: true });
+    const reducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reducedMotion && typeof heading.scrollIntoView === 'function') {
+      heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [response]);
+
   return (
     <section className="comparison-card full-comparison" aria-labelledby="full-comparison-title">
       <span className="panel-kicker">Version comparison</span>
-      <h2 id="full-comparison-title">
+      <h2 id="full-comparison-title" ref={headingRef} tabIndex={-1}>
         {beforeName} <span aria-hidden="true">→</span> {afterName}
       </h2>
+
+      <div className="result-actions" aria-label="Comparison result actions">
+        <button
+          className="result-action result-action--back"
+          type="button"
+          onClick={onBackToSelection}
+        >
+          <span aria-hidden="true">←</span> Back to selection
+        </button>
+      </div>
 
       <div className="comparison-lineups">
         <div>

@@ -4,7 +4,7 @@ import type {
   RosterPlayerDto,
 } from '@lineup-engine/shared';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { ApiClientError, postLineupComparison } from '../../api/client.ts';
@@ -49,6 +49,7 @@ export function SessionVersionsWorkspace({
 }: SessionVersionsWorkspaceProps) {
   const [beforeId, setBeforeId] = useState('');
   const [afterId, setAfterId] = useState('');
+  const selectionRef = useRef<HTMLFormElement>(null);
   const mutation = useMutation({ mutationFn: postLineupComparison });
   const resetComparison = mutation.reset;
   const { control, register, handleSubmit } = useForm<LineupIntentDto>({
@@ -85,6 +86,14 @@ export function SessionVersionsWorkspace({
 
   return (
     <div className="versions-workspace">
+      <header className="workflow-intro compare-intro">
+        <span className="panel-kicker">Compare lineups</span>
+        <h1>Trace the decision, not just the score.</h1>
+        <p>
+          Open a saved scenario or use this session’s versions, choose two, then compare the same
+          requirements across both.
+        </p>
+      </header>
       <ScenarioPersistencePanel
         key={persistence.activeScenarioId ?? 'new-scenario'}
         {...persistence}
@@ -93,8 +102,10 @@ export function SessionVersionsWorkspace({
       <section className="roster-card versions-card" aria-labelledby="versions-title">
         <div className="panel-header">
           <div>
-            <span className="panel-kicker">Decision history</span>
-            <h2 id="versions-title">Lineup versions</h2>
+            <span className="step-label">
+              <b>1</b> Version history
+            </span>
+            <h2 id="versions-title">Saved and session versions</h2>
           </div>
           <span className="version-count">{versions.length}</span>
         </div>
@@ -147,11 +158,18 @@ export function SessionVersionsWorkspace({
         )}
       </section>
 
-      <form className="roster-card comparison-form" onSubmit={handleSubmit(compare)}>
+      <form
+        className="roster-card comparison-form"
+        onSubmit={handleSubmit(compare)}
+        ref={selectionRef}
+        tabIndex={-1}
+      >
         <div className="panel-header">
           <div>
-            <span className="panel-kicker">Side by side</span>
-            <h2>Compare two versions</h2>
+            <span className="step-label">
+              <b>2</b> Select versions
+            </span>
+            <h2>Choose the two lineups</h2>
           </div>
         </div>
         {versions.length < 2 ? (
@@ -188,6 +206,31 @@ export function SessionVersionsWorkspace({
                 </select>
               </label>
             </div>
+            {before && after ? (
+              <div className="selected-comparison" aria-label="Selected comparison versions">
+                <article>
+                  <span>Starting version</span>
+                  <strong>{before.name}</strong>
+                  <small>
+                    {before.playerIds
+                      .map((id) => roster.find((player) => player.id === id)?.name ?? id)
+                      .join(' · ')}
+                  </small>
+                </article>
+                <span className="selected-comparison__arrow" aria-hidden="true">
+                  →
+                </span>
+                <article>
+                  <span>Compared version</span>
+                  <strong>{after.name}</strong>
+                  <small>
+                    {after.playerIds
+                      .map((id) => roster.find((player) => player.id === id)?.name ?? id)
+                      .join(' · ')}
+                  </small>
+                </article>
+              </div>
+            ) : null}
             <details className="comparison-requirements">
               <summary>Comparison priorities and requirements</summary>
               <p>
@@ -211,11 +254,26 @@ export function SessionVersionsWorkspace({
         )}
       </form>
 
-      {mutation.error ? (
+      {mutation.isPending ? (
+        <section className="analysis-card analysis-loading comparison-state" aria-live="polite">
+          <span className="analysis-orbit" aria-hidden="true" />
+          <div className="eyebrow">Comparing versions</div>
+          <h2>Measuring every change…</h2>
+          <p>Applying the same priorities and hard requirements to both lineups.</p>
+        </section>
+      ) : mutation.error ? (
         <section className="analysis-card analysis-error" role="alert">
           <div className="eyebrow">Comparison unavailable</div>
           <h2>We couldn’t compare those versions.</h2>
           <p>{comparisonError(mutation.error)}</p>
+          <button
+            className="retry-button"
+            type="button"
+            onClick={() => void handleSubmit(compare)()}
+            disabled={!before || !after}
+          >
+            Retry comparison
+          </button>
         </section>
       ) : mutation.data && before && after ? (
         <FullComparisonPanel
@@ -223,6 +281,18 @@ export function SessionVersionsWorkspace({
           beforeName={before.name}
           afterName={after.name}
           roster={roster}
+          onBackToSelection={() => {
+            const selection = selectionRef.current;
+            if (!selection) return;
+            selection.focus({ preventScroll: true });
+            const reducedMotion =
+              typeof window.matchMedia === 'function' &&
+              window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            selection.scrollIntoView({
+              behavior: reducedMotion ? 'auto' : 'smooth',
+              block: 'start',
+            });
+          }}
         />
       ) : null}
     </div>

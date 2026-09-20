@@ -72,7 +72,7 @@ Findings are derived from the same metric results and thresholds used above:
 
 - strong spacing when at least four players meet the shooter threshold
 - insufficient creation when fewer than two meet the creator threshold
-- weak rebounding when the lineup score is below 60
+- weak rebounding when the lineup score is below 40
 - limited interior defense when the lineup score is below 60
 - versatile perimeter defense when both perimeter defense and switchability reach 75
 

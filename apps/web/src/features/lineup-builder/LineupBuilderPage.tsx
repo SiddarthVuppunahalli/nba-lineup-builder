@@ -595,6 +595,10 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
             defaultMinimumShooters={selectedPool?.defaultMinimumShooters ?? 3}
             defaultMinimumCreators={selectedPool?.defaultMinimumCreators ?? 1}
             onSaveVersion={saveVersion}
+            onEditStartingFive={() => {
+              setBuildWorkflow('manual');
+              navigate('/build');
+            }}
           />
         ) : (
           <section className="analysis-card repair-prerequisite">
@@ -602,7 +606,8 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
             <h2>Select five players before repairing.</h2>
             <p>
               Repair preserves as much of an existing lineup as possible, so begin with five in the
-              manual builder or generate a lineup first.
+              manual builder or generate a lineup first. Your current team and player pool will stay
+              selected when you continue to Build.
             </p>
             <button
               className="analyze-button"

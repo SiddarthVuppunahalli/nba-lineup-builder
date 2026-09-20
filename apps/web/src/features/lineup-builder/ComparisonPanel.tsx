@@ -1,4 +1,5 @@
 import type { RepairedLineupResponse, RosterPlayerDto } from '@lineup-engine/shared';
+import { useEffect, useRef } from 'react';
 
 import { intentMetrics } from './intent-config.ts';
 
@@ -16,12 +17,29 @@ function formatDelta(delta: number): string {
 }
 
 export function ComparisonPanel({ response, roster }: ComparisonPanelProps) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const { repair } = response;
   const metricLabels = new Map(intentMetrics);
+  const fixedConstraints = repair.after.constraints.filter((constraint) => {
+    const before = repair.before.constraints.find((candidate) => candidate.id === constraint.id);
+    return before && !before.satisfied && constraint.satisfied;
+  });
+  useEffect(() => {
+    const heading = headingRef.current;
+    if (!heading) return;
+    heading.focus({ preventScroll: true });
+    const reducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reducedMotion && typeof heading.scrollIntoView === 'function') {
+      heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [response]);
+
   return (
     <section className="comparison-card" aria-labelledby="comparison-title">
       <span className="panel-kicker">Before and after</span>
-      <h2 id="comparison-title">
+      <h2 id="comparison-title" ref={headingRef} tabIndex={-1}>
         {repair.swapCount === 0
           ? 'This five already meets the new intent.'
           : `${repair.swapCount} ${repair.swapCount === 1 ? 'swap' : 'swaps'} made.`}
@@ -40,6 +58,27 @@ export function ComparisonPanel({ response, roster }: ComparisonPanelProps) {
           </div>
         </div>
       )}
+
+      <div className="repair-constraint-summary">
+        <h3>Requirements fixed</h3>
+        {fixedConstraints.length > 0 ? (
+          fixedConstraints.map((constraint) => (
+            <div className="constraint-result" key={constraint.id}>
+              <span aria-hidden="true">✓</span>
+              <div>
+                <strong>{constraint.label}</strong>
+                <small>{constraint.description}</small>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p>
+            {repair.before.constraints.every((constraint) => constraint.satisfied)
+              ? 'The starting five already met every selected requirement.'
+              : 'No requirement changed from missed to met in this result.'}
+          </p>
+        )}
+      </div>
 
       {(repair.comparison.largestGain || repair.comparison.largestTradeoff) && (
         <div className="tradeoff-summary">

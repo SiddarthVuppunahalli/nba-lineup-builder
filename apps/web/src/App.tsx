@@ -12,9 +12,6 @@ const YOUTUBE_PLACEHOLDER = 'https://www.youtube.com/watch?v=ojM9nVvigyA';
 function Brand() {
   return (
     <Link className="brand" to="/" aria-label="Lineup Engine home">
-      <span className="brand-mark" aria-hidden="true">
-        LE
-      </span>
       <span>STARTING FIVE</span>
     </Link>
   );
@@ -29,6 +26,9 @@ function SiteHeader({ backTo, backLabel }: { backTo: string; backLabel: string }
         </Link>
         <Brand />
         <div className="site-header__actions">
+          <Link className="quiet-link" to="/">
+            Home
+          </Link>
           <Link className="quiet-link" to="/about">
             About
           </Link>
@@ -121,10 +121,10 @@ function LandingPage() {
           </div>
         </div>
         <div className="hero__content">
-          <p className="eyebrow">Basketball decisions, made legible</p>
+          <p className="eyebrow">Test your NBA lineup ideas</p>
           <h1 id="hero-title">STARTING FIVE</h1>
-          <p className="hero__subtitle">[SHORT VALUE PROPOSITION]</p>
-          <p className="hero__context">[ONE ADDITIONAL LINE OF CONTEXT]</p>
+          <p className="hero__subtitle">A place for fans and armchair GMs to explore real and hypothetical NBA lineups.</p>
+          <p className="hero__context">Build a five from your favorite team, mix and match players from across the league, and compare how different combinations fit together.</p>
           <Link className="hero__button" to="/about">
             About Me <span aria-hidden="true">↗</span>
           </Link>
@@ -164,41 +164,18 @@ function extractYouTubeId(value: string): string | undefined {
   return undefined;
 }
 
-function LazyVideo({ source }: { source: string }) {
-  const [isPlaying, setIsPlaying] = useState(false);
+function EmbeddedVideo({ source }: { source: string }) {
   const videoId = extractYouTubeId(source);
 
-  if (isPlaying && videoId) {
-    return (
-      <iframe
-        src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`}
-        title="[FAVORITE MOMENT]"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-      />
-    );
-  }
+  if (!videoId) return <div className="video-placeholder">Add a YouTube video URL.</div>;
 
   return (
-    <div className="video-poster">
-      <span className="video-poster__label">Favorite basketball moment</span>
-      <button type="button" onClick={() => setIsPlaying(true)} disabled={!videoId}>
-        <span className="play-icon" aria-hidden="true">
-          ▶
-        </span>
-        {videoId ? 'Play video' : 'https://www.youtube.com/watch?v=ojM9nVvigyA'}
-      </button>
-      <p>
-        {videoId
-          ? 'The privacy-enhanced player loads only after you choose to play.'
-          : 'Add a YouTube video ID or URL to enable the player.'}
-      </p>
-      {videoId ? (
-        <a href={`https://www.youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer">
-          Watch on YouTube
-        </a>
-      ) : null}
-    </div>
+    <iframe
+      src={`https://www.youtube.com/embed/${videoId}`}
+      title="My favorite NBA moment"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowFullScreen
+    />
   );
 }
 
@@ -242,7 +219,7 @@ function AboutPage() {
             <section className="about-moment" aria-labelledby="moment-heading">
               <h2 id="moment-heading">My favorite NBA moment</h2>
               <div className="video-frame">
-                <LazyVideo source={YOUTUBE_PLACEHOLDER} />
+                <EmbeddedVideo source={YOUTUBE_PLACEHOLDER} />
               </div>
             </section>
           </aside>

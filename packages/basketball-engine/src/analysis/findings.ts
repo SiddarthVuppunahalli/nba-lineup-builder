@@ -56,7 +56,7 @@ export function deriveFindings(
     });
   }
 
-  if (analysis.rebounding.score < 60) {
+  if (analysis.rebounding.score < 40) {
     findings.push({
       id: 'rebounding:weak',
       type: 'rebounding',

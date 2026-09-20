@@ -276,6 +276,41 @@ export function AnalysisPanel({
         <SessionVersionSave suggestedName={versionSave.suggestedName} onSave={versionSave.onSave} />
       ) : null}
 
+      <div className="findings-grid">
+        <div>
+          <h3>What works</h3>
+          {strengths.length === 0 ? (
+            <p className="no-findings">No standout strengths crossed the current thresholds.</p>
+          ) : (
+            strengths.map((finding) => (
+              <article className="finding finding--strength" key={finding.id}>
+                <span aria-hidden="true">↑</span>
+                <div>
+                  <strong>{finding.title}</strong>
+                  <p>{finding.description}</p>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+        <div>
+          <h3>Watch closely</h3>
+          {concerns.length === 0 ? (
+            <p className="no-findings">No material concerns crossed the current thresholds.</p>
+          ) : (
+            concerns.map((finding) => (
+              <article className="finding finding--concern" key={finding.id}>
+                <span aria-hidden="true">!</span>
+                <div>
+                  <strong>{finding.title}</strong>
+                  <p>{finding.description}</p>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </div>
+
       {resultContext && (
         <div className="generation-summary">
           <div>
@@ -313,41 +348,6 @@ export function AnalysisPanel({
         {metricDefinitions.map(([key, label]) => (
           <MetricCard key={key} label={label} metric={analysis.analysis[key]} />
         ))}
-      </div>
-
-      <div className="findings-grid">
-        <div>
-          <h3>What works</h3>
-          {strengths.length === 0 ? (
-            <p className="no-findings">No standout strengths crossed the current thresholds.</p>
-          ) : (
-            strengths.map((finding) => (
-              <article className="finding finding--strength" key={finding.id}>
-                <span aria-hidden="true">↑</span>
-                <div>
-                  <strong>{finding.title}</strong>
-                  <p>{finding.description}</p>
-                </div>
-              </article>
-            ))
-          )}
-        </div>
-        <div>
-          <h3>Watch closely</h3>
-          {concerns.length === 0 ? (
-            <p className="no-findings">No material concerns crossed the current thresholds.</p>
-          ) : (
-            concerns.map((finding) => (
-              <article className="finding finding--concern" key={finding.id}>
-                <span aria-hidden="true">!</span>
-                <div>
-                  <strong>{finding.title}</strong>
-                  <p>{finding.description}</p>
-                </div>
-              </article>
-            ))
-          )}
-        </div>
       </div>
     </section>
   );

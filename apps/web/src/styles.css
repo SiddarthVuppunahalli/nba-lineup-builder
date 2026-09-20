@@ -92,19 +92,6 @@ a:focus-visible {
   text-decoration: none;
 }
 
-.brand-mark {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  place-items: center;
-  border: 1px solid var(--color-sage);
-  border-radius: var(--radius-control);
-  color: var(--color-sage-ink);
-  background: var(--color-sage-soft);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-}
-
 .nav-context {
   color: var(--color-muted);
   font-size: 11px;
@@ -141,6 +128,48 @@ a:focus-visible {
 
 .workspace {
   padding: 56px 0 96px;
+}
+
+.workflow-intro {
+  display: grid;
+  gap: 10px;
+  max-width: 58rem;
+  padding: 14px 0 10px;
+}
+
+.workflow-intro h1 {
+  margin: 0;
+  font-size: clamp(36px, 5vw, 64px);
+  line-height: 1.02;
+}
+
+.workflow-intro p {
+  max-width: 48rem;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: clamp(15px, 1.4vw, 18px);
+  line-height: 1.6;
+}
+
+.step-label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--color-coral-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.step-label b {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 1px solid var(--color-coral);
+  border-radius: 50%;
+  font-size: 10px;
 }
 
 .eyebrow,
@@ -859,6 +888,50 @@ a:focus-visible {
   background: var(--color-coral-soft);
 }
 
+.repair-workflow {
+  display: grid;
+  gap: 24px;
+  width: min(100%, 72rem);
+  margin: 0 auto;
+}
+
+.repair-editor,
+.repair-results {
+  width: 100%;
+  min-width: 0;
+}
+
+.repair-intent {
+  border-top: 1px solid var(--color-border);
+}
+
+.repair-section-heading {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+}
+
+.repair-section-heading > div {
+  display: grid;
+  gap: 8px;
+}
+
+.repair-section-heading h2 {
+  font-size: clamp(24px, 3vw, 34px);
+}
+
+.repair-results .comparison-card,
+.repair-results .analysis-card {
+  animation: reveal-results 260ms ease-out both;
+}
+
+.repair-results .comparison-card h2:focus {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 6px;
+}
+
 .repair-starting-five span {
   color: var(--color-coral-ink);
   font-size: 10px;
@@ -883,6 +956,25 @@ a:focus-visible {
 .comparison-card h2 {
   margin: 7px 0 20px;
   font-size: clamp(26px, 2.5vw, 36px);
+}
+
+.repair-constraint-summary {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  margin: 16px 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-tint);
+}
+
+.repair-constraint-summary h3,
+.repair-constraint-summary p {
+  margin: 0;
+}
+
+.repair-constraint-summary p {
+  color: var(--color-muted);
 }
 
 .swap-summary {
@@ -1520,16 +1612,18 @@ a:focus-visible {
 
 .versions-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: 1.25rem;
+  gap: 1.5rem;
   align-items: start;
+  width: min(100%, 72rem);
+  margin: 0 auto;
 }
 
-.versions-workspace > .full-comparison,
-.versions-workspace > .analysis-card,
-.versions-workspace > .persistence-card {
-  grid-column: 1 / -1;
+.versions-workspace > * {
   min-width: 0;
+}
+
+.compare-intro {
+  margin-bottom: -0.25rem;
 }
 
 .persistence-status {
@@ -1682,6 +1776,54 @@ a:focus-visible {
   margin: 1rem 0;
 }
 
+.selected-comparison {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  margin: 1rem 0;
+}
+
+.selected-comparison article {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--color-coral);
+  border-radius: var(--radius-control);
+  background: var(--color-coral-soft);
+}
+
+.selected-comparison article > span {
+  color: var(--color-coral-ink);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.selected-comparison article small {
+  color: var(--color-muted);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.selected-comparison__arrow {
+  align-self: center;
+  color: var(--color-coral-ink);
+  font-size: 20px;
+}
+
+.full-comparison,
+.comparison-state {
+  animation: reveal-results 260ms ease-out both;
+}
+
+.full-comparison h2:focus {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 6px;
+}
+
 .version-selectors label {
   display: grid;
   gap: 0.4rem;
@@ -1794,7 +1936,6 @@ a:focus-visible {
     min-height: 0;
   }
 
-  .versions-workspace,
   .session-save {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1818,6 +1959,15 @@ a:focus-visible {
   .scenario-save-controls,
   .saved-scenario-list article {
     grid-template-columns: 1fr;
+  }
+
+  .selected-comparison {
+    grid-template-columns: 1fr;
+  }
+
+  .selected-comparison__arrow {
+    justify-self: center;
+    transform: rotate(90deg);
   }
 
   .version-actions {
@@ -2151,12 +2301,6 @@ a:focus-visible {
 /* Theme roles shared by the current builder and future workflow screens. */
 .workspace h1 span {
   color: var(--color-coral-ink);
-}
-
-.brand-mark {
-  color: var(--color-coral-ink);
-  border-color: var(--color-coral);
-  background: var(--color-coral-soft);
 }
 
 .demo-note {
@@ -2607,14 +2751,6 @@ html:has(.landing-page) {
   color: #f7f4ed;
 }
 
-.hero .brand-mark,
-.site-header .brand-mark {
-  color: #f7f4ed;
-  border-color: rgb(255 255 255 / 24%);
-  background: rgb(6 10 15 / 58%);
-  backdrop-filter: blur(10px);
-}
-
 .quiet-link,
 .back-link {
   color: #d2d7dc;
@@ -2930,8 +3066,8 @@ html:has(.landing-page) {
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  background: radial-gradient(circle at 50% 42%, rgb(255 255 255 / 8%), transparent 62%),
-    var(--color-surface);
+  background:
+    radial-gradient(circle at 50% 42%, rgb(255 255 255 / 8%), transparent 62%), var(--color-surface);
 }
 
 .favorite-image img {
@@ -3026,68 +3162,21 @@ html:has(.landing-page) {
 }
 
 .video-frame iframe,
-.video-poster {
+.video-placeholder {
   width: 100%;
   height: 100%;
   border: 0;
 }
 
-.video-poster {
+.video-placeholder {
   display: grid;
-  align-content: center;
-  justify-items: center;
+  place-items: center;
   padding: 28px;
+  color: var(--color-muted);
   text-align: center;
   background:
     radial-gradient(circle at center, rgb(215 117 50 / 20%), transparent 36%),
     linear-gradient(145deg, #111a24, #060a0f);
-}
-
-.video-poster__label {
-  color: #84909b;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.video-poster button {
-  display: inline-flex;
-  gap: 12px;
-  align-items: center;
-  min-height: 52px;
-  padding: 0 20px;
-  margin-top: 22px;
-  border: 1px solid var(--color-coral-ink);
-  border-radius: 999px;
-  color: var(--color-text);
-  background: rgb(215 117 50 / 14%);
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.video-poster button:disabled {
-  border-color: var(--color-border-strong);
-  color: var(--color-muted);
-  cursor: not-allowed;
-}
-
-.play-icon {
-  color: var(--color-coral-ink);
-}
-
-.video-poster p {
-  max-width: 32rem;
-  margin: 18px 0 0;
-  color: var(--color-muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.video-poster a {
-  margin-top: 12px;
-  color: var(--color-coral-ink);
-  font-size: 13px;
 }
 
 .workflow-page .workspace {
@@ -3129,9 +3218,33 @@ html:has(.landing-page) {
     max-width: 62vw;
   }
 
-  .about-section--player,
-  .about-section--moment {
-    grid-template-columns: minmax(220px, 0.8fr) 1.2fr;
+  .about-layout {
+    height: auto;
+    min-height: calc(100vh - 73px);
+    min-height: calc(100svh - 73px);
+    padding: 20px 0 16px;
+    overflow: visible;
+  }
+
+  .about-dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .about-section--bio {
+    min-height: 28rem;
+    overflow: visible;
+  }
+
+  .about-favorites {
+    grid-template-rows: auto auto;
+  }
+
+  .about-image-pair {
+    min-height: 20rem;
+  }
+
+  .about-moment .video-frame {
+    aspect-ratio: 16 / 9;
   }
 }
 
@@ -3149,7 +3262,6 @@ html:has(.landing-page) {
   }
 
   .hero__topbar .quiet-link,
-  .site-header__actions .quiet-link,
   .hero__topbar .status-pill,
   .site-header .status-pill {
     display: none;
@@ -3206,12 +3318,6 @@ html:has(.landing-page) {
     padding: 48px 0;
   }
 
-  .about-section--bio,
-  .about-section--player,
-  .about-section--moment {
-    grid-template-columns: 1fr;
-  }
-
   .workflow-card {
     min-height: 260px;
     padding: 14px;
@@ -3233,15 +3339,22 @@ html:has(.landing-page) {
   }
 
   .site-header__inner {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
     min-height: 64px;
   }
 
   .site-header .brand {
-    justify-self: end;
+    justify-self: center;
   }
 
   .site-header__actions {
+    display: flex;
+    gap: 10px;
+    justify-self: end;
+  }
+
+  .site-header__actions .quiet-link:first-child {
     display: none;
   }
 
@@ -3251,21 +3364,20 @@ html:has(.landing-page) {
   }
 
   .about-layout {
-    padding: 64px 0 84px;
+    padding: 16px 0;
   }
 
-  .about-section {
-    gap: 24px;
-    padding: 54px 0;
-  }
-
-  .about-section--player .favorite-player-copy,
-  .about-section--moment .video-frame {
-    grid-column: auto;
-  }
-
-  .player-portrait {
+  .about-section--bio {
     min-height: 0;
+    padding: 28px 24px;
+  }
+
+  .about-image-pair {
+    min-height: 15rem;
+  }
+
+  .favorite-image--logo img {
+    padding: 32px;
   }
 }
 
@@ -3357,6 +3469,11 @@ html:has(.landing-page) {
 
   .player-rule-chip > span {
     min-width: 0;
+  }
+
+  .repair-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
