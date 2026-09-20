@@ -186,7 +186,7 @@ function AboutPage() {
       <main className="about-layout">
         <div className="about-dashboard">
           <section className="about-section about-section--bio" aria-labelledby="about-me-heading">
-            <p className="eyebrow">The creator</p>
+            <p className="eyebrow">Siddarth Vuppunahalli</p>
             <h1 id="about-me-heading">About me</h1>
             <p>
               My first experience watching the NBA was the 2014 NBA Finals, where Kawhi Leanord led
