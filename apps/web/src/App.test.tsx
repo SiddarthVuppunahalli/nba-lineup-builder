@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  fetchHealth,
   fetchIntentInterpreterStatus,
   fetchPersistenceStatus,
   fetchRoster,
@@ -23,7 +22,6 @@ import { App } from './App.tsx';
 
 vi.mock('./api/client.ts', () => ({
   ApiClientError: class ApiClientError extends Error {},
-  fetchHealth: vi.fn(),
   fetchIntentInterpreterStatus: vi.fn(),
   fetchPersistenceStatus: vi.fn(),
   fetchTeams: vi.fn(),
@@ -38,7 +36,6 @@ vi.mock('./api/client.ts', () => ({
   saveScenarioRequest: vi.fn(),
 }));
 
-const mockedFetchHealth = vi.mocked(fetchHealth);
 const mockedFetchIntentInterpreterStatus = vi.mocked(fetchIntentInterpreterStatus);
 const mockedFetchPersistenceStatus = vi.mocked(fetchPersistenceStatus);
 const mockedFetchTeams = vi.mocked(fetchTeams);
@@ -120,11 +117,6 @@ const metric = {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockedFetchHealth.mockResolvedValue({
-    status: 'ok',
-    service: 'lineup-engine-api',
-    timestamp: '2026-01-01T00:00:00.000Z',
-  });
   mockedFetchIntentInterpreterStatus.mockResolvedValue({ available: true });
   mockedFetchPersistenceStatus.mockResolvedValue({ available: false });
   mockedFetchSavedScenarios.mockResolvedValue({ scenarios: [] });
@@ -375,16 +367,46 @@ beforeEach(() => {
   });
 });
 
-function renderApp() {
+function renderApp(initialEntry = '/build') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <App />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
+
+describe('navigation foundation', () => {
+  it('shows the landing hero and all three workflow choices', async () => {
+    renderApp('/');
+
+    expect(screen.getByRole('heading', { name: '[PROJECT NAME]' })).toBeVisible();
+    expect(screen.getByRole('link', { name: /build a lineup/i })).toHaveAttribute('href', '/build');
+    expect(screen.getByRole('link', { name: /repair/i })).toHaveAttribute('href', '/repair');
+    expect(screen.getByRole('link', { name: /compare/i })).toHaveAttribute('href', '/compare');
+    expect(screen.queryByText(/system ready/i)).not.toBeInTheDocument();
+  });
+
+  it('supports direct navigation to the About page without loading a video iframe', () => {
+    renderApp('/about');
+
+    expect(screen.getByRole('heading', { name: 'About me' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: '[FAVORITE PLAYER]' })).toBeVisible();
+    expect(screen.queryByTitle('[FAVORITE MOMENT]')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /back to landing/i })).toHaveAttribute('href', '/');
+  });
+
+  it('returns workflow pages to the selector on the landing page', () => {
+    renderApp('/build');
+
+    expect(screen.getByRole('link', { name: /all workflows/i })).toHaveAttribute(
+      'href',
+      '/#workflows',
+    );
+  });
+});
 
 describe('manual lineup builder', () => {
   it('defaults to the current Spurs roster and disables players without completed-season data', async () => {

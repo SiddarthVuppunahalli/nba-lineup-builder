@@ -1,23 +1,36 @@
 # Theme guide
 
-Lineup Engine uses a warm, light visual direction. The shared theme variables live in `apps/web/src/styles.css`.
+Lineup Engine now uses a dark, arena-inspired visual direction derived from the landing image. This
+design supersedes the cream, coral, and sage palette introduced in Phase 3.5. The semantic roles and
+accessibility requirements from that phase remain; only their visual expression has changed. Shared
+theme variables live in `apps/web/src/styles.css`.
 
-| Role                         | Variable               | Color                 |
-| ---------------------------- | ---------------------- | --------------------- |
-| Page                         | `--color-page`         | Cream `#F7F3EB`       |
-| Panels                       | `--color-surface`      | Ivory `#FFFCF7`       |
-| Subtle surfaces              | `--color-surface-tint` | Beige `#F1ECE2`       |
-| Main text                    | `--color-text`         | Charcoal `#30362F`    |
-| Secondary text               | `--color-muted`        | Olive gray `#65665B`  |
-| Coral accents                | `--color-coral`        | Muted coral `#C66B53` |
-| Coral text and solid actions | `--color-coral-ink`    | Deep coral `#994730`  |
-| Selected surfaces            | `--color-coral-soft`   | Pale coral `#F6E6DC`  |
-| Sage accents                 | `--color-sage`         | Muted sage `#7E947A`  |
-| Sage text and focus          | `--color-sage-ink`     | Deep sage `#4E674B`   |
-| Positive surfaces            | `--color-sage-soft`    | Pale sage `#EAF0E5`   |
+| Role | Variable | Color |
+| --- | --- | --- |
+| Page | `--color-page` | Near-black `#060A0F` |
+| Panels | `--color-surface` | Deep blue-black `#0D141D` |
+| Subtle surfaces | `--color-surface-tint` | Slate blue-black `#121C27` |
+| Main text | `--color-text` | Arena off-white `#F3F0E9` |
+| Secondary text | `--color-muted` | Silver gray `#9BA6B2` |
+| Borders | `--color-border` | Steel `#263240` |
+| Strong borders | `--color-border-strong` | Silver slate `#536170` |
+| Primary accent | `--color-coral-ink` | Basketball orange `#F29A52` |
+| Accent surface | `--color-coral-soft` | Burnt-orange black `#2B1A10` |
+| Success | `--color-success` | Court green `#6BD596` |
+| Warning | `--color-warning` | Warm amber `#F5B84B` |
+| Error | `--color-error` | Signal red `#FF756F` |
 
-Use muted coral for selection accents and deep coral for solid primary buttons with ivory text. Use sage for strengths and positive indicators. Muted accent colors are not body text colors; darker ink variants keep small text readable. Warnings include written descriptions and icons rather than relying on color alone.
+The legacy `coral` and `sage` variable names remain temporarily because current workflow components
+already consume them as semantic accent and positive roles. New work should prefer role-based names
+when a dedicated token exists. Orange is reserved for primary emphasis, selections, and basketball
+identity; it is not the error color. Green, amber, and red communicate success, warning, and error,
+with written labels or icons providing the same meaning without color.
 
-Keep cream and ivory dominant, with subtle borders and shadows. Use DM Sans for body copy and Manrope for headings, with local system fallbacks. Maintain clear keyboard focus on player rows, buttons, links, selectors, and expandable metrics. Preserve reduced-motion support and one-column layouts on narrow screens.
+Use near-black surfaces as the dominant field, silver borders for structure, and off-white text for
+readability. Panels should feel layered rather than glossy. The landing image may carry the strongest
+contrast and atmosphere; workflow interiors should remain quieter so controls and evidence stay
+legible.
 
-Upcoming generation, comparison, and saved-scenario screens should reuse these roles and the panel/control radius variables rather than introduce an independent palette.
+Keep DM Sans for body copy and Manrope for headings, with system fallbacks. Maintain visible keyboard
+focus, 16px-or-larger body text, reduced-motion behavior, mobile-safe viewport units, and one-column
+layouts on narrow screens. Motion must remain restrained and must never intercept scrolling.

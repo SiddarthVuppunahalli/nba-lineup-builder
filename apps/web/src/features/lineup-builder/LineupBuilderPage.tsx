@@ -2,6 +2,7 @@ import type { AnalyzeLineupRequest, SaveScenarioRequest, TeamDto } from '@lineup
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 
 import {
   ApiClientError,
@@ -28,6 +29,8 @@ interface LineupFormValues {
 
 type PoolCategory = 'team' | 'league' | 'demo';
 
+export type WorkflowRoute = 'build' | 'repair' | 'compare';
+
 function poolCategory(team: TeamDto): PoolCategory {
   return team.isDemo ? 'demo' : team.mode;
 }
@@ -38,10 +41,15 @@ function requestErrorMessage(error: Error | null): string | undefined {
   return 'The lineup service is temporarily unavailable. Please try again.';
 }
 
-export function LineupBuilderPage() {
-  const [workflow, setWorkflow] = useState<'manual' | 'generation' | 'repair' | 'versions'>(
-    'manual',
-  );
+export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRoute }) {
+  const navigate = useNavigate();
+  const [buildWorkflow, setBuildWorkflow] = useState<'manual' | 'generation'>('manual');
+  const workflow =
+    routeWorkflow === 'build'
+      ? buildWorkflow
+      : routeWorkflow === 'repair'
+        ? 'repair'
+        : 'versions';
   const [teamOverride, setTeamOverride] = useState('');
   const [poolCategorySelection, setPoolCategorySelection] = useState<PoolCategory>('team');
   const [versions, setVersions] = useState<SessionLineupVersion[]>([]);
@@ -137,7 +145,7 @@ export function LineupBuilderPage() {
       ]);
       setActiveParentVersionId(scenario.activeParentClientVersionId);
       setActiveScenario({ id: scenario.id, name: scenario.name });
-      setWorkflow('versions');
+      navigate('/compare');
     },
   });
 
@@ -209,7 +217,8 @@ export function LineupBuilderPage() {
     setValue('playerIds', [...version.playerIds], { shouldDirty: true });
     analysisMutation.reset();
     setActiveParentVersionId(version.id);
-    setWorkflow('manual');
+    setBuildWorkflow('manual');
+    navigate('/build');
   }
 
   const teamVersions = versions.filter((version) => version.teamId === selectedTeamId);
@@ -250,7 +259,12 @@ export function LineupBuilderPage() {
     setValue('playerIds', playerIds, { shouldDirty: true });
     analysisMutation.reset();
     setActiveParentVersionId(undefined);
-    setWorkflow(selection.workflow);
+    if (selection.workflow === 'repair') {
+      navigate('/repair');
+    } else {
+      setBuildWorkflow(selection.workflow);
+      navigate('/build');
+    }
 
     if (selection.analyzeImmediately && playerIds.length === 5) {
       analysisMutation.mutate({ teamId: selectedTeamId, playerIds });
@@ -448,7 +462,10 @@ export function LineupBuilderPage() {
           type="button"
           role="tab"
           aria-selected={workflow === 'manual'}
-          onClick={() => setWorkflow('manual')}
+          onClick={() => {
+            setBuildWorkflow('manual');
+            navigate('/build');
+          }}
         >
           Build manually
         </button>
@@ -456,7 +473,10 @@ export function LineupBuilderPage() {
           type="button"
           role="tab"
           aria-selected={workflow === 'generation'}
-          onClick={() => setWorkflow('generation')}
+          onClick={() => {
+            setBuildWorkflow('generation');
+            navigate('/build');
+          }}
         >
           Generate from intent
         </button>
@@ -464,7 +484,7 @@ export function LineupBuilderPage() {
           type="button"
           role="tab"
           aria-selected={workflow === 'repair'}
-          onClick={() => setWorkflow('repair')}
+          onClick={() => navigate('/repair')}
         >
           Repair a lineup
         </button>
@@ -472,7 +492,7 @@ export function LineupBuilderPage() {
           type="button"
           role="tab"
           aria-selected={workflow === 'versions'}
-          onClick={() => setWorkflow('versions')}
+          onClick={() => navigate('/compare')}
         >
           Compare &amp; versions
         </button>
@@ -508,7 +528,14 @@ export function LineupBuilderPage() {
               Repair preserves as much of an existing lineup as possible, so begin with five in the
               manual builder or generate a lineup first.
             </p>
-            <button className="analyze-button" type="button" onClick={() => setWorkflow('manual')}>
+            <button
+              className="analyze-button"
+              type="button"
+              onClick={() => {
+                setBuildWorkflow('manual');
+                navigate('/build');
+              }}
+            >
               Build starting five <span aria-hidden="true">→</span>
             </button>
           </section>
