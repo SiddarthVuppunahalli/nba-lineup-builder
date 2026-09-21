@@ -1,9 +1,14 @@
 import { createApp } from './app.js';
 import { OpenAiIntentInterpreter } from './ai/intent-interpreter.js';
+import { migrateDatabase } from './persistence/migrate-database.js';
 import { resolveServerConfig } from './server-config.js';
 import { createPostgresScenarioRepository } from './persistence/postgres-scenario-repository.js';
 
 const config = resolveServerConfig();
+if (config.databaseUrl) {
+  await migrateDatabase(config.databaseUrl);
+  console.log('Lineup Engine database migrations are current.');
+}
 const intentInterpreter = config.openAiApiKey
   ? new OpenAiIntentInterpreter({ apiKey: config.openAiApiKey, model: config.openAiModel })
   : undefined;

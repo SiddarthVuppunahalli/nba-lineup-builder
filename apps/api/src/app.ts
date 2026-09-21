@@ -106,7 +106,8 @@ export function createApp(options: CreateAppOptions = {}) {
     try {
       const scenarios = await options.scenarioRepository.list(anonymousOwnerKey(key));
       response.status(200).json(savedScenariosResponseSchema.parse({ scenarios }));
-    } catch {
+    } catch (error) {
+      console.error('Failed to save lineup scenario.', error);
       response
         .status(503)
         .json(

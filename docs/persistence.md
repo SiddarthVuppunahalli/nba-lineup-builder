@@ -11,8 +11,10 @@ Phase 9 adds optional PostgreSQL storage without making the lineup builder depen
 ## Setup
 
 1. Provision PostgreSQL and set `DATABASE_URL` in the local environment or Replit Secrets.
-2. Run `pnpm db:migrate` once for the database and again whenever new migrations are added.
-3. Build and start the application normally.
+2. Build and start the application normally. When `DATABASE_URL` is configured, startup applies
+   all pending migrations before the API accepts traffic.
+3. Use `pnpm db:migrate` when you want to apply migrations manually before startup or verify them
+   from a development shell.
 
 The checked-in Drizzle schema and migrations create `saved_scenarios` and
 `saved_scenario_versions`. The API reports whether persistence is configured through

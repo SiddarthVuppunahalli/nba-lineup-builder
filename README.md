@@ -85,8 +85,9 @@ The web app runs at `http://localhost:5173`. Vite proxies `/api` requests to the
 
 Natural-language interpretation is optional. Add `OPENAI_API_KEY` to your local environment or Replit Secrets to enable it. Never commit the key. `OPENAI_INTENT_MODEL` defaults to `gpt-5.6-luna`; see [the intent documentation](docs/natural-language-intent.md) for the supported language and trust boundary. Without a key, every structured workflow remains available.
 
-Durable scenario saving is also optional. Set `DATABASE_URL`, run `pnpm db:migrate`, and restart the
-service to enable it. Without a database, session versions and every basketball workflow remain
+Durable scenario saving is also optional. Set `DATABASE_URL` and restart the service; startup
+applies pending migrations before accepting traffic. `pnpm db:migrate` remains available for a
+manual preflight. Without a database, session versions and every basketball workflow remain
 available. See [persistence setup and recovery behavior](docs/persistence.md).
 
 ### Replit checkpoint
