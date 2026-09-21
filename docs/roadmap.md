@@ -283,16 +283,18 @@ Checkpoint: a saved scenario can be reopened with understandable version history
 Implementation decisions: persistence is optional so an unconfigured preview retains the complete
 stateless workflow. A browser-generated anonymous recovery key scopes scenarios; only its SHA-256
 digest is stored, and losing browser storage loses access because Phase 9 does not introduce
-accounts. Saving is explicit rather than automatic. Each immutable version snapshot stores its
-selection, parent, source, API-recomputed analysis, optional structured intent, optional repair
-swaps, and data/scoring versions. PostgreSQL access sits behind a repository boundary, Drizzle owns
+accounts. Saving a named version automatically creates or updates its scenario when PostgreSQL is
+available, while Compare retains explicit rename, sync, and open controls. Each immutable version
+snapshot stores its selection, parent, source, API-recomputed analysis, optional structured intent,
+optional repair swaps, and data/scoring versions. PostgreSQL access sits behind a repository boundary, Drizzle owns
 the checked-in schema and migration, and HTTP behavior is tested through an in-memory repository.
 See [persistence documentation](persistence.md).
 
 ## Phase 10 — Final polish and portfolio presentation
 
-Status: Repair/Compare redesign and cross-workflow polish implemented and verified locally; stopped
-at the redesign checkpoint pending final content, licensing, and deployment review.
+Status: Repair/Compare redesign, cross-workflow polish, and the landing/About editorial pass are
+implemented and verified locally; stopped at the next checkpoint pending accessibility, licensing,
+configured-service, and deployment review.
 
 - Finish accessibility, responsive layouts, failure handling, and restrained motion.
 - Complete setup/deployment instructions, methodology, architecture, screenshots, and a concise demo script.
@@ -311,7 +313,6 @@ progressive-disclosure treatments are aligned across workflow routes.
 
 Remaining Phase 10 work after this checkpoint:
 
-- replace landing-page placeholder copy and complete a final editorial pass, including About copy;
 - complete a formal accessibility audit with assistive technology and device coverage beyond the
   local keyboard, zoom-equivalent, reduced-motion code-path, and responsive checks;
 - add a repository license and finish rights review for NBA names, marks, remote headshots, source

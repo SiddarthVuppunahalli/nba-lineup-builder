@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -1123,6 +1123,93 @@ describe('lineup repair and comparison', () => {
 });
 
 describe('session lineup versions', () => {
+  it('automatically persists a saved version when PostgreSQL is available', async () => {
+    mockedFetchPersistenceStatus.mockResolvedValue({ available: true });
+    const scenarioId = '44444444-4444-4444-8444-444444444444';
+    mockedSaveScenarioRequest.mockImplementation(async (_sessionKey, request, requestedId) => ({
+      id: requestedId ?? scenarioId,
+      ...request,
+      versions: request.versions.map((version, index) => ({
+        ...version,
+        analysis: {
+          lineup: { playerIds: version.playerIds },
+          analysis: {
+            shooting: metric,
+            creation: metric,
+            playmaking: metric,
+            rebounding: metric,
+            perimeterDefense: metric,
+            interiorDefense: metric,
+            switchability: metric,
+            findings: [],
+          },
+        },
+        dataVersion: 'fictional-demo-v1:2026-09-14:fictional-demo-v1',
+        scoringVersion: 'lineup-analysis-v2-experimental-roles',
+        createdAt: `2026-09-21T08:0${index}:00.000Z`,
+      })),
+      createdAt: '2026-09-21T08:00:00.000Z',
+      updatedAt: '2026-09-21T08:00:00.000Z',
+    }));
+
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+
+    for (const name of playerNames.slice(0, 5)) {
+      await user.click(screen.getByRole('button', { name: `Select ${name}` }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
+    await screen.findByRole('heading', { name: 'How this five fits together.' });
+    expect(await screen.findByText(/Saved to PostgreSQL automatically/i)).toBeVisible();
+
+    const versionName = screen.getByRole('textbox', { name: 'Version name' });
+    await user.clear(versionName);
+    await user.type(versionName, 'Durable five');
+    await user.click(screen.getByRole('button', { name: 'Save version' }));
+
+    await waitFor(() => expect(mockedSaveScenarioRequest).toHaveBeenCalledTimes(1));
+    expect(mockedSaveScenarioRequest).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        name: 'Metro City Meteors versions',
+        teamId: 'metro-city-meteors',
+        activeParentClientVersionId: expect.stringMatching(/^session-version-/),
+        versions: [expect.objectContaining({ name: 'Durable five' })],
+      }),
+      undefined,
+    );
+    expect(await screen.findByRole('button', { name: 'Saved ✓' })).toBeVisible();
+
+    await user.click(screen.getByRole('link', { name: 'Home' }));
+    await user.click(screen.getByRole('link', { name: /compare/i }));
+    expect(await screen.findByText('Durable five')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Update saved scenario' })).toBeVisible();
+  });
+
+  it('keeps saved versions available after visiting the landing page', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole('button', { name: 'Select Jordan Vega' });
+
+    for (const name of playerNames.slice(0, 5)) {
+      await user.click(screen.getByRole('button', { name: `Select ${name}` }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
+    await screen.findByRole('heading', { name: 'How this five fits together.' });
+    const versionName = screen.getByRole('textbox', { name: 'Version name' });
+    await user.clear(versionName);
+    await user.type(versionName, 'Return trip');
+    await user.click(screen.getByRole('button', { name: 'Save version' }));
+
+    await user.click(screen.getByRole('link', { name: 'Home' }));
+    expect(screen.getByRole('heading', { name: 'STARTING FIVE' })).toBeVisible();
+    await user.click(screen.getByRole('link', { name: /compare/i }));
+
+    expect(await screen.findByText('Return trip')).toBeVisible();
+    expect(screen.getByText('1', { selector: '.version-count' })).toBeVisible();
+  });
+
   it('saves named versions, compares them, and branches without replacing history', async () => {
     const user = userEvent.setup();
     renderApp();

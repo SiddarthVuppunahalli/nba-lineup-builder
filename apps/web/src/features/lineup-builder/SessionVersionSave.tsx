@@ -2,19 +2,22 @@ import { useState } from 'react';
 
 interface SessionVersionSaveProps {
   suggestedName: string;
-  onSave: (name: string) => void;
+  durable: boolean;
+  onSave: (name: string) => Promise<void>;
 }
 
-export function SessionVersionSave({ suggestedName, onSave }: SessionVersionSaveProps) {
+export function SessionVersionSave({ suggestedName, durable, onSave }: SessionVersionSaveProps) {
   const [name, setName] = useState(suggestedName);
-  const [saved, setSaved] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   return (
     <div className="session-save">
       <div>
         <strong>Keep this version</strong>
         <p className="session-save-note">
-          Saved in this browser tab until you refresh or close it.
+          {durable
+            ? 'Saved to PostgreSQL automatically and available when you return.'
+            : 'Saved in this browser tab until you refresh or close it.'}
         </p>
       </div>
       <label>
@@ -24,21 +27,31 @@ export function SessionVersionSave({ suggestedName, onSave }: SessionVersionSave
           maxLength={40}
           onChange={(event) => {
             setName(event.target.value);
-            setSaved(false);
+            setStatus('idle');
           }}
         />
       </label>
       <button
         className="intent-button"
         type="button"
-        disabled={saved || name.trim().length === 0}
-        onClick={() => {
-          onSave(name.trim());
-          setSaved(true);
+        disabled={status === 'saving' || status === 'saved' || name.trim().length === 0}
+        onClick={async () => {
+          setStatus('saving');
+          try {
+            await onSave(name.trim());
+            setStatus('saved');
+          } catch {
+            setStatus('error');
+          }
         }}
       >
-        {saved ? 'Saved ✓' : 'Save version'}
+        {status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved ✓' : 'Save version'}
       </button>
+      {status === 'error' ? (
+        <p className="persistence-error" role="alert">
+          This version could not be saved. Please try again.
+        </p>
+      ) : null}
     </div>
   );
 }

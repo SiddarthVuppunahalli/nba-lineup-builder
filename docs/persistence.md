@@ -28,9 +28,11 @@ or shared links in this phase. Clearing browser storage, changing browsers, or l
 access to its scenarios even though the database rows remain. This is intentionally a simple demo
 session model, not authentication.
 
-Saving a scenario creates or replaces one complete scenario snapshot. Reopening restores its team,
-current selection, active branch parent, and ordered version history. Users explicitly update a
-loaded scenario; tab-local edits are not silently written to the database.
+When PostgreSQL is available, **Save version** creates a scenario automatically or updates the
+active scenario with the complete version history. The Compare page can rename or explicitly sync
+that scenario and reopen other saved scenarios. Reopening restores its team, current selection,
+active branch parent, and ordered version history. Without PostgreSQL, the same action remains
+tab-local and does not make a network persistence request.
 
 ## Historical interpretability
 

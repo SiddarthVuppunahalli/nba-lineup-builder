@@ -36,7 +36,8 @@ interface AnalysisPanelProps {
   versionSave?:
     | {
         suggestedName: string;
-        onSave: (name: string) => void;
+        durable: boolean;
+        onSave: (name: string) => Promise<void>;
       }
     | undefined;
 }
@@ -273,7 +274,11 @@ export function AnalysisPanel({
       <SelectedFive roster={roster} selectedPlayerIds={analysis.lineup.playerIds} />
 
       {versionSave ? (
-        <SessionVersionSave suggestedName={versionSave.suggestedName} onSave={versionSave.onSave} />
+        <SessionVersionSave
+          suggestedName={versionSave.suggestedName}
+          durable={versionSave.durable}
+          onSave={versionSave.onSave}
+        />
       ) : null}
 
       <div className="findings-grid">

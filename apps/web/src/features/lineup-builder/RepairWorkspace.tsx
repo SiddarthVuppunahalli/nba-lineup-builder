@@ -15,7 +15,8 @@ interface RepairWorkspaceProps {
   teamId: string;
   roster: RosterPlayerDto[];
   currentPlayerIds: string[];
-  onSaveVersion: (version: SessionVersionDraft) => void;
+  onSaveVersion: (version: SessionVersionDraft) => Promise<void>;
+  durableVersionSaving: boolean;
   defaultMinimumShooters?: number;
   defaultMinimumCreators?: number;
   onEditStartingFive: () => void;
@@ -43,6 +44,7 @@ export function RepairWorkspace({
   roster,
   currentPlayerIds,
   onSaveVersion,
+  durableVersionSaving,
   defaultMinimumShooters = balancedIntent.minimumShooters,
   defaultMinimumCreators = balancedIntent.minimumCreators,
   onEditStartingFive,
@@ -215,6 +217,7 @@ export function RepairWorkspace({
               response
                 ? {
                     suggestedName: 'Repaired lineup',
+                    durable: durableVersionSaving,
                     onSave: (name) =>
                       onSaveVersion({
                         name,

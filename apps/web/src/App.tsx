@@ -3,8 +3,11 @@ import { Link, Navigate, useLocation } from 'react-router-dom';
 
 import {
   LineupBuilderPage,
+  type LineupBuilderSessionState,
+  type PoolCategory,
   type WorkflowRoute,
 } from './features/lineup-builder/LineupBuilderPage.tsx';
+import type { SessionLineupVersion } from './features/lineup-builder/session-version.ts';
 
 const HERO_IMAGE = '/images/arena-landing.png';
 const YOUTUBE_PLACEHOLDER = 'https://www.youtube.com/watch?v=ojM9nVvigyA';
@@ -45,17 +48,20 @@ const workflows: Array<{
 }> = [
   {
     title: 'Build a lineup',
-    description: 'Select your five or generate one from a clear basketball intent.',
+    description:
+      'Pick a five yourself or set basketball priorities and let the engine search the player pool.',
     to: '/build',
   },
   {
     title: 'Repair',
-    description: 'Keep what works, change what does not, and satisfy new constraints.',
+    description:
+      'Lock the players you want to keep, add new requirements, and find the smallest valid change.',
     to: '/repair',
   },
   {
     title: 'Compare',
-    description: 'Put two versions side by side and make every tradeoff visible.',
+    description:
+      'Put two versions side by side to see player changes, fit scores, and the biggest tradeoffs.',
     to: '/compare',
   },
 ];
@@ -123,8 +129,13 @@ function LandingPage() {
         <div className="hero__content">
           <p className="eyebrow">Test your NBA lineup ideas</p>
           <h1 id="hero-title">STARTING FIVE</h1>
-          <p className="hero__subtitle">A place for fans and armchair GMs to explore real and hypothetical NBA lineups.</p>
-          <p className="hero__context">Build a five from your favorite team, mix and match players from across the league, and compare how different combinations fit together.</p>
+          <p className="hero__subtitle">
+            A tool for fans and armchair GMs to build, repair, and compare five-player lineups with real NBA roster data and transparent
+            fit scores.
+          </p>
+          <p className="hero__context">
+            Build a five from your favorite team, mix and match players from across the league, and compare how different combinations fit together.
+          </p>
           <Link className="hero__button" to="/about">
             About Me <span aria-hidden="true">↗</span>
           </Link>
@@ -252,17 +263,40 @@ function AboutPage() {
   );
 }
 
-function WorkflowPage({ workflow }: { workflow: WorkflowRoute }) {
+function WorkflowPage({
+  workflow,
+  session,
+}: {
+  workflow: WorkflowRoute;
+  session: LineupBuilderSessionState;
+}) {
   return (
     <div className="standard-page workflow-page">
       <SiteHeader backTo="/#workflows" backLabel="All workflows" />
-      <LineupBuilderPage routeWorkflow={workflow} />
+      <LineupBuilderPage routeWorkflow={workflow} session={session} />
     </div>
   );
 }
 
 function AppShell() {
   const location = useLocation();
+  const [teamOverride, setTeamOverride] = useState('');
+  const [poolCategorySelection, setPoolCategorySelection] = useState<PoolCategory>('team');
+  const [versions, setVersions] = useState<SessionLineupVersion[]>([]);
+  const [activeParentVersionId, setActiveParentVersionId] = useState<string>();
+  const [activeScenario, setActiveScenario] = useState<{ id: string; name: string }>();
+  const lineupSession: LineupBuilderSessionState = {
+    teamOverride,
+    setTeamOverride,
+    poolCategorySelection,
+    setPoolCategorySelection,
+    versions,
+    setVersions,
+    activeParentVersionId,
+    setActiveParentVersionId,
+    activeScenario,
+    setActiveScenario,
+  };
 
   useEffect(() => {
     if (navigator.userAgent.toLowerCase().includes('jsdom')) return;
@@ -286,11 +320,11 @@ function AppShell() {
     case '/about':
       return <AboutPage />;
     case '/build':
-      return <WorkflowPage workflow="build" />;
+      return <WorkflowPage workflow="build" session={lineupSession} />;
     case '/repair':
-      return <WorkflowPage workflow="repair" />;
+      return <WorkflowPage workflow="repair" session={lineupSession} />;
     case '/compare':
-      return <WorkflowPage workflow="compare" />;
+      return <WorkflowPage workflow="compare" session={lineupSession} />;
     default:
       return <Navigate to="/" replace />;
   }

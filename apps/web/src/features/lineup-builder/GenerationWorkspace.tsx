@@ -19,7 +19,8 @@ interface GenerationWorkspaceProps {
   teamId: string;
   roster: RosterPlayerDto[];
   onGeneratedLineup: (playerIds: string[]) => void;
-  onSaveVersion: (version: SessionVersionDraft) => void;
+  onSaveVersion: (version: SessionVersionDraft) => Promise<void>;
+  durableVersionSaving: boolean;
   usesLeagueSolver: boolean;
   defaultMinimumShooters?: number;
   defaultMinimumCreators?: number;
@@ -49,6 +50,7 @@ export function GenerationWorkspace({
   roster,
   onGeneratedLineup,
   onSaveVersion,
+  durableVersionSaving,
   usesLeagueSolver,
   defaultMinimumShooters = balancedIntent.minimumShooters,
   defaultMinimumCreators = balancedIntent.minimumCreators,
@@ -200,6 +202,7 @@ export function GenerationWorkspace({
               response
                 ? {
                     suggestedName: 'Generated lineup',
+                    durable: durableVersionSaving,
                     onSave: (name) =>
                       onSaveVersion({
                         name,

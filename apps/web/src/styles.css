@@ -3044,6 +3044,10 @@ html:has(.landing-page) {
   line-height: 1.7;
 }
 
+.about-section--bio p:not(.eyebrow) + p {
+  margin-top: 16px;
+}
+
 .about-favorites {
   display: grid;
   grid-template-rows: minmax(0, 0.8fr) minmax(0, 1.2fr);

@@ -1,6 +1,6 @@
 import type { AnalyzeLineupRequest, SaveScenarioRequest, TeamDto } from '@lineup-engine/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 
@@ -27,9 +27,22 @@ interface LineupFormValues {
   playerIds: string[];
 }
 
-type PoolCategory = 'team' | 'league' | 'demo';
+export type PoolCategory = 'team' | 'league' | 'demo';
 
 export type WorkflowRoute = 'build' | 'repair' | 'compare';
+
+export interface LineupBuilderSessionState {
+  teamOverride: string;
+  setTeamOverride: Dispatch<SetStateAction<string>>;
+  poolCategorySelection: PoolCategory;
+  setPoolCategorySelection: Dispatch<SetStateAction<PoolCategory>>;
+  versions: SessionLineupVersion[];
+  setVersions: Dispatch<SetStateAction<SessionLineupVersion[]>>;
+  activeParentVersionId: string | undefined;
+  setActiveParentVersionId: Dispatch<SetStateAction<string | undefined>>;
+  activeScenario: { id: string; name: string } | undefined;
+  setActiveScenario: Dispatch<SetStateAction<{ id: string; name: string } | undefined>>;
+}
 
 function poolCategory(team: TeamDto): PoolCategory {
   return team.isDemo ? 'demo' : team.mode;
@@ -41,16 +54,29 @@ function requestErrorMessage(error: Error | null): string | undefined {
   return 'The lineup service is temporarily unavailable. Please try again.';
 }
 
-export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRoute }) {
+export function LineupBuilderPage({
+  routeWorkflow,
+  session,
+}: {
+  routeWorkflow: WorkflowRoute;
+  session: LineupBuilderSessionState;
+}) {
   const navigate = useNavigate();
   const [buildWorkflow, setBuildWorkflow] = useState<'manual' | 'generation'>('manual');
   const workflow =
     routeWorkflow === 'build' ? buildWorkflow : routeWorkflow === 'repair' ? 'repair' : 'versions';
-  const [teamOverride, setTeamOverride] = useState('');
-  const [poolCategorySelection, setPoolCategorySelection] = useState<PoolCategory>('team');
-  const [versions, setVersions] = useState<SessionLineupVersion[]>([]);
-  const [activeParentVersionId, setActiveParentVersionId] = useState<string>();
-  const [activeScenario, setActiveScenario] = useState<{ id: string; name: string }>();
+  const {
+    teamOverride,
+    setTeamOverride,
+    poolCategorySelection,
+    setPoolCategorySelection,
+    versions,
+    setVersions,
+    activeParentVersionId,
+    setActiveParentVersionId,
+    activeScenario,
+    setActiveScenario,
+  } = session;
   const [sessionKey] = useState(anonymousSessionKey);
   const teamsQuery = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
   const persistenceStatusQuery = useQuery({
@@ -180,7 +206,7 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
     analysisMutation.reset();
   }
 
-  function saveVersion(draft: SessionVersionDraft) {
+  async function saveVersion(draft: SessionVersionDraft): Promise<void> {
     const { name, playerIds, source, analysis, intent, repair } = draft;
     if (playerIds.length !== 5) return;
     const existingNames = new Set(
@@ -206,6 +232,35 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
       ...(intent ? { intent } : {}),
       ...(repair ? { repair } : {}),
     };
+    const nextTeamVersions = [
+      ...versions.filter((candidate) => candidate.teamId === selectedTeamId),
+      version,
+    ];
+
+    if (persistenceAvailable) {
+      const scenarioName = activeScenario?.name ?? `${selectedPool?.name ?? 'Lineup'} versions`;
+      const request: SaveScenarioRequest = {
+        name: scenarioName,
+        teamId: selectedTeamId,
+        selectedPlayerIds: version.playerIds,
+        activeParentClientVersionId: id,
+        versions: nextTeamVersions.map((candidate) => ({
+          clientVersionId: candidate.id,
+          ...(candidate.parentVersionId
+            ? { parentClientVersionId: candidate.parentVersionId }
+            : {}),
+          name: candidate.name,
+          source: candidate.source,
+          playerIds: candidate.playerIds,
+          ...(candidate.intent ? { intent: candidate.intent } : {}),
+          ...(candidate.repair ? { repair: candidate.repair } : {}),
+        })),
+      };
+      await saveScenarioMutation.mutateAsync({ name: scenarioName, request });
+      setActiveParentVersionId(id);
+      return;
+    }
+
     setVersions((current) => [...current, version]);
     setActiveParentVersionId(id);
   }
@@ -537,6 +592,7 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
                       analysisMutation.data
                         ? {
                             suggestedName: 'Manual lineup',
+                            durable: persistenceAvailable,
                             onSave: (name) =>
                               saveVersion({
                                 name,
@@ -569,6 +625,7 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
                 defaultMinimumCreators={selectedPool?.defaultMinimumCreators ?? 1}
                 onGeneratedLineup={useLineupForRepair}
                 onSaveVersion={saveVersion}
+                durableVersionSaving={persistenceAvailable}
                 onOpenRepair={() => navigate('/repair')}
                 onOpenCompare={() => navigate('/compare')}
               />
@@ -595,6 +652,7 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
             defaultMinimumShooters={selectedPool?.defaultMinimumShooters ?? 3}
             defaultMinimumCreators={selectedPool?.defaultMinimumCreators ?? 1}
             onSaveVersion={saveVersion}
+            durableVersionSaving={persistenceAvailable}
             onEditStartingFive={() => {
               setBuildWorkflow('manual');
               navigate('/build');
@@ -684,6 +742,7 @@ export function LineupBuilderPage({ routeWorkflow }: { routeWorkflow: WorkflowRo
               analysisMutation.data
                 ? {
                     suggestedName: 'Manual lineup',
+                    durable: persistenceAvailable,
                     onSave: (name) =>
                       saveVersion({
                         name,

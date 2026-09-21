@@ -1,13 +1,14 @@
 # Session versions and comparison
 
-Phase 7 introduced a tab-local decision trail. Phase 9 can now preserve that complete trail as an
-explicitly named PostgreSQL-backed scenario.
+Phase 7 introduced a tab-local decision trail. Phase 9 can now preserve that complete trail as a
+PostgreSQL-backed scenario.
 
 ## Session version behavior
 
 - A user explicitly names and saves an analyzed, generated, or repaired five.
-- Versions begin in React memory. When PostgreSQL is configured, saving their scenario makes the
-  complete branch history recoverable after a refresh.
+- Versions begin in React memory. When PostgreSQL is configured, **Save version** also creates or
+  updates the active durable scenario, making the complete branch history recoverable after a
+  refresh. Compare retains controls for renaming, syncing, and opening scenarios.
 - Names are made unique within the selected team by adding a numeric suffix when necessary.
 - Saving another result continues from the most recently saved version. Choosing **Branch from here** loads an earlier five into the manual builder and makes that version the parent of the next saved result.
 - Branching never mutates or replaces the earlier version.
