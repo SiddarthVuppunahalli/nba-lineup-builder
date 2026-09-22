@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import { savedScenarios, savedScenarioVersions } from './schema.js';
+import { toIsoTimestamp } from './postgres-timestamp.js';
 import type { ScenarioRepository, ScenarioWrite } from './scenario-repository.js';
 
 type Database = ReturnType<typeof drizzle>;
@@ -52,8 +53,8 @@ class PostgresScenarioRepository implements ScenarioRepository {
       name: row.name,
       teamId: row.teamId,
       versionCount: countById.get(row.id) ?? 0,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
+      createdAt: toIsoTimestamp(row.createdAt),
+      updatedAt: toIsoTimestamp(row.updatedAt),
     }));
   }
 
@@ -90,10 +91,10 @@ class PostgresScenarioRepository implements ScenarioRepository {
         analysis: version.analysis,
         dataVersion: version.dataVersion,
         scoringVersion: version.scoringVersion,
-        createdAt: version.createdAt,
+        createdAt: toIsoTimestamp(version.createdAt),
       })),
-      createdAt: scenario.createdAt,
-      updatedAt: scenario.updatedAt,
+      createdAt: toIsoTimestamp(scenario.createdAt),
+      updatedAt: toIsoTimestamp(scenario.updatedAt),
     };
   }
 

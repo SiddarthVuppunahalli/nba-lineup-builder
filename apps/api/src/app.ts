@@ -107,7 +107,7 @@ export function createApp(options: CreateAppOptions = {}) {
       const scenarios = await options.scenarioRepository.list(anonymousOwnerKey(key));
       response.status(200).json(savedScenariosResponseSchema.parse({ scenarios }));
     } catch (error) {
-      console.error('Failed to save lineup scenario.', error);
+      console.error('Failed to list lineup scenarios.', error);
       response
         .status(503)
         .json(
@@ -141,7 +141,8 @@ export function createApp(options: CreateAppOptions = {}) {
         return;
       }
       response.status(200).json(savedScenarioSchema.parse(scenario));
-    } catch {
+    } catch (error) {
+      console.error('Failed to load lineup scenario.', error);
       response
         .status(503)
         .json(
@@ -197,7 +198,8 @@ export function createApp(options: CreateAppOptions = {}) {
         return;
       }
       response.status(scenarioId ? 200 : 201).json(result.scenario);
-    } catch {
+    } catch (error) {
+      console.error('Failed to save lineup scenario.', error);
       response
         .status(503)
         .json(persistenceError('PERSISTENCE_ERROR', 'That scenario could not be saved right now.'));
