@@ -106,6 +106,7 @@ export function LineupBuilderPage({
     rosterQuery.data?.players.filter(
       (player) => player.profileStatus !== 'unavailable' && Boolean(player.profile),
     ) ?? [];
+  const manualDisclosureRef = useRef<HTMLDetailsElement>(null);
   const analysisMutation = useMutation({ mutationFn: postLineupAnalysis });
   const manualEditorRef = useRef<HTMLFormElement>(null);
   const { control, handleSubmit, reset, setValue } = useForm<LineupFormValues>({
@@ -539,40 +540,58 @@ export function LineupBuilderPage({
             className="build-method-panel"
           >
             <div className="build-method-workspace">
-              <form
-                className="roster-card build-editor"
-                onSubmit={handleSubmit(submitLineup)}
-                ref={manualEditorRef}
-                tabIndex={-1}
+              <details
+                className={`result-editor-disclosure ${analysisMutation.data ? 'result-editor-disclosure--active' : ''}`}
+                open={!analysisMutation.data}
+                ref={manualDisclosureRef}
               >
-                <div className="panel-header">
-                  <div>
-                    <span className="panel-kicker">Available roster</span>
-                    <h2>Select exactly five</h2>
+                <summary>
+                  <span>
+                    <span className="panel-kicker">Lineup setup</span>
+                    <strong>Edit selected five</strong>
+                  </span>
+                  <span className="result-editor-disclosure__status">
+                    {selectedPlayerIds.length} players selected
+                    <span className="result-editor-disclosure__chevron" aria-hidden="true">
+                      ↓
+                    </span>
+                  </span>
+                </summary>
+                <form
+                  className="roster-card build-editor"
+                  onSubmit={handleSubmit(submitLineup)}
+                  ref={manualEditorRef}
+                  tabIndex={-1}
+                >
+                  <div className="panel-header">
+                    <div>
+                      <span className="panel-kicker">Available roster</span>
+                      <h2>Select exactly five</h2>
+                    </div>
+                    <div
+                      className={`selection-count ${selectedPlayerIds.length === 5 ? 'is-complete' : ''}`}
+                    >
+                      <strong>{selectedPlayerIds.length}</strong>
+                      <span>/ 5</span>
+                    </div>
                   </div>
-                  <div
-                    className={`selection-count ${selectedPlayerIds.length === 5 ? 'is-complete' : ''}`}
-                  >
-                    <strong>{selectedPlayerIds.length}</strong>
-                    <span>/ 5</span>
+
+                  {rosterContent()}
+
+                  <div className="roster-actions">
+                    <p>
+                      {!rosterReady || !rosterQuery.data?.players.length
+                        ? 'Load an available roster to get started.'
+                        : selectedPlayerIds.length === 5
+                          ? 'Your five is ready for analysis.'
+                          : `Choose ${5 - selectedPlayerIds.length} more player${5 - selectedPlayerIds.length === 1 ? '' : 's'}.`}
+                    </p>
+                    <button className="analyze-button" type="submit" disabled={!canAnalyze}>
+                      Analyze lineup <span aria-hidden="true">→</span>
+                    </button>
                   </div>
-                </div>
-
-                {rosterContent()}
-
-                <div className="roster-actions">
-                  <p>
-                    {!rosterReady || !rosterQuery.data?.players.length
-                      ? 'Load an available roster to get started.'
-                      : selectedPlayerIds.length === 5
-                        ? 'Your five is ready for analysis.'
-                        : `Choose ${5 - selectedPlayerIds.length} more player${5 - selectedPlayerIds.length === 1 ? '' : 's'}.`}
-                  </p>
-                  <button className="analyze-button" type="submit" disabled={!canAnalyze}>
-                    Analyze lineup <span aria-hidden="true">→</span>
-                  </button>
-                </div>
-              </form>
+                </form>
+              </details>
 
               {analysisMutation.isPending || analysisMutation.error || analysisMutation.data ? (
                 <div className="build-results" aria-live="polite">
@@ -585,7 +604,10 @@ export function LineupBuilderPage({
                     onRetry={() => void handleSubmit(submitLineup)()}
                     canRetry={canAnalyze}
                     revealOnSuccess
-                    onBackToEditing={() => returnToEditor(manualEditorRef.current)}
+                    onBackToEditing={() => {
+                      if (manualDisclosureRef.current) manualDisclosureRef.current.open = true;
+                      returnToEditor(manualEditorRef.current);
+                    }}
                     onRepair={() => navigate('/repair')}
                     onCompare={() => navigate('/compare')}
                     versionSave={

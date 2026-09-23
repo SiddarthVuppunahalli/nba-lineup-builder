@@ -595,6 +595,11 @@ describe('manual lineup builder', () => {
       await screen.findByRole('heading', { name: 'How this five fits together.' }),
     ).toBeVisible();
     expect(screen.getByText('Strong spacing')).toBeVisible();
+    const lineupDisclosure = screen.getByText('Edit selected five').closest('details')!;
+    expect(lineupDisclosure).not.toHaveAttribute('open');
+    expect(
+      screen.getByRole('heading', { name: 'Select exactly five', hidden: true }),
+    ).not.toBeVisible();
 
     const analysisSection = screen
       .getByRole('heading', { name: 'How this five fits together.' })
@@ -606,6 +611,8 @@ describe('manual lineup builder', () => {
     expect(within(shootingCard!).getByText('Lineup average · 100%')).toBeVisible();
     expect(within(shootingCard!).getByText('91.2 / 100')).toBeVisible();
 
+    await user.click(screen.getByText('Edit selected five'));
+    expect(lineupDisclosure).toHaveAttribute('open');
     await user.click(screen.getByRole('button', { name: 'Remove Jordan Vega' }));
     expect(
       screen.queryByRole('heading', { name: 'How this five fits together.' }),
@@ -829,6 +836,12 @@ describe('structured lineup generation', () => {
     expect(screen.getByText('Credible shooters')).toBeVisible();
     expect(screen.getByText(/Ranked first among 4 valid lineups/)).toBeVisible();
 
+    const generationDisclosure = screen
+      .getByText('Edit goals and requirements')
+      .closest('details')!;
+    expect(generationDisclosure).not.toHaveAttribute('open');
+    await user.click(screen.getByText('Edit goals and requirements'));
+    expect(generationDisclosure).toHaveAttribute('open');
     await user.click(screen.getByText('Advanced controls'));
     await user.selectOptions(screen.getByLabelText('Shooting', { selector: 'select' }), '0.5');
     expect(
@@ -1011,8 +1024,11 @@ describe('structured lineup generation', () => {
       behavior: 'smooth',
       block: 'start',
     });
+    const lineupDisclosure = screen.getByText('Edit selected five').closest('details')!;
+    expect(lineupDisclosure).not.toHaveAttribute('open');
 
     await user.click(screen.getByRole('button', { name: 'Back to editing' }));
+    expect(lineupDisclosure).toHaveAttribute('open');
     expect(editor).toHaveFocus();
     for (const name of playerNames.slice(0, 5)) {
       expect(screen.getByRole('button', { name: `Remove ${name}` })).toBeVisible();
@@ -1225,6 +1241,7 @@ describe('session lineup versions', () => {
     await user.type(firstName, 'Balanced start');
     await user.click(screen.getByRole('button', { name: 'Save version' }));
 
+    await user.click(screen.getByText('Edit selected five'));
     await user.click(screen.getByRole('button', { name: 'Remove Samir Cole' }));
     await user.click(screen.getByRole('button', { name: 'Select Darius Knox' }));
     await user.click(screen.getByRole('button', { name: 'Analyze lineup' }));
@@ -1257,8 +1274,11 @@ describe('session lineup versions', () => {
     expect(screen.getByRole('heading', { name: 'Balanced start Defense branch' })).toHaveFocus();
     expect(screen.getByText('× Misses')).toBeVisible();
     expect(screen.getByText('✓ Meets')).toBeVisible();
+    const comparisonDisclosure = screen.getByText('Edit comparison').closest('details')!;
+    expect(comparisonDisclosure).not.toHaveAttribute('open');
 
     await user.click(screen.getByRole('button', { name: 'Back to selection' }));
+    expect(comparisonDisclosure).toHaveAttribute('open');
     expect(
       screen.getByRole('heading', { name: 'Choose the two lineups' }).closest('form'),
     ).toHaveFocus();

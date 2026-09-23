@@ -49,6 +49,7 @@ export function SessionVersionsWorkspace({
 }: SessionVersionsWorkspaceProps) {
   const [beforeId, setBeforeId] = useState('');
   const [afterId, setAfterId] = useState('');
+  const selectionDisclosureRef = useRef<HTMLDetailsElement>(null);
   const selectionRef = useRef<HTMLFormElement>(null);
   const mutation = useMutation({ mutationFn: postLineupComparison });
   const resetComparison = mutation.reset;
@@ -158,101 +159,119 @@ export function SessionVersionsWorkspace({
         )}
       </section>
 
-      <form
-        className="roster-card comparison-form"
-        onSubmit={handleSubmit(compare)}
-        ref={selectionRef}
-        tabIndex={-1}
+      <details
+        className={`result-editor-disclosure ${mutation.data ? 'result-editor-disclosure--active' : ''}`}
+        open={!mutation.data}
+        ref={selectionDisclosureRef}
       >
-        <div className="panel-header">
-          <div>
-            <span className="step-label">
-              <b>2</b> Select versions
+        <summary>
+          <span>
+            <span className="panel-kicker">Comparison setup</span>
+            <strong>Edit comparison</strong>
+          </span>
+          <span className="result-editor-disclosure__status">
+            {before && after ? `${before.name} vs ${after.name}` : 'Two versions selected'}
+            <span className="result-editor-disclosure__chevron" aria-hidden="true">
+              ↓
             </span>
-            <h2>Choose the two lineups</h2>
+          </span>
+        </summary>
+        <form
+          className="roster-card comparison-form"
+          onSubmit={handleSubmit(compare)}
+          ref={selectionRef}
+          tabIndex={-1}
+        >
+          <div className="panel-header">
+            <div>
+              <span className="step-label">
+                <b>2</b> Select versions
+              </span>
+              <h2>Choose the two lineups</h2>
+            </div>
           </div>
-        </div>
-        {versions.length < 2 ? (
-          <p className="versions-empty">Save at least two versions to compare their decisions.</p>
-        ) : (
-          <>
-            <div className="version-selectors">
-              <label>
-                <span>Starting version</span>
-                <select
-                  value={selectedBeforeId}
-                  onChange={(event) => setBeforeId(event.target.value)}
-                >
-                  {versions.map((version) => (
-                    <option value={version.id} key={version.id}>
-                      {version.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>Compared version</span>
-                <select
-                  value={selectedAfterId}
-                  onChange={(event) => setAfterId(event.target.value)}
-                >
-                  {versions
-                    .filter((version) => version.id !== selectedBeforeId)
-                    .map((version) => (
+          {versions.length < 2 ? (
+            <p className="versions-empty">Save at least two versions to compare their decisions.</p>
+          ) : (
+            <>
+              <div className="version-selectors">
+                <label>
+                  <span>Starting version</span>
+                  <select
+                    value={selectedBeforeId}
+                    onChange={(event) => setBeforeId(event.target.value)}
+                  >
+                    {versions.map((version) => (
                       <option value={version.id} key={version.id}>
                         {version.name}
                       </option>
                     ))}
-                </select>
-              </label>
-            </div>
-            {before && after ? (
-              <div className="selected-comparison" aria-label="Selected comparison versions">
-                <article>
-                  <span>Starting version</span>
-                  <strong>{before.name}</strong>
-                  <small>
-                    {before.playerIds
-                      .map((id) => roster.find((player) => player.id === id)?.name ?? id)
-                      .join(' · ')}
-                  </small>
-                </article>
-                <span className="selected-comparison__arrow" aria-hidden="true">
-                  →
-                </span>
-                <article>
+                  </select>
+                </label>
+                <label>
                   <span>Compared version</span>
-                  <strong>{after.name}</strong>
-                  <small>
-                    {after.playerIds
-                      .map((id) => roster.find((player) => player.id === id)?.name ?? id)
-                      .join(' · ')}
-                  </small>
-                </article>
+                  <select
+                    value={selectedAfterId}
+                    onChange={(event) => setAfterId(event.target.value)}
+                  >
+                    {versions
+                      .filter((version) => version.id !== selectedBeforeId)
+                      .map((version) => (
+                        <option value={version.id} key={version.id}>
+                          {version.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
               </div>
-            ) : null}
-            <details className="comparison-requirements">
-              <summary>Comparison priorities and requirements</summary>
-              <p>
-                These settings evaluate both versions equally; they do not change either saved
-                lineup.
-              </p>
-              <IntentControls
-                roster={roster}
-                register={register}
-                requiredPlayerIds={[]}
-                excludedPlayerIds={[]}
-                onTogglePlayer={() => undefined}
-                showPlayerRules={false}
-              />
-            </details>
-            <button className="analyze-button" type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Comparing…' : 'Compare versions'}{' '}
-              <span aria-hidden="true">→</span>
-            </button>
-          </>
-        )}
-      </form>
+              {before && after ? (
+                <div className="selected-comparison" aria-label="Selected comparison versions">
+                  <article>
+                    <span>Starting version</span>
+                    <strong>{before.name}</strong>
+                    <small>
+                      {before.playerIds
+                        .map((id) => roster.find((player) => player.id === id)?.name ?? id)
+                        .join(' · ')}
+                    </small>
+                  </article>
+                  <span className="selected-comparison__arrow" aria-hidden="true">
+                    →
+                  </span>
+                  <article>
+                    <span>Compared version</span>
+                    <strong>{after.name}</strong>
+                    <small>
+                      {after.playerIds
+                        .map((id) => roster.find((player) => player.id === id)?.name ?? id)
+                        .join(' · ')}
+                    </small>
+                  </article>
+                </div>
+              ) : null}
+              <details className="comparison-requirements">
+                <summary>Comparison priorities and requirements</summary>
+                <p>
+                  These settings evaluate both versions equally; they do not change either saved
+                  lineup.
+                </p>
+                <IntentControls
+                  roster={roster}
+                  register={register}
+                  requiredPlayerIds={[]}
+                  excludedPlayerIds={[]}
+                  onTogglePlayer={() => undefined}
+                  showPlayerRules={false}
+                />
+              </details>
+              <button className="analyze-button" type="submit" disabled={mutation.isPending}>
+                {mutation.isPending ? 'Comparing…' : 'Compare versions'}{' '}
+                <span aria-hidden="true">→</span>
+              </button>
+            </>
+          )}
+        </form>
+      </details>
 
       {mutation.isPending ? (
         <section className="analysis-card analysis-loading comparison-state" aria-live="polite">
@@ -282,6 +301,7 @@ export function SessionVersionsWorkspace({
           afterName={after.name}
           roster={roster}
           onBackToSelection={() => {
+            if (selectionDisclosureRef.current) selectionDisclosureRef.current.open = true;
             const selection = selectionRef.current;
             if (!selection) return;
             selection.focus({ preventScroll: true });

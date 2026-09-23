@@ -62,9 +62,12 @@ export function GenerationWorkspace({
     minimumShooters: defaultMinimumShooters,
     minimumCreators: defaultMinimumCreators,
   };
+  const disclosureRef = useRef<HTMLDetailsElement>(null);
   const mutation = useMutation({
     mutationFn: postLineupGeneration,
-    onSuccess: (response) => onGeneratedLineup([...response.winner.lineup.playerIds]),
+    onSuccess: (response) => {
+      onGeneratedLineup([...response.winner.lineup.playerIds]);
+    },
   });
   const resetGeneration = mutation.reset;
   const { control, register, handleSubmit, reset, setValue } = useForm<LineupIntentDto>({
@@ -104,57 +107,75 @@ export function GenerationWorkspace({
 
   return (
     <div className="build-method-workspace generation-layout">
-      <form
-        className="roster-card generation-form build-editor"
-        onSubmit={handleSubmit(submit)}
-        ref={editorRef}
-        tabIndex={-1}
+      <details
+        className={`result-editor-disclosure ${response ? 'result-editor-disclosure--active' : ''}`}
+        open={!response}
+        ref={disclosureRef}
       >
-        <div className="panel-header">
-          <div>
-            <span className="panel-kicker">Structured intent</span>
-            <h2>Shape your best five</h2>
-          </div>
-          <button className="text-button" type="button" onClick={() => reset(initialIntent)}>
-            Reset
-          </button>
-        </div>
-
-        <NaturalLanguageIntent key={teamId} teamId={teamId} onApply={(intent) => reset(intent)} />
-
-        <details className="advanced-intent">
-          <summary>
-            <span>
-              <strong>Advanced controls</strong>
-              <small>Priorities, role minimums, score floors, and player rules</small>
+        <summary>
+          <span>
+            <span className="panel-kicker">Generation setup</span>
+            <strong>Edit goals and requirements</strong>
+          </span>
+          <span className="result-editor-disclosure__status">
+            Lineup generated
+            <span className="result-editor-disclosure__chevron" aria-hidden="true">
+              ↓
             </span>
-            <span aria-hidden="true">+</span>
-          </summary>
-          <IntentControls
-            roster={roster}
-            register={register}
-            requiredPlayerIds={values.requiredPlayerIds ?? []}
-            excludedPlayerIds={values.excludedPlayerIds ?? []}
-            onTogglePlayer={togglePlayer}
-          />
-        </details>
+          </span>
+        </summary>
+        <form
+          className="roster-card generation-form build-editor"
+          onSubmit={handleSubmit(submit)}
+          ref={editorRef}
+          tabIndex={-1}
+        >
+          <div className="panel-header">
+            <div>
+              <span className="panel-kicker">Structured intent</span>
+              <h2>Shape your best five</h2>
+            </div>
+            <button className="text-button" type="button" onClick={() => reset(initialIntent)}>
+              Reset
+            </button>
+          </div>
 
-        <div className="roster-actions">
-          <p>
-            {usesLeagueSolver
-              ? 'Uses a time-limited full-pool solver across every eligible league player, with a deterministic fallback.'
-              : 'Searches every five-player combination in this roster.'}
-          </p>
-          <button
-            className="analyze-button"
-            type="submit"
-            disabled={mutation.isPending || roster.length < 5}
-          >
-            {mutation.isPending ? 'Generating…' : 'Generate lineup'}{' '}
-            <span aria-hidden="true">→</span>
-          </button>
-        </div>
-      </form>
+          <NaturalLanguageIntent key={teamId} teamId={teamId} onApply={(intent) => reset(intent)} />
+
+          <details className="advanced-intent">
+            <summary>
+              <span>
+                <strong>Advanced controls</strong>
+                <small>Priorities, role minimums, score floors, and player rules</small>
+              </span>
+              <span aria-hidden="true">+</span>
+            </summary>
+            <IntentControls
+              roster={roster}
+              register={register}
+              requiredPlayerIds={values.requiredPlayerIds ?? []}
+              excludedPlayerIds={values.excludedPlayerIds ?? []}
+              onTogglePlayer={togglePlayer}
+            />
+          </details>
+
+          <div className="roster-actions">
+            <p>
+              {usesLeagueSolver
+                ? 'Uses a time-limited full-pool solver across every eligible league player, with a deterministic fallback.'
+                : 'Searches every five-player combination in this roster.'}
+            </p>
+            <button
+              className="analyze-button"
+              type="submit"
+              disabled={mutation.isPending || roster.length < 5}
+            >
+              {mutation.isPending ? 'Generating…' : 'Generate lineup'}{' '}
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </form>
+      </details>
 
       <div className="generation-result build-results" aria-live="polite">
         {mutation.isPending || mutation.error || response ? (
@@ -182,6 +203,7 @@ export function GenerationWorkspace({
             mode="generation"
             revealOnSuccess
             onBackToEditing={() => {
+              if (disclosureRef.current) disclosureRef.current.open = true;
               const editor = editorRef.current;
               if (!editor) return;
               editor.focus({ preventScroll: true });
