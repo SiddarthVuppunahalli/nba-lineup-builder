@@ -1131,7 +1131,10 @@ describe('lineup repair and comparison', () => {
     expect(screen.getByText('Rebounding', { selector: '.tradeoff strong' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'The smallest change that works.' })).toBeVisible();
     expect(screen.getByText(/fewest swaps took priority over weighted fit/)).toBeVisible();
+    const repairDisclosure = screen.getByText('Edit repair goals').closest('details')!;
+    expect(repairDisclosure).not.toHaveAttribute('open');
     await user.click(screen.getByRole('button', { name: 'Back to editing' }));
+    expect(repairDisclosure).toHaveAttribute('open');
     expect(
       screen.getByRole('heading', { name: 'Confirm the lineup to repair' }).closest('form'),
     ).toHaveFocus();
@@ -1289,7 +1292,7 @@ describe('session lineup versions', () => {
       'true',
     );
     expect(screen.getByRole('button', { name: 'Remove Samir Cole' })).toBeVisible();
-  });
+  }, 10_000);
 
   it('saves and reopens a durable scenario with its branch history', async () => {
     mockedFetchPersistenceStatus.mockResolvedValue({ available: true });

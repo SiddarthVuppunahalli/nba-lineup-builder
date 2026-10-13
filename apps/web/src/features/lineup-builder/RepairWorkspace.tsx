@@ -61,6 +61,7 @@ export function RepairWorkspace({
   });
   const values = useWatch({ control });
   const initialized = useRef(false);
+  const disclosureRef = useRef<HTMLDetailsElement>(null);
   const editorRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -105,76 +106,99 @@ export function RepairWorkspace({
         </p>
       </header>
 
-      <form
-        className="roster-card generation-form repair-editor"
-        onSubmit={handleSubmit(submit)}
-        ref={editorRef}
-        tabIndex={-1}
+      <details
+        className={`result-editor-disclosure ${response ? 'result-editor-disclosure--active' : ''}`}
+        open={!response}
+        ref={disclosureRef}
       >
-        <div className="panel-header">
-          <div>
-            <span className="step-label">
-              <b>1</b> Starting five
+        <summary>
+          <span>
+            <span className="panel-kicker">Repair setup</span>
+            <strong>Edit repair goals</strong>
+          </span>
+          <span className="result-editor-disclosure__status">
+            Repaired lineup ready
+            <span className="result-editor-disclosure__chevron" aria-hidden="true">
+              ↓
             </span>
-            <h2>Confirm the lineup to repair</h2>
-          </div>
-          <button className="text-button" type="button" onClick={onEditStartingFive}>
-            Edit in Build
-          </button>
-        </div>
-
-        <div className="repair-starting-five">
-          <span>Starting five</span>
-          <strong>
-            {currentPlayerIds
-              .map((id) => roster.find((player) => player.id === id)?.name ?? id)
-              .join(' · ')}
-          </strong>
-        </div>
-
-        <section className="repair-intent" aria-labelledby="repair-intent-title">
-          <div className="repair-section-heading">
+          </span>
+        </summary>
+        <form
+          className="roster-card generation-form repair-editor"
+          onSubmit={handleSubmit(submit)}
+          ref={editorRef}
+          tabIndex={-1}
+        >
+          <div className="panel-header">
             <div>
               <span className="step-label">
-                <b>2</b> New intent
+                <b>1</b> Starting five
               </span>
-              <h2 id="repair-intent-title">Describe what needs to change</h2>
+              <h2>Confirm the lineup to repair</h2>
             </div>
-            <button className="text-button" type="button" onClick={() => reset(initialIntent)}>
-              Reset intent
+            <button className="text-button" type="button" onClick={onEditStartingFive}>
+              Edit in Build
             </button>
           </div>
 
-          <NaturalLanguageIntent key={teamId} teamId={teamId} onApply={(intent) => reset(intent)} />
+          <div className="repair-starting-five">
+            <span>Starting five</span>
+            <strong>
+              {currentPlayerIds
+                .map((id) => roster.find((player) => player.id === id)?.name ?? id)
+                .join(' · ')}
+            </strong>
+          </div>
 
-          <details className="advanced-intent">
-            <summary>
-              <span>
-                <strong>Configure intent</strong>
-                <small>Priorities, hard requirements, score floors, and player rules</small>
-              </span>
-              <span aria-hidden="true">+</span>
-            </summary>
-            <IntentControls
-              roster={roster}
-              register={register}
-              requiredPlayerIds={values.requiredPlayerIds ?? []}
-              excludedPlayerIds={values.excludedPlayerIds ?? []}
-              onTogglePlayer={togglePlayer}
+          <section className="repair-intent" aria-labelledby="repair-intent-title">
+            <div className="repair-section-heading">
+              <div>
+                <span className="step-label">
+                  <b>2</b> New intent
+                </span>
+                <h2 id="repair-intent-title">Describe what needs to change</h2>
+              </div>
+              <button className="text-button" type="button" onClick={() => reset(initialIntent)}>
+                Reset intent
+              </button>
+            </div>
+
+            <NaturalLanguageIntent
+              key={teamId}
+              teamId={teamId}
+              onApply={(intent) => reset(intent)}
             />
-          </details>
-        </section>
 
-        <div className="roster-actions">
-          <p>
-            <strong>3 · Run repair.</strong> Fewest swaps first, then the strongest fit among
-            equally small changes.
-          </p>
-          <button className="analyze-button" type="submit" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Repairing…' : 'Repair lineup'} <span aria-hidden="true">→</span>
-          </button>
-        </div>
-      </form>
+            <details className="advanced-intent">
+              <summary>
+                <span>
+                  <strong>Configure intent</strong>
+                  <small>Priorities, hard requirements, score floors, and player rules</small>
+                </span>
+                <span aria-hidden="true">+</span>
+              </summary>
+              <IntentControls
+                roster={roster}
+                register={register}
+                requiredPlayerIds={values.requiredPlayerIds ?? []}
+                excludedPlayerIds={values.excludedPlayerIds ?? []}
+                onTogglePlayer={togglePlayer}
+              />
+            </details>
+          </section>
+
+          <div className="roster-actions">
+            <p>
+              <strong>3 · Run repair.</strong> Fewest swaps first, then the strongest fit among
+              equally small changes.
+            </p>
+            <button className="analyze-button" type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? 'Repairing…' : 'Repair lineup'}{' '}
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </form>
+      </details>
 
       <div className="generation-result build-results repair-results" aria-live="polite">
         {response && <ComparisonPanel response={response} roster={roster} />}
@@ -202,6 +226,7 @@ export function RepairWorkspace({
             }
             mode="repair"
             onBackToEditing={() => {
+              if (disclosureRef.current) disclosureRef.current.open = true;
               const editor = editorRef.current;
               if (!editor) return;
               editor.focus({ preventScroll: true });

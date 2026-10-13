@@ -635,6 +635,11 @@ a:focus-visible {
   display: none;
 }
 
+.result-editor-disclosure--active > summary:focus-visible {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 4px;
+}
+
 .result-editor-disclosure--active > summary > span:first-child {
   display: grid;
   min-width: 0;
@@ -679,13 +684,24 @@ a:focus-visible {
   margin-top: 10px;
 }
 
-.build-experience #choose-players-panel .build-editor {
+.build-editor,
+.repair-editor,
+.comparison-form {
+  scroll-margin-top: 24px;
+}
+
+.build-experience .roster-card,
+.repair-workflow .roster-card,
+.versions-workspace .roster-card {
   position: static;
+}
+
+.build-experience #choose-players-panel .build-editor {
   display: flex;
-  max-height: calc(100svh - 17rem);
+  max-height: none;
   width: 100%;
   min-width: 0;
-  min-height: 22rem;
+  min-height: 0;
   overflow: visible;
   flex-direction: column;
 }
@@ -694,6 +710,7 @@ a:focus-visible {
   flex: 1;
   min-height: 0;
   max-height: none;
+  overflow: visible;
 }
 
 .build-results {
@@ -1028,6 +1045,7 @@ a:focus-visible {
 .comparison-card h2 {
   margin: 7px 0 20px;
   font-size: clamp(26px, 2.5vw, 36px);
+  scroll-margin-top: 24px;
 }
 
 .repair-constraint-summary {
@@ -1694,10 +1712,6 @@ a:focus-visible {
   min-width: 0;
 }
 
-.versions-workspace .roster-card {
-  position: static;
-}
-
 .compare-intro {
   margin-bottom: -0.25rem;
 }
@@ -2051,12 +2065,16 @@ a:focus-visible {
   }
 
   .constraint-comparison {
-    overflow-x: auto;
+    overflow-x: visible;
   }
 
   .constraint-comparison__header,
   .constraint-comparison__row {
-    min-width: 34rem;
+    grid-template-columns: minmax(0, 1fr) minmax(4.25rem, 0.55fr) minmax(4.25rem, 0.55fr);
+    min-width: 0;
+    gap: 0.4rem;
+    padding-inline: 0.45rem;
+    font-size: 0.72rem;
   }
 }
 
@@ -2749,6 +2767,7 @@ a:focus-visible {
 /* Arena redesign: landing, editorial pages, and the navigation foundation. */
 html {
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
   background: var(--color-page);
 }
 
